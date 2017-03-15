@@ -2,20 +2,21 @@ package ch.epfl.k2sjsir
 
 import java.io.{File, FileOutputStream}
 
+import ch.epfl.k2sjsir.codegen.Positioner
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.ir.declarations.{IrClass, IrDeclarationKind}
 import org.scalajs.core.ir.Trees.OptimizerHints
-import org.scalajs.core.ir.{ClassKind, InfoSerializers, Infos, InvalidIRException, Position, Serializers, Trees => js}
+import org.scalajs.core.ir.{ClassKind, InfoSerializers, Infos, InvalidIRException, Serializers, Trees => js}
 
-class Codegen(val context: JvmBackendContext) {
+class Codegen(val context: JvmBackendContext, val positioner: Positioner) {
 
   def generateClass(irClass: IrClass): Unit = {
     import CodeGen._
 
     // Call here to create the tree...
-    implicit val dummyPos = Position.NoPosition
+    implicit val pos = positioner.getPos(irClass.getStartOffset)
     val tree = js.ClassDef(js.Ident("Test"), ClassKind.Class, None, Nil, None, Nil)(OptimizerHints.empty)
 
     val outDir = context.getState.getConfiguration.get(JVMConfigurationKeys.OUTPUT_DIRECTORY).toString

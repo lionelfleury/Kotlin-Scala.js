@@ -17,9 +17,11 @@ package ch.epfl.k2sjsir
  * limitations under the License.
  */
 
+import ch.epfl.k2sjsir.codegen.Positioner
 import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
+import org.jetbrains.kotlin.ir.SourceManager.FileEntry
 import org.jetbrains.kotlin.ir.declarations.{IrClass, IrFile}
 import org.jetbrains.kotlin.psi2ir.Psi2IrTranslator
 
@@ -46,7 +48,8 @@ object Backend {
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
     val lower = new JvmLower(context)
-    val codegen = new Codegen(context)
+    val positioner = new Positioner(irFile)
+    val codegen = new Codegen(context, positioner)
     lower.lower(irFile)
     for (loweredClass <- irFile.getDeclarations) {
       if (!loweredClass.isInstanceOf[IrClass])
