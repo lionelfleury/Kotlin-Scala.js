@@ -5,7 +5,7 @@ import java.io.{File, FileOutputStream}
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.{IrClass, IrDeclarationKind}
 import org.scalajs.core.ir.Trees.OptimizerHints
 import org.scalajs.core.ir.{ClassKind, InfoSerializers, Infos, InvalidIRException, Position, Serializers, Trees => js}
 
@@ -20,15 +20,16 @@ class Codegen(val context: JvmBackendContext) {
 
     val outDir = context.getState.getConfiguration.get(JVMConfigurationKeys.OUTPUT_DIRECTORY).toString
     if (outDir == null) sys.error("No output directory found...")
-    genIRFile(outDir, irClass.getDescriptor, Some(""), tree)
+    val suffix = if (irClass.getDeclarationKind == IrDeclarationKind.MODULE) "$" else ""
+    genIRFile(outDir, irClass.getDescriptor, suffix, tree)
   }
 
 }
 
 private object CodeGen {
 
-  def genIRFile(outDir: String, sym: ClassDescriptor, suffix: Option[String], tree: js.ClassDef): Unit = {
-    val file = new File(outDir + "/" + sym.getName + ".sjsir")
+  def genIRFile(outDir: String, sym: ClassDescriptor, suffix: String, tree: js.ClassDef): Unit = {
+    val file = new File(outDir + "/" + sym.getName + suffix + ".sjsir")
     file.getParentFile.mkdir()
     val output = new FileOutputStream(file)
     try {
