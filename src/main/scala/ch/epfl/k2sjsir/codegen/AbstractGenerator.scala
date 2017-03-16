@@ -8,7 +8,7 @@ import org.scalajs.core.ir.Types._
 
 import scala.language.implicitConversions
 
-abstract class AbstractGenerator(d: IrElement, p: Positioner) {
+abstract class AbstractGenerator[T <: IrElement](d: T, p: Positioner) {
 
   implicit protected def pos: Position = p.getPos(d.getStartOffset)
 
