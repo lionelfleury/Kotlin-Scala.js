@@ -1,8 +1,9 @@
 package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.NameEncoder
-import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.{ClassDescriptor, PackageFragmentDescriptor}
 import org.jetbrains.kotlin.ir.declarations._
+import org.jetbrains.kotlin.resolve
 import org.scalajs.core.ir.Trees._
 
 case class GenFun(irFunction: IrFunction, p: Positioner)
@@ -15,7 +16,10 @@ case class GenFun(irFunction: IrFunction, p: Positioner)
 
   private def genConstructor(): Tree = {
     val descriptor = irFunction.getDescriptor
-    val owner = descriptor.getContainingDeclaration.asInstanceOf[ClassDescriptor].getName.asString()
+    val owner = descriptor.getContainingDeclaration match  {
+      case x : ClassDescriptor => x.getName.asString()
+      case x : PackageFragmentDescriptor => throw new Exception("Function at package level are not yet supported")
+    }
     val methodName = NameEncoder.encodeMethodIdent(descriptor, owner)
     val args = Nil
     val resultType = descriptor.getReturnType.toJsType
