@@ -5,12 +5,13 @@ import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.ir.declarations._
 import org.scalajs.core.ir.Trees._
 
-case class GenFun(d: IrFunction, p: Positioner)
-  extends AbstractGenerator(d, p) {
+case class GenFun(d: IrFunction, p: Positioner) extends AbstractGenerator(d, p) {
 
   def generate(): Tree = d match {
     case _: IrConstructor => genConstructor()
-    case _ => genConstructor()
+    case x =>
+      println(s"Not supported Declaration: $d")
+      Skip()
   }
 
   private def genConstructor(): Tree = {

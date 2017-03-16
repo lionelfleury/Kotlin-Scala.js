@@ -20,13 +20,13 @@ case class GenStat[T <: IrStatement](d: T, p: Positioner) extends AbstractGenera
       val args = Nil
       val tpe = Types.NoType
       js.ApplyStatically(this_, classTpe, name, args)(tpe)
-    case b: IrBlock => GenBlock(b, p).generate()
-    case f: IrFunction => GenFun(f, p).generate()
     case c: IrInstanceInitializerCall =>
       val classDescriptor = c.getClassDescriptor
       val tpe = GenClass.getClassType(classDescriptor)
       val this_ = js.This()(Types.NoType)
       js.StoreModule(tpe, this_)
+    case b: IrBlock => GenBlock(b, p).generate()
+    case f: IrFunction => GenFun(f, p).generate()
     case _ =>
       println(s"Not supported Statement: $d")
       Skip()
