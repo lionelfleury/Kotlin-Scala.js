@@ -16,6 +16,7 @@ class Codegen(context: JvmBackendContext, p: Positioner) {
     val tree = GenClass(irClass, p).generate()
     val outDir = context.getState.getConfiguration.get(JVMConfigurationKeys.OUTPUT_DIRECTORY).toString
     if (outDir == null) sys.error("No output directory found...")
+
     val suffix = if (irClass.getDeclarationKind == IrDeclarationKind.MODULE) "$" else ""
     genIRFile(outDir, irClass.getDescriptor, suffix, tree)
   }

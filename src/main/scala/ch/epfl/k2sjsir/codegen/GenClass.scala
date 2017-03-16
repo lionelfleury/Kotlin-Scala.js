@@ -2,13 +2,13 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.NameEncoder
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.ClassKind._
 import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationKind._
 import org.jetbrains.kotlin.name.SpecialNames.NO_NAME_PROVIDED
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt
 import org.jetbrains.kotlin.types.ErrorUtils
 import org.scalajs.core.ir.Trees.{ClassDef, OptimizerHints}
-import org.scalajs.core.ir.{ClassKind, Position, Trees => js}
+import org.scalajs.core.ir.{ClassKind, Position, Types, Trees => js}
 
 import scala.collection.JavaConversions._
 import scala.language.implicitConversions
@@ -27,19 +27,19 @@ case class GenClass(irClass: IrClass, p: Positioner) extends AbstractGenerator(i
       throw new Error("Class descriptor error")
     }
 
-    val classIdent = getClassNameIdent(descriptor, pos)
-    val kind = irClass.getDeclarationKind match {
+    val classIdent = getClassIdent(descriptor, pos)
+    val kind = descriptor.getKind match {
       case CLASS => ClassKind.Class
-      case MODULE => ClassKind.ModuleClass
+      case OBJECT => ClassKind.ModuleClass
       //      case ENUM_ENTRY =>
       case k => throw new Error(s"No match for ClassKind $k")
     }
 
     val superClassDescriptor = DescriptorUtilsKt.getSuperClassOrAny(descriptor)
-    val superClass = getClassNameIdent(superClassDescriptor, pos)
+    val superClass = getClassIdent(superClassDescriptor, pos)
 
     val interfacesDescriptors = DescriptorUtilsKt.getSuperInterfaces(descriptor)
-    val interfaces = for (i <- interfacesDescriptors) yield getClassNameIdent(i, pos)
+    val interfaces = for (i <- interfacesDescriptors) yield getClassIdent(i, pos)
 
     val jsNativeLoadSpec = None
 
@@ -55,13 +55,12 @@ case class GenClass(irClass: IrClass, p: Positioner) extends AbstractGenerator(i
 
 object GenClass {
 
-  def getClassNameIdent(d: ClassDescriptor, pos: Position): js.Ident = {
-    val name = d.getName.asString()
-    val isModule = d.isCompanionObject
-    name match {
-      case "Any" => js.Ident("O", Some("java.lang.Object"))(pos)
-      case _ => NameEncoder.encodeClassFullNameIdent(name, isModule)(pos)
-    }
+  def getClassType(d: ClassDescriptor): Types.ClassType = {
+    Types.ClassType(NameEncoder.encodeClassFullName(d))
+  }
+
+  def getClassIdent(d: ClassDescriptor, pos: Position): js.Ident = {
+    NameEncoder.encodeClassFullNameIdent(d)(pos)
   }
 
 }

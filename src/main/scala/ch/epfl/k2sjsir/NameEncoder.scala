@@ -1,10 +1,11 @@
 package ch.epfl.k2sjsir
 
-import org.jetbrains.kotlin.descriptors.FunctionDescriptor
+import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.typeUtil.TypeUtilsKt._
-import org.scalajs.core.ir.{Definitions, Position}
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.{Definitions, Position}
 
 import scala.collection.JavaConversions._
 import scala.language.implicitConversions
@@ -22,30 +23,38 @@ object NameEncoder {
   /** Name given to all exported stuff of a class for DCE */
   val dceExportName = "<exported>"
 
-  def encodeClassFullNameIdent(name: String, isModule: Boolean)(implicit pos: Position): Ident =
-    Ident(encodeClassFullName(name, isModule))
+  private def getClassName(d: ClassDescriptor): String = d.getName.asString() match {
+    case "Any" => "java.lang.Object"
+    case x => x
+  }
 
-  private def encodeClassFullName(name: String, isModule: Boolean) = {
-    val suffix = if (isModule) "$" else ""
+  def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
+    Ident(encodeClassFullName(d))
+
+  def encodeClassFullName(d: ClassDescriptor): String = {
+    val suffix = if (d.getKind == ClassKind.OBJECT) "$" else ""
+    val name = getClassName(d)
     Definitions.encodeClassName(name + suffix)
   }
 
   def encodeMethodIdent(d: FunctionDescriptor,
-                        owner: String,
+                        owner: ClassDescriptor,
                         reflProxy: Boolean = false)(implicit pos: Position): Ident = {
     val (encodedName, paramsString) = encodeMethodNameInternal(d, owner, reflProxy)
     Ident(encodedName + paramsString, Some(d.getName.asString() + paramsString))
   }
 
   private def encodeMethodNameInternal(d: FunctionDescriptor,
-                                       owner: String,
+                                       owner: ClassDescriptor,
                                        reflProxy: Boolean = false,
                                        inRTClass: Boolean = false): (String, String) = {
     //        require(sym.isMethod, "encodeMethodSym called with non-method symbol: " + sym)
 
     val name = encodeMemberNameInternal(d.getName.asString())
 
-    def privateSuffix(owner: String): String = encodeClassFullName(owner, isModule = false)
+    def privateSuffix(owner: ClassDescriptor): String =
+      if (owner.getKind == ClassKind.INTERFACE && !owner.isImpl) encodeClassFullName(owner)
+      else DescriptorUtilsKt.getAllSuperclassesWithoutAny(owner).count(_.getKind != ClassKind.INTERFACE).toString
     //                    if (owner.isTraitOrInterface && !owner.isImplClass) encodeClassFullName(owner)
     //                    else owner.ancestors.count(!_.isTraitOrInterface).toString
 
@@ -84,12 +93,11 @@ object NameEncoder {
   }
 
   private def makeParamsString(d: FunctionDescriptor,
-                               owner: String,
+                               owner: ClassDescriptor,
                                reflProxy: Boolean,
                                inRTClass: Boolean): String = {
 
     val tpe = d.getReturnType
-
     val paramTypeNames0 = for (p <- d.getTypeParameters) yield internalName(p.getDefaultType)
 
     //    val hasExplicitThisParameter = inRTClass //|| isScalaJSDefinedJSClass(owner)
