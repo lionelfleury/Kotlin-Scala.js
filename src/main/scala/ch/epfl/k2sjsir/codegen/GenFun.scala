@@ -15,7 +15,10 @@ case class GenFun(d: IrFunction, p: Positioner)
 
   private def genConstructor(): Tree = {
     val descriptor = d.getDescriptor
-    val owner = descriptor.getContainingDeclaration.asInstanceOf[ClassDescriptor]
+    val owner = descriptor.getContainingDeclaration match {
+      case x: ClassDescriptor => x.getName.asString()
+      case _ => throw new Exception("Function at package level are not yet supported...")
+    }
     val methodName = NameEncoder.encodeMethodIdent(descriptor, owner)
     val args = Nil
     val resultType = descriptor.getReturnType.toJsType
