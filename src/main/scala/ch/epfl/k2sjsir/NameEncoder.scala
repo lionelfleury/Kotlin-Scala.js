@@ -44,6 +44,13 @@ object NameEncoder {
     Ident(encodedName + paramsString, Some(d.getName.asString() + paramsString))
   }
 
+  private def trim(s: String) = s.substring(1, s.length - 1)
+
+  def encodeName(name: String): String = {
+    val n = if (name.startsWith("<")) trim(name) else name
+    mangleJSName(n).replace("-", "$")
+  }
+
   private def encodeMethodNameInternal(d: FunctionDescriptor,
                                        owner: ClassDescriptor,
                                        reflProxy: Boolean = false,
@@ -58,18 +65,15 @@ object NameEncoder {
     //                    if (owner.isTraitOrInterface && !owner.isImplClass) encodeClassFullName(owner)
     //                    else owner.ancestors.count(!_.isTraitOrInterface).toString
 
-
-    def trim(s: String) = s.substring(1, s.length - 1)
-
     def isGetter(s: String) = s.startsWith("<get-")
     def isInit(s: String) = s == "<clinit>" || s == "<init>"
     def isPrivate(s: String) = false
 
-    val encodedName =
-      if (isInit(name)) trim(name) + InnerSep
-      else if (isGetter(name)) trim(name).replace("-", "_") + InnerSep
-      else if (isPrivate(name)) mangleJSName(name) + OuterSep + "p" + privateSuffix(owner)
-      else mangleJSName(name)
+    val encodedName = encodeName(name)
+    //      if (isInit(name)) trim(name) + InnerSep
+    //      else if (isGetter(name)) trim(name).replace("-", "_") + InnerSep
+    //      else if (isPrivate(name)) mangleJSName(name) + OuterSep + "p" + privateSuffix(owner)
+    //      else mangleJSName(name)
 
     val paramsString = makeParamsString(d, owner, reflProxy, inRTClass)
 

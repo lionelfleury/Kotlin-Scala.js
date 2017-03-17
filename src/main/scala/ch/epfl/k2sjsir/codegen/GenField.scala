@@ -11,7 +11,7 @@ case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
     val name = descriptor.getName.asString()
     val tpe = descriptor.getReturnType.toJsType
     val idt = js.Ident(name)
-    js.FieldDef(idt, tpe, mutable = descriptor.isVar)
+    js.FieldDef(idt, tpe, descriptor.isVar)
   }
 
 }

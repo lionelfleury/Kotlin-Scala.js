@@ -15,8 +15,8 @@ trait Gen[T <: IrElement] {
   def tree: Tree
 
   def notImplemented: Tree = {
-    val name = d.getClass.getSimpleName
     val c = getClass.getSimpleName
+    val name = if (d != null) d.getClass.getSimpleName else ""
     println(s"Not supported $c: $name")
     Skip()
   }
