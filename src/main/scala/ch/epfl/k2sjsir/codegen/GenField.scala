@@ -4,9 +4,9 @@ import org.jetbrains.kotlin.ir.declarations._
 import org.scalajs.core.ir.{Trees => js}
 
 
-case class GenField[T <: IrField](d: T, p: Positioner) extends AbstractGenerator[T](d, p) {
+case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
 
-  def generate(): js.Tree = {
+  def tree: js.Tree = {
     val descriptor = d.getDescriptor
     val name = descriptor.getName.asString()
     val tpe = descriptor.getReturnType.toJsType

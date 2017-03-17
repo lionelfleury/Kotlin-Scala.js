@@ -1,18 +1,17 @@
 package ch.epfl.k2sjsir.codegen
 
 import org.jetbrains.kotlin.ir.declarations._
-import org.jetbrains.kotlin.ir.expressions.IrStatementContainer
+import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees.Skip
 import org.scalajs.core.ir.{Trees => js}
 
-case class GenDeclaration[T <: IrDeclaration](d: T, p: Positioner)
-  extends AbstractGenerator[T](d, p) {
+case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclaration] {
 
-  def generate(): js.Tree = d match {
-    case f: IrFunction => GenFun(f, p).generate()
-    case b: IrStatementContainer => GenBlock(b, p).generate()
-    case x: IrField => GenField(x, p).generate()
-    case x: IrProperty => GenProperty(x, p).generate()
+  def tree: js.Tree = d match {
+    case f: IrFunction => GenFun(f, p).tree
+    case b: IrBlockBody => GenBlock(b, p).tree
+    case x: IrField => GenField(x, p).tree
+    case x: IrProperty => GenProperty(x, p).tree
     //    case _: IrAnonymousInitializer => Skip()
     //    case _: IrTypeAlias => Skip()
     //    case _: IrClass => Skip()

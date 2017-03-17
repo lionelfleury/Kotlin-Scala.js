@@ -1,15 +1,17 @@
 package ch.epfl.k2sjsir.codegen
 
-import org.jetbrains.kotlin.ir.expressions.{IrBody, IrStatementContainer}
+import org.jetbrains.kotlin.ir.expressions.{IrBlockBody, IrBody}
 import org.scalajs.core.ir.Trees._
 
 import scala.language.implicitConversions
 
-case class GenBody[T <: IrBody](d: T, p: Positioner) extends AbstractGenerator[T](d, p) {
+case class GenBody(d: IrBody, p: Positioner) extends Gen[IrBody] {
 
-  def generate(): Tree = {
-    implicit val pos = p.getPos(d.getStartOffset)
-    GenBlock(d.asInstanceOf[IrStatementContainer], p).generate()
+  def tree: Tree = d match {
+    case b: IrBlockBody => GenBlock(b, p).tree
+    case _ =>
+      println(s"Not supported $getClass: $d")
+      Skip()
   }
 
 }

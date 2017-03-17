@@ -13,15 +13,15 @@ import org.scalajs.core.ir.{ClassKind, Position, Types, Trees => js}
 import scala.collection.JavaConversions._
 import scala.language.implicitConversions
 
-case class GenClass(irClass: IrClass, p: Positioner) extends AbstractGenerator(irClass, p) {
+case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
 
   import GenClass._
 
   private val dummyClass =
     js.ClassDef(js.Ident("Dummy"), ClassKind.Class, None, Nil, None, Nil)(OptimizerHints.empty)
 
-  override def generate(): ClassDef = {
-    val descriptor = irClass.getDescriptor
+  override def tree: ClassDef = {
+    val descriptor = d.getDescriptor
 
     if (ErrorUtils.isError(descriptor) || descriptor.getName == NO_NAME_PROVIDED) {
       throw new Error("Class descriptor error")
@@ -45,11 +45,10 @@ case class GenClass(irClass: IrClass, p: Positioner) extends AbstractGenerator(i
 
     val optimizerHints = OptimizerHints.empty
 
-    val defs = for (d <- irClass.getDeclarations) yield GenDeclaration(d, p).generate()
+    val defs = for (d <- d.getDeclarations) yield GenDeclaration(d, p).tree
 
     js.ClassDef(classIdent, kind, Some(superClass), interfaces.toList, jsNativeLoadSpec, defs.toList)(optimizerHints)
   }
-
 
 }
 
