@@ -46,14 +46,13 @@ object Backend {
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
-//    val lower = new JvmLower(context)
+    val lower = new JvmLower(context)
     val p = new Positioner(irFile)
-    val codegen = new Codegen(context, p)
-    //    lower.lower(irFile)
-    for (loweredClass <- irFile.getDeclarations) {
-      if (!loweredClass.isInstanceOf[IrClass])
-        throw new AssertionError("File-level declaration should be IrClass after JvmLower, got: " + loweredClass)
-      codegen.generate(loweredClass.asInstanceOf[IrClass])
+    val codegen = new Codegen(context)
+    lower.lower(irFile)
+    for (c <- irFile.getDeclarations) c match {
+      case i: IrClass => codegen.generate(i, p)
+      case _ => throw new AssertionError("File-level declaration should be IrClass after JvmLower, got: " + c)
     }
   }
 

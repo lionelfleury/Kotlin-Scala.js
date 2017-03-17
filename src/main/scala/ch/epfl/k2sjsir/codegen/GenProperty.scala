@@ -4,9 +4,9 @@ import org.jetbrains.kotlin.ir.declarations._
 import org.scalajs.core.ir.{Trees => js}
 
 
-case class GenProperty[T <: IrProperty](d: T, p: Positioner) extends AbstractGenerator[T](d, p) {
+case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
 
-  def generate(): js.Tree = {
+  def tree: js.Tree = {
     val descriptor = d.getDescriptor
     val name = descriptor.getName.asString()
     val idt = js.Ident(name)
@@ -17,16 +17,13 @@ case class GenProperty[T <: IrProperty](d: T, p: Positioner) extends AbstractGen
 
   def genGetter(g: IrFunction): Option[js.Tree] = {
     if (g == null) None
-    else Some(GenBody(g.getBody, p).generate())
+    else Some(GenBody(g.getBody, p).tree)
   }
 
   def genSetter(s: IrFunction): Option[(js.ParamDef, js.Tree)] = {
     if (s == null) None
     else s match {
-      case _ =>
-        println(s"Not supported Property Setter: $s")
-        // TODO: Implement setter...
-        None
+      case _ => notImplemented; None
     }
   }
 

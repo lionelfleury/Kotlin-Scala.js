@@ -3,13 +3,12 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.NameEncoder
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
-import org.jetbrains.kotlin.ir.expressions.{IrBlock, IrDelegatingConstructorCall, IrInstanceInitializerCall}
-import org.scalajs.core.ir.Trees.Skip
+import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.{Types, Trees => js}
 
-case class GenStat[T <: IrStatement](d: T, p: Positioner) extends AbstractGenerator[T](d, p) {
+case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
 
-  def generate(): js.Tree = d match {
+  def tree: js.Tree = d match {
     case c: IrDelegatingConstructorCall =>
       val this_ = js.This()(Types.NoType)
       val method = c.getDescriptor
@@ -25,11 +24,10 @@ case class GenStat[T <: IrStatement](d: T, p: Positioner) extends AbstractGenera
       val tpe = GenClass.getClassType(classDescriptor)
       val this_ = js.This()(Types.NoType)
       js.StoreModule(tpe, this_)
-    case b: IrBlock => GenBlock(b, p).generate()
-    case f: IrFunction => GenFun(f, p).generate()
-    case _ =>
-      println(s"Not supported Statement: $d")
-      Skip()
+    case b: IrBlock => GenBlock(b, p).tree
+    case f: IrFunction => GenFun(f, p).tree
+    case r: IrReturn => GenReturn(r, p).tree
+    case _ => notImplemented
   }
 
 }
