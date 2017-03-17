@@ -29,14 +29,15 @@ trait Gen[T <: IrElement] {
   //TODO: Move outside in other object/class
   protected def getType(kTpe: String): Type = kTpe match {
     case "Boolean" => BooleanType
-    //    case CHAR => jstpe.Char
-    //    case BYTE => jstpe.Byte
-    //    case SHORT => jstpe.SHORT
+    case "Char" => IntType
+    case "Byte" => IntType
+    case "Short" => IntType
     case "Int" => IntType
     case "Float" => FloatType
     case "Long" => LongType
     case "Double" => DoubleType
     case "Any" => AnyType
+    case "Null" => NullType
     case _ =>
       println(s"Check type found: $kTpe")
       ClassType(kTpe)
