@@ -52,7 +52,7 @@ object Backend {
     lower.lower(irFile)
     for (c <- irFile.getDeclarations) c match {
       case i: IrClass => codegen.generate(i, p)
-      case _ => throw new AssertionError("File-level declaration should be IrClass after JvmLower, got: " + c)
+      case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
     }
   }
 

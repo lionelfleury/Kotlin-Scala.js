@@ -27,7 +27,7 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
       throw new Error("Class descriptor error")
     }
 
-    val classIdent = getClassIdent(descriptor, pos)
+    val classIdent = getClassIdent(descriptor)
     val kind = descriptor.getKind match {
       case CLASS => ClassKind.Class
       case OBJECT => ClassKind.ModuleClass
@@ -36,10 +36,10 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     }
 
     val superClassDescriptor = DescriptorUtilsKt.getSuperClassOrAny(descriptor)
-    val superClass = getClassIdent(superClassDescriptor, pos)
+    val superClass = getClassIdent(superClassDescriptor)
 
     val interfacesDescriptors = DescriptorUtilsKt.getSuperInterfaces(descriptor)
-    val interfaces = for (i <- interfacesDescriptors) yield getClassIdent(i, pos)
+    val interfaces = for (i <- interfacesDescriptors) yield getClassIdent(i)
 
     val jsNativeLoadSpec = None
 
