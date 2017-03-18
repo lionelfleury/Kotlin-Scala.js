@@ -1,17 +1,23 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.NameEncoder
 import ch.epfl.k2sjsir.Utils._
+import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescriptor
+import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueParameterDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
-import org.scalajs.core.ir.{Trees => js}
+import org.scalajs.core.ir.Trees._
 
 case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
 
-  def tree: js.Tree = {
-    val desc = d.getDescriptor
-    val name = NameEncoder.encodeName(desc.getName.asString())
-    val tpe = desc.getReturnType.toJsType
-    js.VarRef(js.Ident(name))(tpe)
+  def tree: Tree = d.getDescriptor match {
+    case rp: LazyClassReceiverParameterDescriptor =>
+      val cd = rp.getContainingDeclaration match {
+        case c: ClassDescriptor => c
+        case _ => throw new Error("Only class descriptor supported...")
+      }
+      This()(cd.toJsClassType)
+    case vd: ValueParameterDescriptor =>
+      VarRef(vd.toIdent)(vd.getType.toJsType)
+    case _ => notImplemented
   }
 
 }

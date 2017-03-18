@@ -1,29 +1,25 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.NameEncoder
+import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
-import org.scalajs.core.ir.{Types, Trees => js}
+import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types
+
+import scala.collection.JavaConversions._
+import scala.language.implicitConversions
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
 
-  def tree: js.Tree = d match {
+  def tree: Tree = d match {
     case c: IrDelegatingConstructorCall =>
-      val this_ = js.This()(Types.NoType)
-      val method = c.getDescriptor
-      val classDescriptor = method.getConstructedClass
-      val classTpe = GenClass.getClassType(classDescriptor)
-      val name = NameEncoder.encodeMethodIdent(method, classDescriptor)
-      // TODO: look for args...
-      val args = Nil
-      val tpe = Types.NoType
-      js.ApplyStatically(this_, classTpe, name, args)(tpe)
+      val cd = c.getDescriptor
+      val tpe = cd.getContainingDeclaration.toJsClassType
+      val args = cd.getValueParameters.map(_.toVarRef)
+      ApplyStatically(This()(Types.NoType), tpe, cd.toMethodIdent, args.toList)(Types.NoType)
     case c: IrInstanceInitializerCall =>
-      val classDescriptor = c.getClassDescriptor
-      val tpe = GenClass.getClassType(classDescriptor)
-      val this_ = js.This()(Types.NoType)
-      js.StoreModule(tpe, this_)
+      StoreModule(c.getClassDescriptor.toJsClassType, This()(Types.NoType))
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
     case r: IrReturn => GenReturn(r, p).tree

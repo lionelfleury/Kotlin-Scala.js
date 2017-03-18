@@ -9,8 +9,8 @@ import scala.language.implicitConversions
 case class GenBlock(d: IrBlock, p: Positioner) extends Gen[IrBlock] {
 
   def tree: Tree = {
-    val stats = d.getStatements.map(GenStat(_, p).tree).toList
-    Block(stats)
+    val stats = d.getStatements.map(GenStat(_, p).tree)
+    Block(stats.toList)
   }
 
 }

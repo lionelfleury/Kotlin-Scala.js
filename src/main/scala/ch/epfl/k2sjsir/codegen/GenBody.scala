@@ -14,4 +14,6 @@ case class GenBody(d: IrBody, p: Positioner) extends Gen[IrBody] {
     case _ => notImplemented
   }
 
+  def treeOption: Option[Tree] = if (d == null) None else Some(tree)
+
 }
