@@ -8,6 +8,7 @@ import scala.language.implicitConversions
 case class GenBody(d: IrBody, p: Positioner) extends Gen[IrBody] {
 
   def tree: Tree = d match {
+    case null => Block(Nil)
     case b: IrBlock => GenBlock(b, p).tree
     case b: IrBlockBody => GenBlockBody(b, p).tree
     case _ => notImplemented

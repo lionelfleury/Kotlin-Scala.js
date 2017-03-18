@@ -11,6 +11,7 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
     case g: IrGetField => GenGetField(g, p).tree
     case c: IrCall => GenCall(c, p).tree
     case c: IrConst[_] => GenConst(c, p).tree
+    case g: IrGetValue => GenGetValue(g, p).tree
     case _ => notImplemented
   }
 

@@ -1,6 +1,7 @@
 package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.NameEncoder
+import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.ir.expressions.IrGetField
 import org.scalajs.core.ir.{Trees => js}
 

@@ -1,8 +1,8 @@
 package ch.epfl.k2sjsir.codegen
 
+import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.ir.declarations._
 import org.scalajs.core.ir.{Trees => js}
-
 
 case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
 

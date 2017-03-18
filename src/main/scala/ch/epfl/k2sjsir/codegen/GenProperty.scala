@@ -1,30 +1,33 @@
 package ch.epfl.k2sjsir.codegen
 
+import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.ir.declarations._
-import org.scalajs.core.ir.{Trees => js}
+import org.scalajs.core.ir.Trees._
 
 
 case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
 
-  def tree: js.Tree = {
+  def tree: Tree = {
     val descriptor = d.getDescriptor
     val name = descriptor.getName.asString()
-    val idt = js.Ident(name)
-    val g = d.getGetter
-    val s = d.getSetter
-    js.PropertyDef(idt, genGetter(g), genSetter(s))
+    val idt = Ident(name)
+    val g = Option(d.getGetter)
+    val s = Option(d.getSetter)
+    val r = d.getBackingField
+    PropertyDef(idt, g.map(getter), s.map(setter))
   }
 
-  def genGetter(g: IrFunction): Option[js.Tree] = {
-    if (g == null) None
-    else Some(GenBody(g.getBody, p).tree)
-  }
+  def getter(f: IrFunction): Tree = GenBody(f.getBody, p).tree
 
-  def genSetter(s: IrFunction): Option[(js.ParamDef, js.Tree)] = {
-    if (s == null) None
-    else s match {
-      case _ => notImplemented; None
-    }
+  def setter(f: IrFunction): (ParamDef, Tree) = {
+    val body = getter(f)
+    val desc = f.getDescriptor
+    val tpe = desc.getReturnType.toJsType
+    val param = f.getDescriptor.getValueParameters.get(0)
+    val name = param.getName.asString()
+    val idt = Ident(name)
+    val p = ParamDef(idt, tpe, mutable = false, rest = false)
+    (p, body)
   }
 
 }
