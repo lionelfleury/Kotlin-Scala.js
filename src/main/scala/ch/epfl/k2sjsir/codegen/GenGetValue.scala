@@ -14,9 +14,10 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
         case c: ClassDescriptor => c
         case _ => throw new Error("Only class descriptor supported...")
       }
-      This()(cd.toJsClassType)
+      val tpe = cd.toJsClassType
+      This()(tpe)
     case vd: ValueParameterDescriptor =>
-      VarRef(vd.toIdent)(vd.getType.toJsType)
+      VarRef(vd.toIdent)(vd.getReturnType.toJsType)
     case _ => notImplemented
   }
 
