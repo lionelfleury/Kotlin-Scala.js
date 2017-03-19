@@ -50,7 +50,7 @@ object Backend {
     val lower = new JvmLower(context)
     val p = new Positioner(irFile)
     val codegen = new SJSIRCodegen(context)
-//    lower.lower(irFile)
+    lower.lower(irFile)
     for (c <- irFile.getDeclarations) c match {
       case i: IrClass => codegen.generate(i, p)
       case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
