@@ -12,9 +12,10 @@ case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
 
   def tree: Tree = d.getDescriptor match {
     case pd: PropertyDescriptor =>
-      val g = Option(d.getGetter)
-      val s = Option(d.getSetter)
-      PropertyDef(pd.toIdent, g.map(getter), s.map(setter))
+      val idt = pd.toIdent
+      val g = Option(d.getGetter).map(getter)
+      val s = Option(d.getSetter).map(setter)
+      PropertyDef(idt, g, s)
     case _ => notImplemented
   }
 

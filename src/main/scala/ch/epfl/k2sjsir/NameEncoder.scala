@@ -3,7 +3,6 @@ package ch.epfl.k2sjsir
 import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.{INTERFACE, OBJECT}
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor}
-import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuperclassesWithoutAny
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
@@ -51,13 +50,13 @@ object NameEncoder {
 
   private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())
-    def privateSuffix(owner: ClassDescriptor): String = if (owner.getKind == INTERFACE && !owner.isImpl) encodeClassFullName(owner) else getAllSuperclassesWithoutAny(owner).count(_.getKind != INTERFACE).toString
+    def privateSuffix(c: ClassDescriptor) =
+      if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
+      else getAllSuperclassesWithoutAny(c).count(_.getKind != INTERFACE).toString
     //TODO: Only function in classes supported...
     val owner = d.getContainingDeclaration match {
       case c: ClassDescriptor => c
-      //TODO: Hack for getting Hello, World!
-      case f: LazyJavaPackageFragment => return Seq("println__O__V")
-      case x => throw new Error(s"Only function in classes are supported: $x")
+      case x => throw new Error(s"Only Classes are supported for now: $x")
     }
     def isPrivate = false
     val encodedName = if (isPrivate) encodeName(name) + OuterSep + "p" + privateSuffix(owner) else encodeName(name)

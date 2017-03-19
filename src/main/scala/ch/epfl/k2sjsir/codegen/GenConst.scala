@@ -2,6 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.{Trees => js}
+import scala.language.existentials
 
 case class GenConst(d: IrConst[_], p: Positioner) extends Gen[IrConst[_]] {
 

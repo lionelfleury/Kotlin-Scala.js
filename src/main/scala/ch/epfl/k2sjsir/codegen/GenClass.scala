@@ -31,13 +31,18 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty
     val defs = for (d <- d.getDeclarations) yield GenDeclaration(d, p).tree
-    val rec = LoadModule(ClassType("LTest$"))
-    val body = Block(Apply(rec, Ident("main__V", Some("main")), Nil)(NoType))
-    val main = MethodDef(true, Ident("main"), Nil, AnyType, Some(body))(OptimizerHints.empty, None)
     //TODO: Hack for Hello, World!
-    val exports = List(TopLevelExportDef(main))
-    val allDefs = defs.toList ++ exports
+    val allDefs = defs.toList ++ manualExportMain()
     ClassDef(idt, kind, Some(sCidt), interfaces.toList, jsNativeLoadSpec, allDefs)(optimizerHints)
+  }
+
+  private def manualExportMain(): List[Tree] = {
+    val rec = This()(ClassType("LTest$"))
+    val b1 = Block(Apply(rec, Ident("$$js$exported$meth$main__O", Some("main")), Nil)(AnyType))
+    val m1 = MethodDef(false, StringLiteral("main"), Nil, AnyType, Some(b1))(OptimizerHints.empty, None)
+    val b2 = Block(Apply(rec, Ident("main__V", Some("main")), Nil)(NoType), Return(IntLiteral(0), None))
+    val m2 = MethodDef(false, Ident("$$js$exported$meth$main__O"), Nil, AnyType, Some(b2))(OptimizerHints.empty, None)
+    List(m2, m1, ModuleExportDef("Test"))
   }
 
 }
