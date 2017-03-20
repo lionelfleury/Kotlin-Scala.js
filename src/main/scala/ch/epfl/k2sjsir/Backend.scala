@@ -17,6 +17,7 @@ package ch.epfl.k2sjsir
  * limitations under the License.
  */
 
+import ch.epfl.k2sjsir.codegen.Positioner
 import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
@@ -30,28 +31,29 @@ object Backend {
   def doGenerateFiles(state: GenerationState): Unit = {
     // TODO multifile classes support
     val psi2ir = new Psi2IrTranslator()
+    if (state == null) return
     val psi2irContext = psi2ir.createGeneratorContext(state.getModule, state.getBindingContext)
     val irModuleFragment = psi2ir.generateModuleFragment(psi2irContext, state.getFiles)
     val jvmBackendContext = new JvmBackendContext(state, psi2irContext.getSourceManager, psi2irContext.getIrBuiltIns)
-    for (irFile <- irModuleFragment.getFiles) {
-      try {
+    try {
+      for (irFile <- irModuleFragment.getFiles) {
         generateFile(irFile, jvmBackendContext)
         state.afterIndependentPart()
-      } catch {
-        case e: Throwable =>
-          CompilationErrorHandler.THROW_EXCEPTION.reportException(e, null) // TODO ktFile.virtualFile.url
       }
+    } catch {
+      case e: Throwable =>
+        CompilationErrorHandler.THROW_EXCEPTION.reportException(e, null) // TODO ktFile.virtualFile.url
     }
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
     val lower = new JvmLower(context)
-    val codegen = new Codegen(context)
-    lower.lower(irFile)
-    for (loweredClass <- irFile.getDeclarations) {
-      if (!loweredClass.isInstanceOf[IrClass])
-        throw new AssertionError("File-level declaration should be IrClass after JvmLower, got: " + loweredClass)
-      codegen.generateClass(loweredClass.asInstanceOf[IrClass])
+    val p = new Positioner(irFile)
+    val codegen = new SJSIRCodegen(context)
+//    lower.lower(irFile)
+    for (c <- irFile.getDeclarations) c match {
+      case i: IrClass => codegen.generate(i, p)
+      case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
     }
   }
 
