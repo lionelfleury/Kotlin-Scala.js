@@ -1,8 +1,8 @@
-package ch.epfl.k2sjsir
+package ch.epfl.k2sjsir.utils
 
-import ch.epfl.k2sjsir.Utils._
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.{INTERFACE, OBJECT}
-import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor}
+import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, Visibilities}
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuperclassesWithoutAny
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
@@ -26,25 +26,25 @@ object NameEncoder {
   private val nonValid = Set('<', '-', '?', '>')
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
-  def encodeName(name: String): String = {
+  private[utils] def encodeName(name: String): String = {
     val n = name.filterNot(nonValid)
     if (isKeyword(n) || n(0).isDigit || n(0) == '$') "$" + n else n
   }
 
-  def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
+  private[utils] def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
     Ident(encodeClassFullName(d))
 
-  def encodeClassFullName(d: ClassDescriptor): String = {
+  private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
     val suffix = if (d.getKind == OBJECT) "$" else ""
     val name = d.toJsName
     val n = if (name == "Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }
 
-  def encodeMethodIdent(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): Ident =
+  private[utils] def encodeMethodIdent(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): Ident =
     Ident(encodeMethodName(d, reflProxy), Some(d.getName.asString()))
 
-  def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false): String =
+  private[utils] def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false): String =
     encodeMethodNameInternal(d, reflProxy).mkString
 
 
@@ -58,7 +58,7 @@ object NameEncoder {
       case c: ClassDescriptor => c
       case x => throw new Error(s"Only Classes are supported for now: $x")
     }
-    def isPrivate = false
+    val isPrivate = d.getVisibility == Visibilities.PRIVATE
     val encodedName = if (isPrivate) encodeName(name) + OuterSep + "p" + privateSuffix(owner) else encodeName(name)
     val paramsString = makeParamsString(d, reflProxy, inRTClass)
     Seq(encodedName, paramsString)

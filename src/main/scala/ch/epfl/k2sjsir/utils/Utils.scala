@@ -1,7 +1,8 @@
-package ch.epfl.k2sjsir
+package ch.epfl.k2sjsir.utils
 
-import ch.epfl.k2sjsir.NameEncoder._
+import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -30,32 +31,38 @@ object Utils {
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = getType(t.toString)
+    def toJsType: Type = getType(t.toString).getOrElse(getClassType(t))
     def toJsInternal: String = getInternal(t.toJsType)
   }
 
-  private def getType(kTpe: String): Type = kTpe match {
-    case "Boolean" => BooleanType
-    case "Char" => IntType
-    case "Byte" => IntType
-    case "Short" => IntType
-    case "Int" => IntType
-    case "Float" => FloatType
-    case "Long" => LongType
-    case "Double" => DoubleType
-    case "Any" => AnyType
-    case "Null" => NullType
-    case "Unit" => NoType
-    case "Nothing" => NothingType
-    case _ =>
-      println(s"Sould be class type: $kTpe")
-      NoType
+  private def getClassType(kTpe: KotlinType): ClassType = {
+    val cd = DescriptorUtils.getClassDescriptorForType(kTpe)
+    ClassType(cd.toClassName)
+  }
+
+  private def getType(kTpe: String): Option[Type] = {
+    Option(kTpe match {
+      case "Boolean" => BooleanType
+      case "Char" => IntType
+      case "Byte" => IntType
+      case "Short" => IntType
+      case "Int" => IntType
+      case "Float" => FloatType
+      case "Long" => LongType
+      case "Double" => DoubleType
+      case "Any" => AnyType
+      case "Null" => NullType
+      case "Unit" => NoType
+      case "Nothing" => NothingType
+      case _ => null
+    })
   }
 
   private def getInternal(tpe: Type): String = tpe match {
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case AnyType => "O"
+    case ClassType(name) => encodeName(name)
     case ArrayType(elem, _) => "A" + encodeName(elem.toString)
     case other => primitiveCharCode(other)
   }

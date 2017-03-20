@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.Utils._
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.{CLASS, OBJECT}
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.name.SpecialNames.NO_NAME_PROVIDED

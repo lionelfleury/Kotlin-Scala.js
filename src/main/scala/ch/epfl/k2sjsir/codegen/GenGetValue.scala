@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.Utils._
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescriptor
 import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueParameterDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
@@ -14,7 +14,7 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
         case c: ClassDescriptor => c
         case _ => throw new Error("Only class descriptor supported...")
       }
-      val tpe = cd.toJsClassType
+      val tpe = cd.getDefaultType.toJsType
       This()(tpe)
     case vd: ValueParameterDescriptor =>
       val idt = vd.toIdent

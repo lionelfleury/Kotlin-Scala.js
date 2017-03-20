@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.Utils._
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.{ConstructorDescriptor, PropertyDescriptor}
 import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees._

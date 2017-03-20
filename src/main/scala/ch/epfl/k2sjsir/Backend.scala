@@ -18,6 +18,7 @@ package ch.epfl.k2sjsir
  */
 
 import ch.epfl.k2sjsir.codegen.Positioner
+import ch.epfl.k2sjsir.lower.SJSIRLower
 import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
@@ -47,10 +48,10 @@ object Backend {
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
-    val lower = new JvmLower(context)
+    val lower = new SJSIRLower(context)
     val p = new Positioner(irFile)
     val codegen = new SJSIRCodegen(context)
-//    lower.lower(irFile)
+    lower.lower(irFile)
     for (c <- irFile.getDeclarations) c match {
       case i: IrClass => codegen.generate(i, p)
       case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
