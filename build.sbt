@@ -2,9 +2,9 @@ name := "Kotlin-Scalajs"
 
 version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
 
 libraryDependencies ++= Seq(
   "org.jetbrains.kotlin" % "kotlin-compiler" % "1.1.0",
-  "org.scala-js" % "scalajs-ir_sjs0.6_2.11" % "0.6.14"
+  "org.scala-js" % "scalajs-ir_sjs0.6_2.12" % "0.6.15"
 )
