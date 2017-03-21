@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescriptor
-import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueParameterDescriptor}
+import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.scalajs.core.ir.Trees._
 
@@ -16,11 +16,11 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
       }
       val tpe = cd.toJsClassType
       This()(tpe)
-    case vd: ValueParameterDescriptor =>
+    case vd: ValueDescriptor =>
       val idt = vd.toIdent
       val tpe = vd.getReturnType.toJsType
       VarRef(idt)(tpe)
-    case _ => notImplemented
+    case x => notImplemented
   }
 
 }
