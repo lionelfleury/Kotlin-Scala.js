@@ -4,11 +4,10 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.ir.expressions.impl.{IrIfThenElseImpl, IrWhenBase}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
@@ -17,7 +16,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case c: IrDelegatingConstructorCall =>
       val cd = c.getDescriptor
       val tpe = cd.getContainingDeclaration.toJsClassType
-      val args = cd.getValueParameters.map(_.toVarRef)
+      val args = cd.getValueParameters.asScala.map(_.toVarRef)
       ApplyStatically(This()(Types.NoType), tpe, cd.toMethodIdent, args.toList)(Types.NoType)
     case c: IrInstanceInitializerCall =>
       StoreModule(c.getClassDescriptor.toJsClassType, This()(Types.NoType))

@@ -7,8 +7,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuper
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
 
-import scala.collection.JavaConversions._
-import scala.language.implicitConversions
+import scala.collection.JavaConverters._
 
 object NameEncoder {
   /** Outer separator string (between parameter types) */
@@ -52,7 +51,7 @@ object NameEncoder {
     val name = encodeMemberNameInternal(d.getName.asString())
     def privateSuffix(c: ClassDescriptor) =
       if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
-      else getAllSuperclassesWithoutAny(c).count(_.getKind != INTERFACE).toString
+      else getAllSuperclassesWithoutAny(c).asScala.count(_.getKind != INTERFACE).toString
     //TODO: Only function in classes supported...
     val owner = d.getContainingDeclaration match {
       case c: ClassDescriptor => c
@@ -66,7 +65,7 @@ object NameEncoder {
 
   private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean): String = {
     val tpes = d.getValueParameters
-    val paramTypeNames0 = tpes.map(_.getType.toJsInternal)
+    val paramTypeNames0 = tpes.asScala.map(_.getType.toJsInternal)
     //    val hasExplicitThisParameter =
     //      inRTClass || isScalaJSDefinedJSClass(sym.owner)
     //        val paramTypeNames =

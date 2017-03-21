@@ -6,8 +6,7 @@ import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees._
 
-import scala.collection.JavaConversions._
-import scala.language.implicitConversions
+import scala.collection.JavaConverters._
 
 case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
 
@@ -26,7 +25,7 @@ case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
   private def setter(f: IrFunction): (ParamDef, Tree) = {
     val desc = f.getDescriptor
     val body = getter(f)
-    val param = desc.getValueParameters.map(_.toParamDef).get(0)
+    val param = desc.getValueParameters.asScala.map(_.toParamDef).head
     (param, body)
   }
 

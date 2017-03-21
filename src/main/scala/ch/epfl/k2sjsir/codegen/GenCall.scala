@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{AnyType, ClassType}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.language.implicitConversions
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
@@ -21,11 +21,11 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       Apply(receiver, idt, Nil)(tpe)
     case cd: ClassConstructorDescriptor =>
       val tpe = cd.getReturnType.toJsType
-      val args = cd.getValueParameters.map(_.toVarRef)
+      val args = cd.getValueParameters.asScala.map(_.toVarRef)
       Apply(This()(tpe), cd.toMethodIdent, args.toList)(tpe)
     case sf: SimpleFunctionDescriptor =>
       val tpe = sf.getReturnType.toJsType
-      val args = genArgs(sf.getValueParameters)
+      val args = genArgs(sf.getValueParameters.asScala)
       if (sf.getName.toString == "println") {
         val rec = LoadModule(ClassType("s_Predef$"))
         val method = Ident("println__O__V", Some("println"))
