@@ -4,6 +4,7 @@ import ch.epfl.k2sjsir.Utils._
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.ir.expressions.impl.{IrIfThenElseImpl, IrWhenBase}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types
 
@@ -24,6 +25,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case f: IrFunction => GenFun(f, p).tree
     case r: IrReturn => GenReturn(r, p).tree
     case s: IrSetField => GenSetField(s, p).tree
+    case i: IrWhen => GenWhen(i, p).tree
     case v: IrVariable => GenVar(v, p).tree
     case c: IrCall => GenCall(c, p).tree
     case _ => notImplemented
