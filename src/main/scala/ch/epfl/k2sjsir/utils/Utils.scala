@@ -15,14 +15,14 @@ object Utils {
     def toIdent(implicit pos: Position): Ident = Ident(d.toJsName, Some(d.getName.asString()))
   }
 
-  implicit class CallableDescriptorTranslator(desc: CallableDescriptor) {
-    def toMethodIdent(implicit pos: Position): Ident = encodeMethodIdent(desc)
+  implicit class CallableDescriptorTranslator(d: CallableDescriptor) {
+    def toMethodIdent(implicit pos: Position): Ident = encodeMethodIdent(d)
   }
 
   implicit class ClassDescriptorTranslator(d: ClassDescriptor) {
-    def toClassName: String = encodeClassFullName(d)
+    def toJsClassName: String = encodeClassFullName(d)
     def toClassIdent(implicit pos: Position): Ident = encodeClassFullNameIdent(d)
-    def toJsClassType: ClassType = ClassType(d.toClassName)
+    def toJsClassType: ClassType = ClassType(d.toJsClassName)
   }
 
   implicit class ValueParameterTranslator(d: ValueParameterDescriptor) {
@@ -36,12 +36,12 @@ object Utils {
   }
 
   private def getClassType(kTpe: KotlinType): ClassType = {
-    val cd = DescriptorUtils.getClassDescriptorForType(kTpe)
-    ClassType(cd.toClassName)
+    val d = DescriptorUtils.getClassDescriptorForType(kTpe)
+    d.toJsClassType
   }
 
-  private def getType(kTpe: String): Option[Type] = {
-    Option(kTpe match {
+  private def getType(kTpe: String): Option[Type] = Option {
+    kTpe match {
       case "Boolean" => BooleanType
       case "Char" => IntType
       case "Byte" => IntType
@@ -55,19 +55,15 @@ object Utils {
       case "Unit" => NoType
       case "Nothing" => NothingType
       case _ => null
-    })
+    }
   }
 
   private def getInternal(tpe: Type): String = tpe match {
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case AnyType => "O"
-    case ClassType(name) => encodeName(name)
+    case ClassType(name) => Definitions.encodeClassName(name)
     case ArrayType(elem, _) => "A" + encodeName(elem.toString)
-    case other => primitiveCharCode(other)
-  }
-
-  private def primitiveCharCode(tpe: Type): String = tpe match {
     case NoType | NothingType => "V" // TODO: Check if really a good idea...
     case BooleanType => "Z"
     //    case CharClass     => 'C'
@@ -77,7 +73,7 @@ object Utils {
     case LongType => "J"
     case FloatType => "F"
     case DoubleType => "D"
-    case _ => throw new Error(s"Unknown primitive type: $tpe")
+    case _ => throw new Error(s"Unknown Scala.js type: $tpe")
   }
 
 }
