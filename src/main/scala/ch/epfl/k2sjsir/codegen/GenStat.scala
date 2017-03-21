@@ -8,7 +8,6 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types
 
 import scala.collection.JavaConverters._
-import scala.language.implicitConversions
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
 

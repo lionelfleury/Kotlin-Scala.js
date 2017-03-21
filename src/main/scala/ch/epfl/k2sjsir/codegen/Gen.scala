@@ -4,8 +4,6 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.scalajs.core.ir.Position
 import org.scalajs.core.ir.Trees.{Skip, Tree}
 
-import scala.language.implicitConversions
-
 trait Gen[T <: IrElement] {
   def d: T
   def p: Positioner

@@ -8,11 +8,8 @@ import org.jetbrains.kotlin.ir.expressions.IrStatementContainer
 import org.jetbrains.kotlin.ir.expressions.impl.{IrBlockBodyImpl, IrGetValueImpl, IrSetFieldImpl}
 
 import scala.collection.JavaConverters._
-import scala.language.implicitConversions
 
 class FieldLowering(val context: JvmBackendContext) extends ClassLoweringPass {
-
-  private val emptyStatList = List[IrStatement]()
 
   override def lower(irClass: IrClass) {
     val ds = irClass.getDeclarations.asScala
@@ -26,14 +23,14 @@ class FieldLowering(val context: JvmBackendContext) extends ClassLoweringPass {
               new IrGetValueImpl(start, end, irClass.getDescriptor.getThisAsReceiverParameter, null)
             else null
           List(new IrSetFieldImpl(start, end, d.getDescriptor, receiver, f.get, null, null))
-        } else emptyStatList
+        } else List[IrStatement]()
       case declaration: IrAnonymousInitializer =>
         declaration.getBody.getStatements.asScala
     }
     val const = ds.collect { case d: IrConstructor if d.getDescriptor.isPrimary => d }.head
     val stats = const.getBody match {
       case b: IrStatementContainer => b.getStatements.asScala
-      case _ => emptyStatList
+      case _ => List[IrStatement]()
     }
     val allStats = stats ++ inits.flatten
     val newBody = new IrBlockBodyImpl(irClass.getStartOffset, irClass.getEndOffset, allStats.asJava)

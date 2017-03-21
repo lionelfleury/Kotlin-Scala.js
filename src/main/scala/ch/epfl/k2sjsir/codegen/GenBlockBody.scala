@@ -4,7 +4,6 @@ import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees.{Block, Tree}
 
 import scala.collection.JavaConverters._
-import scala.language.implicitConversions
 
 case class GenBlockBody(d: IrBlockBody, p: Positioner) extends Gen[IrBlockBody] {
 

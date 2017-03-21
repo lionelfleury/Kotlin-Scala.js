@@ -7,7 +7,6 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{AnyType, ClassType}
 
 import scala.collection.JavaConverters._
-import scala.language.implicitConversions
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 

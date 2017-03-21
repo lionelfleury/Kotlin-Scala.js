@@ -36,7 +36,6 @@ import org.jetbrains.kotlin.utils.{KotlinPaths, KotlinPathsFromHomeDir, PathUtil
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.language.implicitConversions
 
 class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
 
@@ -75,9 +74,9 @@ class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
       println("No source file given")
       return ExitCode.OK
     }
-    val friendPaths = arguments.friendPaths.toList
+    val friendPaths = arguments.friendPaths
     if (friendPaths != null && friendPaths.nonEmpty) {
-      configuration.put[ju.List[String]](JVMConfigurationKeys.FRIEND_PATHS, friendPaths.asJava)
+      configuration.put[ju.List[String]](JVMConfigurationKeys.FRIEND_PATHS, friendPaths.toList.asJava)
     }
     configuration.put[jl.Boolean](JVMConfigurationKeys.PARAMETERS_METADATA, arguments.javaParameters)
     putAdvancedOptions(configuration, arguments)
