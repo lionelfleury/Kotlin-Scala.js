@@ -26,6 +26,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case r: IrReturn => GenReturn(r, p).tree
     case s: IrSetField => GenSetField(s, p).tree
     case i: IrWhen => GenWhen(i, p).tree
+    case v: IrVariable => GenVar(v, p).tree
     case c: IrCall => GenCall(c, p).tree
     case _ => notImplemented
   }
