@@ -16,7 +16,7 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
       }
       val tpe = cd.getDefaultType.toJsType
       This()(tpe)
-    case vd: ValueParameterDescriptor =>
+    case vd: ValueDescriptor =>
       val idt = vd.toIdent
       val tpe = vd.getReturnType.toJsType
       VarRef(idt)(tpe)
