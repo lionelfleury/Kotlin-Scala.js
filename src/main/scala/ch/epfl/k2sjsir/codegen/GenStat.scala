@@ -15,8 +15,8 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case c: IrDelegatingConstructorCall =>
       val cd = c.getDescriptor
       val tpe = cd.getContainingDeclaration.toJsClassType
-      val args = cd.getValueParameters.asScala.map(_.toVarRef)
-      ApplyStatically(This()(Types.NoType), tpe, cd.toMethodIdent, args.toList)(Types.NoType)
+      val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
+      ApplyStatically(This()(Types.NoType), tpe, cd.toJsMethodIdent, args.toList)(Types.NoType)
     case c: IrInstanceInitializerCall =>
       StoreModule(c.getClassDescriptor.toJsClassType, This()(Types.NoType))
     case b: IrBlock => GenBlock(b, p).tree

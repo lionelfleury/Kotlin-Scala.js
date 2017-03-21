@@ -12,7 +12,7 @@ case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
   def tree: Tree = d.getDescriptor match {
     case pd: PropertyDescriptor =>
       val tpe = pd.getType.toJsType
-      val idt = pd.toIdent
+      val idt = pd.toJsIdent
       val static = DescriptorUtils.isStaticDeclaration(pd)
       FieldDef(static, idt, tpe, pd.isVar)
     case _ => notImplemented

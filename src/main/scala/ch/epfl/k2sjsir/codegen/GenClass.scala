@@ -18,14 +18,14 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
   override def tree: ClassDef = {
     if (ErrorUtils.isError(cd) || cd.getName == NO_NAME_PROVIDED)
       throw new Error(s"Class descriptor error: $cd")
-    val idt = cd.toClassIdent
+    val idt = cd.toJsClassIdent
     val kind = cd.getKind match {
       case CLASS => ClassKind.Class
       case OBJECT => ClassKind.ModuleClass
       case k => throw new Error(s"No match for ClassKind: $k")
     }
-    val superClass = getSuperClassOrAny(cd).toClassIdent
-    val interfaces = getSuperInterfaces(cd).asScala.map(_.toClassIdent)
+    val superClass = getSuperClassOrAny(cd).toJsClassIdent
+    val interfaces = getSuperInterfaces(cd).asScala.map(_.toJsClassIdent)
     // TODO: Voir ce qu'on peut charger ici...
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty

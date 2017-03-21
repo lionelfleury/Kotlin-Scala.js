@@ -10,7 +10,7 @@ case class GenVar(d: IrVariable, p: Positioner) extends Gen[IrVariable] {
     case ldesc: LocalVariableDescriptor =>
       val rhs = GenExpr(d.getInitializer, p).tree
       val mutable = ldesc.isVar
-      VarDef(ldesc.toIdent, rhs.tpe, mutable, rhs)
+      VarDef(ldesc.toJsIdent, rhs.tpe, mutable, rhs)
     case _ => notImplemented
   }
 }

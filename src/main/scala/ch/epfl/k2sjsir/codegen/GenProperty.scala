@@ -12,7 +12,7 @@ case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
 
   def tree: Tree = d.getDescriptor match {
     case pd: PropertyDescriptor =>
-      val idt = pd.toIdent
+      val idt = pd.toJsIdent
       val g = Option(d.getGetter).map(getter)
       val s = Option(d.getSetter).map(setter)
       val static = DescriptorUtils.isStaticDeclaration(pd)
@@ -25,7 +25,7 @@ case class GenProperty(d: IrProperty, p: Positioner) extends Gen[IrProperty] {
   private def setter(f: IrFunction): (ParamDef, Tree) = {
     val desc = f.getDescriptor
     val body = getter(f)
-    val param = desc.getValueParameters.asScala.map(_.toParamDef).head
+    val param = desc.getValueParameters.asScala.map(_.toJsParamDef).head
     (param, body)
   }
 

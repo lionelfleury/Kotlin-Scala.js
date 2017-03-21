@@ -10,7 +10,7 @@ case class GenGetField(d: IrGetField, p: Positioner) extends Gen[IrGetField] {
   def tree: Tree = d.getDescriptor match {
     case pd: PropertyDescriptor =>
       val qual = GenExpr(d.getReceiver, p).tree
-      val idt = pd.toIdent
+      val idt = pd.toJsIdent
       val tpe = pd.getReturnType.toJsType
       Select(qual, idt)(tpe)
     case _ => notImplemented
