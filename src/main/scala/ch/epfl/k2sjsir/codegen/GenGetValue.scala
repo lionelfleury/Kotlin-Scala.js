@@ -1,8 +1,9 @@
 package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
+import oracle.jrockit.jfr.events.ValueDescriptor
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescriptor
-import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueParameterDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.scalajs.core.ir.Trees._
 
