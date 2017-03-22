@@ -2,9 +2,8 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.ir.descriptors.{IrBuiltinOperatorDescriptor, IrSimpleBuiltinOperatorDescriptorImpl}
+import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.ir.expressions.impl.{IrBinaryPrimitiveImpl, IrPrimitiveCallBase}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 
@@ -25,7 +24,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
       Apply(This()(tpe), cd.toJsMethodIdent, args.toList)(tpe)
     case bi : IrBuiltinOperatorDescriptor =>
-      //@TODO: EQEQ and NEQ are not bultin and not SimpleFunctionDescriptor
+      //@TODO: EQEQ and NEQ are not builtin and not SimpleFunctionDescriptor
       notImplemented
     case sf: SimpleFunctionDescriptor =>
       val tpe = sf.getReturnType.toJsType
@@ -36,9 +35,11 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         Apply(rec, method, args.toList)(tpe)
       } else if (sf.isOperator || sf.isInfix) { // @TODO: definitely not be the best way to detect OP
       // @TODO: check if unary or binary
-      val lhs = GenExpr(d.getDispatchReceiver, p).tree
+        val lhs = GenExpr(d.getDispatchReceiver, p).tree
         val rhs = args.head
-        val op = getBinaryOp(sf.getName.asString(), lhs.tpe, rhs.tpe)
+        val op =
+          if(lhs.tpe == rhs.tpe) getBinaryOp(sf.getName.asString(), lhs.tpe, rhs.tpe)
+          else throw new Exception("Binary op between different types not yet implemented")
         BinaryOp(op, lhs, rhs)
       } else {
         val method = sf.toJsMethodIdent
@@ -85,6 +86,23 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case x => throw new Exception(s"unimplemented op $x for type Int")
     }
 
+    def getDoubleBinaryOp = op match {
+      case "plus" =>  BinaryOp.Double_+
+      case "minus" => BinaryOp.Double_-
+      case "times" => BinaryOp.Double_*
+      case "div" => BinaryOp.Double_/
+      case "rem" => BinaryOp.Double_%
+      case x => throw new Exception(s"unimplemented op $x for type Int")
+    }
+
+    def getFloatBinaryOp = op match {
+      case "plus" =>  BinaryOp.Float_+
+      case "minus" => BinaryOp.Float_-
+      case "times" => BinaryOp.Float_*
+      case "div" => BinaryOp.Float_/
+      case "rem" => BinaryOp.Float_%
+      case x => throw new Exception(s"unimplemented op $x for type Int")
+    }
 
     def getBooleanBinaryOp = op match  {
       case "or" => BinaryOp.Boolean_|
@@ -92,11 +110,19 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case x => throw new Exception(s"unimplemented op $x for type Boolean")
     }
 
+    def getStringBinaryOp = op match {
+      case "plus" => BinaryOp.String_+
+      case x => throw new Exception(s"unimplemented op $x for type String")
+    }
+
     (lhsTpe, rhsTpe) match {
+      case (BooleanType, BooleanType) => getBooleanBinaryOp
       case (IntType, IntType) => getIntBinaryOp
       case (LongType, LongType) => getLongBinaryOp
-      //case (DoubleType, DoubleType) => getDoubleBinaryOp
-      case (BooleanType, BooleanType) => getBooleanBinaryOp
+      case (FloatType, FloatType) => getFloatBinaryOp
+      case (DoubleType, DoubleType) => getDoubleBinaryOp
+      case (StringType, StringType) => getStringBinaryOp
+      /* Mixed types */
       case (LongType, IntType) => getLongBinaryOp
     }
 
