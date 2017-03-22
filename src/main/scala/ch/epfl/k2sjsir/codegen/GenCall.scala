@@ -2,9 +2,11 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.ir.descriptors.{IrBuiltinOperatorDescriptor, IrSimpleBuiltinOperatorDescriptorImpl}
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.ir.expressions.impl.{IrBinaryPrimitiveImpl, IrPrimitiveCallBase}
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{AnyType, ClassType}
+import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
 
@@ -22,6 +24,9 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       val tpe = cd.getReturnType.toJsType
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
       Apply(This()(tpe), cd.toJsMethodIdent, args.toList)(tpe)
+    case bi : IrBuiltinOperatorDescriptor =>
+      //@TODO: EQEQ and NEQ are not bultin and not SimpleFunctionDescriptor
+      notImplemented
     case sf: SimpleFunctionDescriptor =>
       val tpe = sf.getReturnType.toJsType
       val args = genArgs(sf.getValueParameters.asScala)
@@ -29,6 +34,12 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         val rec = LoadModule(ClassType("s_Predef$"))
         val method = Ident("println__O__V", Some("println"))
         Apply(rec, method, args.toList)(tpe)
+      } else if (sf.isOperator || sf.isInfix) { // @TODO: definitely not be the best way to detect OP
+      // @TODO: check if unary or binary
+      val lhs = GenExpr(d.getDispatchReceiver, p).tree
+        val rhs = args.head
+        val op = getBinaryOp(sf.getName.asString(), lhs.tpe, rhs.tpe)
+        BinaryOp(op, lhs, rhs)
       } else {
         val method = sf.toJsMethodIdent
         val r = d.getDispatchReceiver
@@ -41,5 +52,55 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
     for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
+
+  private def getBinaryOp(op: String, lhsTpe: Type, rhsTpe: Type) : BinaryOp.Code = {
+
+    def getLongBinaryOp = op match {
+      case "plus" =>  BinaryOp.Long_+
+      case "minus" => BinaryOp.Long_-
+      case "times" => BinaryOp.Long_*
+      case "div" => BinaryOp.Long_/
+      case "rem" => BinaryOp.Long_%
+      case "or" => BinaryOp.Long_|
+      case "and" => BinaryOp.Long_&
+      case "xor" => BinaryOp.Long_^
+      case "shl" => BinaryOp.Long_<<
+      case "shr" => BinaryOp.Long_>>>
+      case "ushr" => BinaryOp.Long_>>
+      case x => throw new Exception(s"unimplemented op $x for type Long")
+    }
+
+    def getIntBinaryOp = op match {
+      case "plus" =>  BinaryOp.Int_+
+      case "minus" => BinaryOp.Int_-
+      case "times" => BinaryOp.Int_*
+      case "div" => BinaryOp.Int_/
+      case "rem" => BinaryOp.Int_%
+      case "or" => BinaryOp.Int_|
+      case "and" => BinaryOp.Int_&
+      case "xor" => BinaryOp.Int_^
+      case "shl" => BinaryOp.Int_<<
+      case "shr" => BinaryOp.Int_>>>
+      case "ushr" => BinaryOp.Int_>>
+      case x => throw new Exception(s"unimplemented op $x for type Int")
+    }
+
+
+    def getBooleanBinaryOp = op match  {
+      case "or" => BinaryOp.Boolean_|
+      case "and" => BinaryOp.Boolean_&
+      case x => throw new Exception(s"unimplemented op $x for type Boolean")
+    }
+
+    (lhsTpe, rhsTpe) match {
+      case (IntType, IntType) => getIntBinaryOp
+      case (LongType, LongType) => getLongBinaryOp
+      //case (DoubleType, DoubleType) => getDoubleBinaryOp
+      case (BooleanType, BooleanType) => getBooleanBinaryOp
+      case (LongType, IntType) => getLongBinaryOp
+    }
+
+
+  }
 
 }
