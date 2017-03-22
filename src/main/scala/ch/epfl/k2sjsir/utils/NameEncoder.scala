@@ -58,7 +58,9 @@ object NameEncoder {
       case x => throw new Error(s"Only Classes are supported for now: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
-    val encodedName = if (isPrivate) encodeName(name) + OuterSep + "p" + privateSuffix(owner) else encodeName(name)
+    val encodedName =
+      if (isPrivate && !isInit(name)) encodeName(name) + OuterSep + "p" + privateSuffix(owner)
+      else encodeName(name)
     val paramsString = makeParamsString(d, reflProxy, inRTClass)
     Seq(encodedName, paramsString)
   }
@@ -71,7 +73,9 @@ object NameEncoder {
     //        val paramTypeNames =
     //          if (!hasExplicitThisParameter) paramTypeNames0
     //          else internalName(sym.owner.toTypeConstructor) :: paramTypeNames0
-    val paramAndResultTypeNames = if (isInit(d.getName.asString())) paramTypeNames0 else paramTypeNames0 :+ d.getReturnType.toJsInternal
+    val paramAndResultTypeNames =
+      if (isInit(d.getName.asString())) paramTypeNames0 :+ "_"
+      else paramTypeNames0 :+ d.getReturnType.toJsInternal
     paramAndResultTypeNames.mkString(OuterSep, OuterSep, "")
   }
 
