@@ -30,7 +30,7 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty
     val defs = for (d <- d.getDeclarations.asScala) yield GenDeclaration(d, p).tree
-    val allDefs = defs.reverse ++ manualExportMain
+    val allDefs = defs ++ manualExportMain
     ClassDef(idt, kind, Some(superClass), interfaces.toList, jsNativeLoadSpec, allDefs.toList)(optimizerHints)
   }
 
