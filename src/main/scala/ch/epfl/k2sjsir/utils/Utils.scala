@@ -62,7 +62,7 @@ object Utils {
     case ClassType(name) => Definitions.encodeClassName(name)
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
-    case _ => throw new Error(s"Unknown Scala.js type: $tpe")
+    case _ => throw new Error(s"Unknown Scala.js type: $t")
   }
 
 }
