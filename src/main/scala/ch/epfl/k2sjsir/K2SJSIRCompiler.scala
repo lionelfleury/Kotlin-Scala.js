@@ -18,7 +18,7 @@ package ch.epfl.k2sjsir
  */
 
 import java.io.File
-import java.{lang => jl, util => j}
+import java.{lang => jl, util => ju}
 
 import com.intellij.openapi.Disposable
 import org.jetbrains.kotlin.cli.common.UtilsKt.checkKotlinPackageUsage
@@ -34,9 +34,8 @@ import org.jetbrains.kotlin.load.java.JvmAbi
 import org.jetbrains.kotlin.load.kotlin.incremental.components.IncrementalCompilationComponents
 import org.jetbrains.kotlin.utils.{KotlinPaths, KotlinPathsFromHomeDir, PathUtil}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import scala.language.implicitConversions
 
 class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
 
@@ -58,7 +57,7 @@ class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
         return ExitCode.INTERNAL_ERROR
     }
     if (arguments.module == null) {
-      for (arg <- arguments.freeArgs) {
+      for (arg <- arguments.freeArgs.asScala) {
         configuration.add(JVMConfigurationKeys.CONTENT_ROOTS, new KotlinSourceRoot(arg))
         val file = new File(arg)
         if (file.isDirectory) {
@@ -67,7 +66,7 @@ class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
       }
     }
     val classpath = getClasspath(paths, arguments)
-    for (file <- classpath)
+    for (file <- classpath.asScala)
       configuration.add(JVMConfigurationKeys.CONTENT_ROOTS, new JvmClasspathRoot(file))
     val module = if (arguments.moduleName == null) JvmAbi.DEFAULT_MODULE_NAME else arguments.moduleName
     configuration.put(CommonConfigurationKeys.MODULE_NAME, module)
@@ -77,7 +76,7 @@ class K2SJSIRCompiler extends CLICompiler[K2JVMCompilerArguments]() {
     }
     val friendPaths = arguments.friendPaths
     if (friendPaths != null && friendPaths.nonEmpty) {
-      configuration.put[j.List[String]](JVMConfigurationKeys.FRIEND_PATHS, friendPaths.toList)
+      configuration.put[ju.List[String]](JVMConfigurationKeys.FRIEND_PATHS, friendPaths.toList.asJava)
     }
     configuration.put[jl.Boolean](JVMConfigurationKeys.PARAMETERS_METADATA, arguments.javaParameters)
     putAdvancedOptions(configuration, arguments)
@@ -141,7 +140,7 @@ object K2SJSIRCompiler {
       configuration.put[String](JVMConfigurationKeys.DECLARATIONS_JSON_PATH, arguments.declarationsOutputPath)
   }
 
-  private def getClasspath(paths: KotlinPaths, arguments: K2JVMCompilerArguments): j.List[File] = {
+  private def getClasspath(paths: KotlinPaths, arguments: K2JVMCompilerArguments): ju.List[File] = {
     val classpath = ListBuffer[File]()
     if (arguments.classpath != null) {
       classpath ++= arguments.classpath.split(File.pathSeparatorChar).map(new File(_))
@@ -154,7 +153,7 @@ object K2SJSIRCompiler {
     // which is likely not what user wants since s/he manually provided "-no-stdlib"
     if (!arguments.noReflect && !arguments.noStdlib)
       classpath += paths.getReflectPath
-    classpath
+    classpath.asJava
   }
 
   private def createCoreEnvironment(rootDisposable: Disposable, configuration: CompilerConfiguration): KotlinCoreEnvironment = {
@@ -171,9 +170,9 @@ object K2SJSIRCompiler {
             messageCollector.report(CompilerMessageSeverity.ERROR, s"No class roots are found in the JDK path: ${arguments.jdkHome}", CompilerMessageLocation.NO_LOCATION)
             return ExitCode.COMPILATION_ERROR
           }
-          for (file <- classesRoots)
+          for (file <- classesRoots.asScala)
             configuration.add(JVMConfigurationKeys.CONTENT_ROOTS, new JvmClasspathRoot(file))
-        } else for (file <- PathUtil.getJdkClassesRoots())
+        } else for (file <- PathUtil.getJdkClassesRoots().asScala)
           configuration.add(JVMConfigurationKeys.CONTENT_ROOTS, new JvmClasspathRoot(file))
       } else if (arguments.jdkHome != null) {
         messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, "The '-jdk-home' option is ignored because '-no-jdk' is specified", CompilerMessageLocation.NO_LOCATION)

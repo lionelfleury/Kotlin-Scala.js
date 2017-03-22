@@ -18,13 +18,14 @@ package ch.epfl.k2sjsir
  */
 
 import ch.epfl.k2sjsir.codegen.Positioner
-import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
+import ch.epfl.k2sjsir.lower.SJSIRLower
+import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.ir.declarations.{IrClass, IrFile}
 import org.jetbrains.kotlin.psi2ir.Psi2IrTranslator
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object Backend {
 
@@ -36,7 +37,7 @@ object Backend {
     val irModuleFragment = psi2ir.generateModuleFragment(psi2irContext, state.getFiles)
     val jvmBackendContext = new JvmBackendContext(state, psi2irContext.getSourceManager, psi2irContext.getIrBuiltIns)
     try {
-      for (irFile <- irModuleFragment.getFiles) {
+      for (irFile <- irModuleFragment.getFiles.asScala) {
         generateFile(irFile, jvmBackendContext)
         state.afterIndependentPart()
       }
@@ -47,11 +48,11 @@ object Backend {
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
-    val lower = new JvmLower(context)
+    val lower = new SJSIRLower(context)
     val p = new Positioner(irFile)
     val codegen = new SJSIRCodegen(context)
-//    lower.lower(irFile)
-    for (c <- irFile.getDeclarations) c match {
+    lower.lower(irFile)
+    for (c <- irFile.getDeclarations.asScala) c match {
       case i: IrClass => codegen.generate(i, p)
       case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
     }

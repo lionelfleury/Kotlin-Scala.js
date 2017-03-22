@@ -1,11 +1,10 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.Utils._
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.declarations._
 import org.scalajs.core.ir.Trees._
 
-import scala.collection.JavaConversions._
-import scala.language.implicitConversions
+import scala.collection.JavaConverters._
 
 case class GenFun(d: IrFunction, p: Positioner) extends Gen[IrFunction] {
 
@@ -19,8 +18,8 @@ case class GenFun(d: IrFunction, p: Positioner) extends Gen[IrFunction] {
     val desc = d.getDescriptor
     val tpe = desc.getReturnType.toJsType
     val body = GenBody(d.getBody, p).treeOption
-    val idt = desc.toMethodIdent
-    val args = desc.getValueParameters.map(_.toParamDef)
+    val idt = desc.toJsMethodIdent
+    val args = desc.getValueParameters.asScala.map(_.toJsParamDef)
     val opt = OptimizerHints.empty
     MethodDef(static = false, idt, args.toList, tpe, body)(opt, None)
   }

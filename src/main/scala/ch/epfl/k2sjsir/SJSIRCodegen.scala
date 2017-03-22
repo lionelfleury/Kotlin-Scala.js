@@ -6,7 +6,8 @@ import ch.epfl.k2sjsir.codegen.{GenClass, Positioner}
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.ir.declarations.{IrClass, IrDeclarationKind}
+import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{InfoSerializers, Infos, InvalidIRException, Serializers}
 
@@ -16,7 +17,7 @@ class SJSIRCodegen(context: JvmBackendContext) {
     val tree: ClassDef = GenClass(d, p).tree
     val outDir = context.getState.getConfiguration.get(JVMConfigurationKeys.OUTPUT_DIRECTORY).toString
     if (outDir == null) sys.error("No output directory found...")
-    val suffix = if (d.getDeclarationKind == IrDeclarationKind.MODULE) "$" else ""
+    val suffix = if (d.getDescriptor.getKind == OBJECT) "$" else ""
     genIRFile(outDir, d.getDescriptor, suffix, tree)
   }
 

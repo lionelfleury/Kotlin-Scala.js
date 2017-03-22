@@ -3,8 +3,6 @@ package ch.epfl.k2sjsir.codegen
 import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees.{Skip, Tree}
 
-import scala.language.implicitConversions
-
 case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
 
   def tree: Tree = d match {
