@@ -9,12 +9,12 @@ case class GenSetField(d: IrSetField, p: Positioner) extends Gen[IrSetField] {
 
   def tree: Tree = d.getDescriptor match {
     case cd: ConstructorDescriptor =>
-      LoadModule(cd.getConstructedClass.toJsClassType)
+      val tpe = cd.getConstructedClass.toJsClassType
+      LoadModule(tpe)
     case pd: PropertyDescriptor =>
-      val r = d.getReceiver
       val rhs = GenExpr(d.getValue, p).tree
-      val qual = if (r != null) GenExpr(r, p).tree else This()(rhs.tpe)
-      val lhs = Select(qual, pd.toJsIdent)(rhs.tpe)
+      val qual = GenExpr(d.getReceiver, p).tree
+      val lhs = Select(qual, pd.toJsIdent)(pd.getReturnType.toJsType)
       Assign(lhs, rhs)
     case _ => notImplemented
   }

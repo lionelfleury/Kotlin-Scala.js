@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.{getSuperCl
 import org.jetbrains.kotlin.types.ErrorUtils
 import org.scalajs.core.ir.ClassKind
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{AnyType, IntType, NoType, zeroOf}
+import org.scalajs.core.ir.Types.{AnyType, NoType}
 
 import scala.collection.JavaConverters._
 
@@ -30,14 +30,13 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty
     val defs = for (d <- d.getDeclarations.asScala) yield GenDeclaration(d, p).tree
-    //TODO: Hack for Hello, World!
     val allDefs = defs ++ manualExportMain
     ClassDef(idt, kind, Some(superClass), interfaces.toList, jsNativeLoadSpec, allDefs.toList)(optimizerHints)
   }
 
   private def manualExportMain: List[Tree] = {
     val receiver = This()(cd.toJsClassType)
-    val body = Block(Apply(receiver, Ident("main__V", Some("main")), Nil)(NoType), zeroOf(IntType))
+    val body = Block(Apply(receiver, Ident("main__V", Some("main")), Nil)(NoType), Undefined())
     val main = MethodDef(static = false, StringLiteral("main"), Nil, AnyType, Some(body))(OptimizerHints.empty, None)
     List(main, ModuleExportDef(cd.getName.asString()))
   }

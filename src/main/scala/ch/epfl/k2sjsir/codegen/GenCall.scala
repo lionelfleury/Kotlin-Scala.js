@@ -4,129 +4,158 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
 import org.jetbrains.kotlin.ir.expressions._
-import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
-  def tree: Tree = d.getDescriptor match {
-    case pd: PropertyGetterDescriptor =>
-      val cp = pd.getCorrespondingProperty.getGetter
-      val idt = cp.toJsMethodIdent
-      val tpe = cp.getReturnType.toJsType
-      val r = d.getDispatchReceiver
-      val receiver = if (r != null) GenExpr(r, p).tree else VarRef(idt)(tpe)
-      Apply(receiver, idt, Nil)(tpe)
-    case cd: ClassConstructorDescriptor =>
-      val tpe = cd.getReturnType.toJsType
-      val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
-      Apply(This()(tpe), cd.toJsMethodIdent, args.toList)(tpe)
-    case bi : IrBuiltinOperatorDescriptor =>
-      //@TODO: EQEQ and NEQ are not builtin and not SimpleFunctionDescriptor
-      notImplemented
-    case sf: SimpleFunctionDescriptor =>
-      val tpe = sf.getReturnType.toJsType
-      val args = genArgs(sf.getValueParameters.asScala)
-      if (sf.getName.toString == "println") {
-        val rec = LoadModule(ClassType("s_Predef$"))
-        val method = Ident("println__O__V", Some("println"))
-        Apply(rec, method, args.toList)(tpe)
-      } else if (sf.isOperator || sf.isInfix) { // @TODO: definitely not be the best way to detect OP
-      // @TODO: check if unary or binary
-        val lhs = GenExpr(d.getDispatchReceiver, p).tree
-        val rhs = args.head
-        val op =
-          if(lhs.tpe == rhs.tpe) getBinaryOp(sf.getName.asString(), lhs.tpe, rhs.tpe)
-          else throw new Exception("Binary op between different types not yet implemented")
-        BinaryOp(op, lhs, rhs)
-      } else {
-        val method = sf.toJsMethodIdent
-        val r = d.getDispatchReceiver
-        if (r == null) println("Null receiver in GenCall!!")
-        val rec = if (r == null) This()(AnyType) else GenExpr(r, p).tree
-        Apply(rec, method, args.toList)(tpe)
-      }
-    case _ => notImplemented
+  def tree: Tree = {
+    d.getDescriptor match {
+      case bi: IrBuiltinOperatorDescriptor =>
+        //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
+        notImplemented
+      case sf: SimpleFunctionDescriptor =>
+        val name = sf.getName.toString
+        val tpe = sf.getReturnType.toJsType
+        val args = genArgs(sf.getValueParameters.asScala)
+        if (name == "println") {
+          val rec = LoadModule(ClassType("s_Predef$"))
+          val method = Ident("println__O__V", Some("println"))
+          Apply(rec, method, args.toList)(tpe)
+        } else if (sf.isOperator || sf.isInfix) {
+          // @TODO: definitely not be the best way to detect OP
+          genBinaryOp(sf, args.head)
+        } else if (name == "toLong" ||
+          name == "toInt" ||  name == "toDouble" || name == "toFloat"){
+          genUnaryOp(sf)
+        } else {
+          val method = sf.toJsMethodIdent
+          val r = d.getDispatchReceiver
+          if (r == null) println("Null receiver in GenCall!!")
+          val rec = if (r == null) This()(AnyType) else GenExpr(r, p).tree
+          Apply(rec, method, args.toList)(tpe)
+        }
+
+      case _ => notImplemented
+    }
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
     for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
 
-  private def getBinaryOp(op: String, lhsTpe: Type, rhsTpe: Type) : BinaryOp.Code = {
+  private def genUnaryOp(sf: SimpleFunctionDescriptor): Tree = {
+    val from = sf.getDispatchReceiverParameter.getType.toJsType
+    val to = sf.getReturnType.toJsType
+    UnaryOp(convertToOp(from, to), GenExpr(d.getDispatchReceiver, p).tree)
+  }
 
-    def getLongBinaryOp = op match {
-      case "plus" =>  BinaryOp.Long_+
-      case "minus" => BinaryOp.Long_-
-      case "times" => BinaryOp.Long_*
-      case "div" => BinaryOp.Long_/
-      case "rem" => BinaryOp.Long_%
-      case "or" => BinaryOp.Long_|
-      case "and" => BinaryOp.Long_&
-      case "xor" => BinaryOp.Long_^
-      case "shl" => BinaryOp.Long_<<
-      case "shr" => BinaryOp.Long_>>>
-      case "ushr" => BinaryOp.Long_>>
-      case x => throw new Exception(s"unimplemented op $x for type Long")
+  private def genBinaryOp(sf: SimpleFunctionDescriptor, rhs: Tree) : Tree = {
+    // BinaryOP
+    val lhs = GenExpr(d.getDispatchReceiver, p).tree
+    val op = getBinaryOp(sf.getName.asString(), lhs.tpe)
+
+    if (lhs.tpe == rhs.tpe || BinaryOpMaps.isLongSpecial(op)) {
+      BinaryOp(op, lhs, rhs)
+    } else {
+      val cvtRhs = convertTo(lhs.tpe, rhs)
+      BinaryOp(op, lhs, cvtRhs)
+    }
+  }
+
+  private def convertTo(to: Type, rhs: Tree) : Tree = {
+    val op = convertToOp(rhs.tpe, to)
+    UnaryOp(op, rhs)
+  }
+  private def convertToOp(from: Type, to: Type) = {
+    (from, to) match {
+      case (IntType, LongType) => UnaryOp.IntToLong
+      case (LongType, IntType) => UnaryOp.LongToInt
+      case (LongType, DoubleType) => UnaryOp.LongToDouble
+      case (DoubleType, IntType) => UnaryOp.DoubleToInt
+      case (DoubleType, FloatType) => UnaryOp.DoubleToFloat
+      case (DoubleType, LongType) => UnaryOp.DoubleToLong
+      case _ => throw new Exception("Unsupported type conversion")
+    }
+  }
+
+  private object BinaryOpMaps {
+
+    def isLongSpecial(op: BinaryOp.Code) =
+      op ==  BinaryOp.Long_<< ||
+        op ==  BinaryOp.Long_>> ||
+        op ==  BinaryOp.Long_>>>
+
+    val longBinaryOp = Map(
+      "plus" ->  BinaryOp.Long_+,
+      "minus" -> BinaryOp.Long_-,
+      "times" -> BinaryOp.Long_*,
+      "div" -> BinaryOp.Long_/,
+      "rem" -> BinaryOp.Long_%,
+      "or" -> BinaryOp.Long_|,
+      "and" -> BinaryOp.Long_&,
+      "xor" -> BinaryOp.Long_^,
+      "shl" -> BinaryOp.Long_<<,
+      "shr" -> BinaryOp.Long_>>>,
+      "ushr" -> BinaryOp.Long_>>
+    )
+
+    val intBinaryOp = Map(
+      "plus" ->  BinaryOp.Int_+,
+      "minus" -> BinaryOp.Int_-,
+      "times" -> BinaryOp.Int_*,
+      "div" -> BinaryOp.Int_/,
+      "rem" -> BinaryOp.Int_%,
+      "or" -> BinaryOp.Int_|,
+      "and" -> BinaryOp.Int_&,
+      "xor" -> BinaryOp.Int_^,
+      "shl" -> BinaryOp.Int_<<,
+      "shr" -> BinaryOp.Int_>>>,
+      "ushr" -> BinaryOp.Int_>>
+    )
+
+    val doubleBinaryOp = Map(
+      "plus" ->  BinaryOp.Double_+,
+      "minus" -> BinaryOp.Double_-,
+      "times" -> BinaryOp.Double_*,
+      "div" -> BinaryOp.Double_/,
+      "rem" -> BinaryOp.Double_%
+    )
+
+    val floatBinaryOp = Map(
+      "plus" ->  BinaryOp.Float_+,
+      "minus" -> BinaryOp.Float_-,
+      "times" -> BinaryOp.Float_*,
+      "div" -> BinaryOp.Float_/,
+      "rem" -> BinaryOp.Float_%
+    )
+
+    val booleanBinaryOp = Map(
+      "or" -> BinaryOp.Boolean_|,
+      "and" -> BinaryOp.Boolean_&
+    )
+
+    val stringBinaryOp = Map(
+      "plus" -> BinaryOp.String_+
+    )
+  }
+
+  private def getBinaryOp(op: String, tpe: Type) : BinaryOp.Code = {
+
+    import BinaryOpMaps._
+
+    val opMap : Map[String, Int] = tpe match {
+      case BooleanType => booleanBinaryOp
+      case IntType => intBinaryOp
+      case LongType => longBinaryOp
+      case FloatType => floatBinaryOp
+      case DoubleType => doubleBinaryOp
+      case StringType => stringBinaryOp
+      case _ => throw new Exception(s"Unable to map type $tpe")
     }
 
-    def getIntBinaryOp = op match {
-      case "plus" =>  BinaryOp.Int_+
-      case "minus" => BinaryOp.Int_-
-      case "times" => BinaryOp.Int_*
-      case "div" => BinaryOp.Int_/
-      case "rem" => BinaryOp.Int_%
-      case "or" => BinaryOp.Int_|
-      case "and" => BinaryOp.Int_&
-      case "xor" => BinaryOp.Int_^
-      case "shl" => BinaryOp.Int_<<
-      case "shr" => BinaryOp.Int_>>>
-      case "ushr" => BinaryOp.Int_>>
-      case x => throw new Exception(s"unimplemented op $x for type Int")
-    }
-
-    def getDoubleBinaryOp = op match {
-      case "plus" =>  BinaryOp.Double_+
-      case "minus" => BinaryOp.Double_-
-      case "times" => BinaryOp.Double_*
-      case "div" => BinaryOp.Double_/
-      case "rem" => BinaryOp.Double_%
-      case x => throw new Exception(s"unimplemented op $x for type Int")
-    }
-
-    def getFloatBinaryOp = op match {
-      case "plus" =>  BinaryOp.Float_+
-      case "minus" => BinaryOp.Float_-
-      case "times" => BinaryOp.Float_*
-      case "div" => BinaryOp.Float_/
-      case "rem" => BinaryOp.Float_%
-      case x => throw new Exception(s"unimplemented op $x for type Int")
-    }
-
-    def getBooleanBinaryOp = op match  {
-      case "or" => BinaryOp.Boolean_|
-      case "and" => BinaryOp.Boolean_&
-      case x => throw new Exception(s"unimplemented op $x for type Boolean")
-    }
-
-    def getStringBinaryOp = op match {
-      case "plus" => BinaryOp.String_+
-      case x => throw new Exception(s"unimplemented op $x for type String")
-    }
-
-    (lhsTpe, rhsTpe) match {
-      case (BooleanType, BooleanType) => getBooleanBinaryOp
-      case (IntType, IntType) => getIntBinaryOp
-      case (LongType, LongType) => getLongBinaryOp
-      case (FloatType, FloatType) => getFloatBinaryOp
-      case (DoubleType, DoubleType) => getDoubleBinaryOp
-      case (StringType, StringType) => getStringBinaryOp
-      /* Mixed types */
-      case (LongType, IntType) => getLongBinaryOp
-    }
-
-
+    opMap(op)
   }
 
 }
