@@ -15,7 +15,7 @@ case class GenFun(d: IrFunction, p: Positioner) extends Gen[IrFunction] {
       val idt = c.getDescriptor.toJsMethodIdent
       val body = GenBody(d.getBody, p).treeOption
       val opt = OptimizerHints.empty
-      MethodDef(false, idt, args.toList, NoType, body)(opt, None)
+      MethodDef(static = false, idt, args.toList, NoType, body)(opt, None)
     case f: IrFunction => genFun(f)
     case _ => notImplemented
   }

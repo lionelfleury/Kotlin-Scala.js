@@ -1,23 +1,16 @@
 package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescriptor
-import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueDescriptor}
+import org.jetbrains.kotlin.descriptors.{ParameterDescriptor, ValueDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.ClassType
 
 case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
 
   def tree: Tree = d.getDescriptor match {
-    case rp: LazyClassReceiverParameterDescriptor =>
-      val cd = rp.getContainingDeclaration match {
-        case c: ClassDescriptor => c
-        case _ => throw new Error("Only class descriptor supported...")
-      }
-      val tpe = cd.getDefaultType.toJsType
-      //TODO: hardcoded This
-      This()(ClassType("Test"))
+    case rp: ParameterDescriptor =>
+      val tpe = rp.getReturnType.toJsType
+      This()(tpe)
     case vd: ValueDescriptor =>
       val idt = vd.toJsIdent
       val tpe = vd.getReturnType.toJsType

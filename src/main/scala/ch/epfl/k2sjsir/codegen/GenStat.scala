@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ClassType, NoType}
+import org.scalajs.core.ir.Types.NoType
 
 import scala.collection.JavaConverters._
 
@@ -16,15 +16,13 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       val cd = c.getDescriptor
       val tpe = cd.getConstructedClass.toJsClassType
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
-      //TODO: hardcoded This
-      ApplyStatically(This()(ClassType("Test")), tpe, cd.toJsMethodIdent, args.toList)(NoType)
+      ApplyStatically(This()(tpe), tpe, cd.toJsMethodIdent, args.toList)(NoType)
     case c: IrInstanceInitializerCall =>
       val tpe = c.getClassDescriptor.toJsClassType
-      //TODO: hardcoded This
-      StoreModule(tpe, This()(ClassType("Test")))
+      StoreModule(tpe, This()(tpe))
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
-    case r: IrReturn => GenReturn(r, p).tree
+    case r: IrReturn => GenExpr(r.getValue, p).tree
     case s: IrSetField => GenSetField(s, p).tree
     case i: IrWhen => GenWhen(i, p).tree
     case v: IrVariable => GenVar(v, p).tree
