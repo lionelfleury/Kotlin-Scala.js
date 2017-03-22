@@ -28,6 +28,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case v: IrVariable => GenVar(v, p).tree
     case c: IrCall => GenCall(c, p).tree
     case w: IrWhileLoop => GenWhile(w, p).tree
+    case w: IrDoWhileLoop => GenDoWhile(w, p).tree
     case _ => notImplemented
   }
 
