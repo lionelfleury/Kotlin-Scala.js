@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.descriptors.impl.LazyClassReceiverParameterDescripto
 import org.jetbrains.kotlin.descriptors.{ClassDescriptor, ValueDescriptor}
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types.ClassType
 
 case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
 
@@ -15,7 +16,8 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
         case _ => throw new Error("Only class descriptor supported...")
       }
       val tpe = cd.getDefaultType.toJsType
-      This()(tpe)
+      //TODO: hardcoded This
+      This()(ClassType("Test"))
     case vd: ValueDescriptor =>
       val idt = vd.toJsIdent
       val tpe = vd.getReturnType.toJsType

@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types
+import org.scalajs.core.ir.Types.{ClassType, NoType}
 
 import scala.collection.JavaConverters._
 
@@ -14,11 +14,14 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
   def tree: Tree = d match {
     case c: IrDelegatingConstructorCall =>
       val cd = c.getDescriptor
-      val tpe = cd.getContainingDeclaration.toJsClassType
+      val tpe = cd.getConstructedClass.toJsClassType
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
-      ApplyStatically(This()(Types.NoType), tpe, cd.toJsMethodIdent, args.toList)(Types.NoType)
+      //TODO: hardcoded This
+      ApplyStatically(This()(ClassType("Test")), tpe, cd.toJsMethodIdent, args.toList)(NoType)
     case c: IrInstanceInitializerCall =>
-      StoreModule(c.getClassDescriptor.toJsClassType, This()(Types.NoType))
+      val tpe = c.getClassDescriptor.toJsClassType
+      //TODO: hardcoded This
+      StoreModule(tpe, This()(ClassType("Test")))
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
     case r: IrReturn => GenReturn(r, p).tree
