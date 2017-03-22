@@ -1,16 +1,16 @@
 package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
+import org.jetbrains.kotlin.descriptors.VariableDescriptor
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.scalajs.core.ir.Trees.{Tree, _}
 
 case class GenVar(d: IrVariable, p: Positioner) extends Gen[IrVariable] {
-  override def tree: Tree = d.getDescriptor match {
-    case ldesc: LocalVariableDescriptor =>
+
+  def tree: Tree = d.getDescriptor match {
+    case v: VariableDescriptor =>
       val rhs = GenExpr(d.getInitializer, p).tree
-      val mutable = ldesc.isVar
-      VarDef(ldesc.toJsIdent, rhs.tpe, mutable, rhs)
+      VarDef(v.toJsIdent, v.getType.toJsType, v.isVar, rhs)
     case _ => notImplemented
   }
 }
