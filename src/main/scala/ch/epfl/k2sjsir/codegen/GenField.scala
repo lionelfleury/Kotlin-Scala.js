@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.descriptors.PropertyDescriptor
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees.{FieldDef, Tree}
-import org.scalajs.core.ir.Types.{AnyType, NoType}
 
 case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
 
