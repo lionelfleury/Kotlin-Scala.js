@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import org.jetbrains.kotlin.ir.IrElement
 import org.scalajs.core.ir.Position
-import org.scalajs.core.ir.Trees.{Skip, Tree}
+import org.scalajs.core.ir.Trees.{Debugger, Tree}
 
 trait Gen[T <: IrElement] {
   def d: T
@@ -14,7 +14,7 @@ trait Gen[T <: IrElement] {
     val c = getClass.getSimpleName
     val name = if (d != null) d.getClass.getSimpleName else ""
     println(s"Not supported $c: $name")
-    Skip()
+    Debugger()
   }
 
 }

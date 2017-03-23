@@ -3,7 +3,6 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.ClassType
 
