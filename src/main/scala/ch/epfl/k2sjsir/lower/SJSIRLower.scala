@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.backend.jvm.lower._
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
 class SJSIRLower(val context: JvmBackendContext) {
+
   def lower(irFile: IrFile) {
     new FileClassLowering(context).lower(irFile)
     new ConstAndJvmFieldPropertiesLowering().lower(irFile)
@@ -18,11 +19,11 @@ class SJSIRLower(val context: JvmBackendContext) {
     runOnFilePostfix(new InnerClassConstructorCallsLowering(context), irFile)
     runOnFilePostfix(new LocalFunctionsLowering(context), irFile)
     runOnFilePostfix(new EnumClassLowering(context), irFile)
-    // runOnFilePostfix(new ObjectClassLowering(context), irFile) // Not to be used; removes INSTANCE
-    runOnFilePostfix(new FieldLowering(context), irFile)
-    // runOnFilePostfix(new InitializersLowering(context), irFile) // Only lower fields (no <clinit>)
+    // Own lowering phase: no INSTANCE, no <clinit> creation
+    FieldLowering.lower(irFile)
     runOnFilePostfix(new SingletonReferencesLowering(context), irFile)
     new SyntheticAccessorLowering(context.getState).lower(irFile)
     runOnFilePostfix(new BridgeLowering(context.getState), irFile)
   }
+
 }

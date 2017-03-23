@@ -1,7 +1,6 @@
 package ch.epfl.k2sjsir.lower
 
-import org.jetbrains.kotlin.backend.common.ClassLoweringPass
-import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.descriptors.ReceiverParameterDescriptor
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions.IrStatementContainer
@@ -9,32 +8,42 @@ import org.jetbrains.kotlin.ir.expressions.impl.{IrBlockBodyImpl, IrGetValueImpl
 
 import scala.collection.JavaConverters._
 
-class FieldLowering(val context: JvmBackendContext) extends ClassLoweringPass {
+object FieldLowering {
 
-  override def lower(irClass: IrClass) {
-    val ds = irClass.getDeclarations.asScala
-    val inits = ds.collect {
-      case d: IrField =>
-        val f = Option(d.getInitializer).map(_.getExpression)
-        if (f.nonEmpty) {
-          val (start, end) = f.map(f => (f.getStartOffset, f.getEndOffset)).get
-          val receiver =
-            if (d.getDescriptor.getDispatchReceiverParameter != null)
-              new IrGetValueImpl(start, end, irClass.getDescriptor.getThisAsReceiverParameter, null)
-            else null
-          List(new IrSetFieldImpl(start, end, d.getDescriptor, receiver, f.get, null, null))
-        } else List[IrStatement]()
-      case declaration: IrAnonymousInitializer =>
-        declaration.getBody.getStatements.asScala
+  def lower(f: IrFile) {
+    f.getDeclarations.asScala.foreach {
+      case irClass: IrClass =>
+        val declarations = irClass.getDeclarations.asScala
+        val const = getPrimaryConstructor(declarations)
+        val stats = getStatements(const) ++ getInitializers(irClass, declarations)
+        val newBody = new IrBlockBodyImpl(irClass.getStartOffset, irClass.getEndOffset, stats.asJava)
+        const.foreach(_.setBody(newBody))
+      case c => throw new AssertionError(s"Declaration should be IrClass, got: $c")
     }
-    val const = ds.collect { case d: IrConstructor if d.getDescriptor.isPrimary => d }.head
-    val stats = const.getBody match {
-      case b: IrStatementContainer => b.getStatements.asScala
-      case _ => List[IrStatement]()
-    }
-    val allStats = stats ++ inits.flatten
-    val newBody = new IrBlockBodyImpl(irClass.getStartOffset, irClass.getEndOffset, allStats.asJava)
-    const.setBody(newBody)
   }
+
+  private def getPrimaryConstructor(ds: Seq[IrDeclaration]) = ds.collect {
+    case d: IrConstructor if d.getDescriptor.isPrimary => d
+  }.headOption
+
+  private def getStatements(c: Option[IrConstructor]) = c.map(_.getBody).map {
+    case l: IrStatementContainer => l.getStatements.asScala
+  }.getOrElse(Nil)
+
+  private def getInitializers(i: IrClass, ds: Seq[IrDeclaration]): Seq[IrStatement] = ds.collect {
+    case d: IrField if d.getInitializer != null =>
+      Option(d.getInitializer.getExpression).map { exp =>
+        val (start, end) = (exp.getStartOffset, exp.getEndOffset)
+        val receiver = if (hasReceiver(d)) new IrGetValueImpl(start, end, getThis(i), null) else null
+        Seq(new IrSetFieldImpl(start, end, d.getDescriptor, receiver, exp, null, null))
+      }.getOrElse(Nil)
+    case d: IrAnonymousInitializer => d.getBody.getStatements.asScala
+  }.flatten
+
+  private def hasReceiver(d: IrField): Boolean =
+    d.getDescriptor.getDispatchReceiverParameter != null
+
+  private def getThis(i: IrClass): ReceiverParameterDescriptor =
+    i.getDescriptor.getThisAsReceiverParameter
 
 }
