@@ -52,22 +52,55 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   }
 
   private def genBinaryOp(sf: SimpleFunctionDescriptor, rhs: Tree) : Tree = {
-    // BinaryOP
     val lhs = GenExpr(d.getDispatchReceiver, p).tree
-    val op = getBinaryOp(sf.getName.asString(), lhs.tpe)
+    val rType = sf.getReturnType.toJsType
+    val op = getBinaryOp(sf.getName.asString(), rType)
 
-    if (lhs.tpe == rhs.tpe || BinaryOpMaps.isLongSpecial(op)) {
+    if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
+    } else if(isLongOp(op, lhs.tpe, rhs.tpe)) {
+      val clhs = intToLong(lhs)
+      val crhs = if(BinaryOpMaps.isLongSpecial(op)) longToInt(rhs) else intToLong(rhs)
+      BinaryOp(op, clhs, crhs)
     } else {
-      val cvtRhs = convertTo(lhs.tpe, rhs)
-      BinaryOp(op, lhs, cvtRhs)
+      val lsrc = convertArg(op, lhs, lhs.tpe, rType)
+      val rsrc = convertArg(op, rhs, rhs.tpe, rType)
+      BinaryOp(op, lsrc, rsrc)
     }
   }
 
-  private def convertTo(to: Type, rhs: Tree) : Tree = {
-    val op = convertToOp(rhs.tpe, to)
-    UnaryOp(op, rhs)
+  private def isLongType(t: Type) = t == LongType
+  private def isStringType(t: Type) = t == StringType
+  private def isFloatType(t: Type) = t == FloatType
+  private def isIntType(t: Type) = t == IntType
+  private def isDoubleType(t: Type) = t == DoubleType
+
+  private def intToLong(t: Tree) = if(isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
+  private def longToInt(t: Tree) = if(isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
+
+  /* Long is special, because of its shift operations, that accepts only int */
+  private def isLongOp(op: BinaryOp.Code, ltpe: Type, rtpe: Type) = {
+    (isLongType(ltpe) || isLongType(rtpe)) &&
+      !(isFloatType(ltpe) ||
+        isFloatType(rtpe) ||
+        isStringType(ltpe)|| isStringType(rtpe) || isDoubleType(ltpe) || isDoubleType(rtpe))
+
   }
+
+  /* Convert arg to the correct type for it to be us by the binary op */
+  private def convertArg(op: BinaryOp.Code, tree: Tree, t: Type, returnType: Type) = {
+    val notLong = {
+      if (!isLongType(t)) tree
+      else if (BinaryOpMaps.isLongSpecial(op)) UnaryOp(UnaryOp.LongToInt, tree)
+      else UnaryOp(UnaryOp.LongToDouble, tree)
+    }
+
+    if (!isFloatType(returnType)) notLong
+    else if (isFloatType(t)) notLong
+    else UnaryOp(UnaryOp.DoubleToFloat, notLong)
+  }
+
+  /* Useful for explicit type conversion (toInt, toDouble, ...) */
   private def convertToOp(from: Type, to: Type) = {
     (from, to) match {
       case (IntType, LongType) => UnaryOp.IntToLong
@@ -80,6 +113,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     }
   }
 
+  /* Map of all binary ops, sorted by type */
   private object BinaryOpMaps {
 
     def isLongSpecial(op: BinaryOp.Code) =
@@ -141,6 +175,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
   }
 
+  /* Find the correct binary op for a given type */
   private def getBinaryOp(op: String, tpe: Type) : BinaryOp.Code = {
 
     import BinaryOpMaps._
@@ -151,7 +186,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case LongType => longBinaryOp
       case FloatType => floatBinaryOp
       case DoubleType => doubleBinaryOp
-      case StringType => stringBinaryOp
+      case StringType | ClassType("LString") => stringBinaryOp
       case _ => throw new Exception(s"Unable to map type $tpe")
     }
 
