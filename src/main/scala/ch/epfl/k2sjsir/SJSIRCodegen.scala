@@ -14,7 +14,7 @@ class SJSIRCodegen(outDir: String) {
   def generate(d: IrClass, p: Positioner): Unit = {
     if (outDir == null) sys.error("No output directory found...")
     val tree: ClassDef = GenClass(d, p).tree
-    val suffix = if (d.getDescriptor.getKind == OBJECT) "$" else ""
+    val suffix = if (d.getDescriptor.isCompanionObject || d.getDescriptor.getKind == OBJECT) "$" else ""
     genIRFile(outDir, d.getDescriptor, suffix, tree)
   }
 

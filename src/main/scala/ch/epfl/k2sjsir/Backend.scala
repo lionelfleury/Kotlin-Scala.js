@@ -56,6 +56,7 @@ object Backend {
     lower.lower(irFile)
     irFile.getDeclarations.asScala.foreach {
       case i: IrClass => codegen.generate(i, p)
+      case c => throw new AssertionError(s"Declaration should be IrClass, got: $c")
     }
   }
 

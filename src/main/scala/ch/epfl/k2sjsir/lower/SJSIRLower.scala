@@ -19,8 +19,10 @@ class SJSIRLower(val context: JvmBackendContext) {
     runOnFilePostfix(new InnerClassConstructorCallsLowering(context), irFile)
     runOnFilePostfix(new LocalFunctionsLowering(context), irFile)
     runOnFilePostfix(new EnumClassLowering(context), irFile)
-    // Own lowering phase: no INSTANCE, no <clinit> creation
+    // Own lowering phases: no INSTANCE, no <clinit> creation
+//    new CompanionLowering(irFile).lower()
     FieldLowering.lower(irFile)
+    // Resume standard lowering
     runOnFilePostfix(new SingletonReferencesLowering(context), irFile)
     new SyntheticAccessorLowering(context.getState).lower(irFile)
     runOnFilePostfix(new BridgeLowering(context.getState), irFile)

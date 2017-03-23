@@ -10,16 +10,13 @@ import scala.collection.JavaConverters._
 
 object FieldLowering {
 
-  def lower(f: IrFile) {
-    f.getDeclarations.asScala.foreach {
-      case irClass: IrClass =>
-        val declarations = irClass.getDeclarations.asScala
-        val const = getPrimaryConstructor(declarations)
-        val stats = getStatements(const) ++ getInitializers(irClass, declarations)
-        val newBody = new IrBlockBodyImpl(irClass.getStartOffset, irClass.getEndOffset, stats.asJava)
-        const.foreach(_.setBody(newBody))
-      case c => throw new AssertionError(s"Declaration should be IrClass, got: $c")
-    }
+  def lower(f: IrFile): Unit = f.getDeclarations.asScala.foreach {
+    case irClass: IrClass =>
+      val declarations = irClass.getDeclarations.asScala
+      val const = getPrimaryConstructor(declarations)
+      val stats = getStatements(const) ++ getInitializers(irClass, declarations)
+      val newBody = new IrBlockBodyImpl(irClass.getStartOffset, irClass.getEndOffset, stats.asJava)
+      const.foreach(_.setBody(newBody))
   }
 
   private def getPrimaryConstructor(ds: Seq[IrDeclaration]) = ds.collect {

@@ -13,7 +13,7 @@ case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclara
     case x: IrProperty => GenProperty(x, p).tree
     //    case _: IrAnonymousInitializer => Skip()
     //    case _: IrTypeAlias => Skip()
-    //    case _: IrClass => Skip()
+    case c: IrClass => GenClass(c, p).tree
     case _ => notImplemented
   }
 

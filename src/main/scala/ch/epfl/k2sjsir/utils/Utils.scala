@@ -32,7 +32,7 @@ object Utils {
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
     def toJsType: Type = types.getOrElse(t.toString, getClassDescriptorForType(t).toJsClassType)
-    def toJsInternal: String = getInternal(t.toJsType)
+    private[utils] def toJsInternal: String = getInternal(t.toJsType)
   }
 
   private val types = Map(

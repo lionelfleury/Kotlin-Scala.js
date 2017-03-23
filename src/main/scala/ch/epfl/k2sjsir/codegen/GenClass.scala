@@ -12,6 +12,7 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{AnyType, NoType}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable._
 
 case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
   private val cd = d.getDescriptor
@@ -27,7 +28,11 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty
     val defs = for (d <- d.getDeclarations.asScala) yield GenDeclaration(d, p).tree
-    val allDefs = defs.toList ++ manualExports
+    val hasMain = defs.exists {
+      case MethodDef(_, Ident("main__V", _), _, _, _) => true
+      case _ => false
+    }
+    val allDefs = defs.toList ++ (if (hasMain) manualExports else Nil)
     ClassDef(idt, kind, Some(superClass), interfaces.toList, jsNativeLoadSpec, allDefs)(optimizerHints)
   }
 

@@ -34,7 +34,7 @@ object NameEncoder {
     Ident(encodeClassFullName(d))
 
   private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
-    val suffix = if (d.getKind == OBJECT) "$" else ""
+    val suffix = if (d.isCompanionObject || d.getKind == OBJECT) "$" else ""
     val name = d.toJsName
     val n = if (name == "Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
