@@ -11,6 +11,8 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private val ROOT_LIB    = "src/test/resources/lib"
   private val ROOT_OUT    = "src/test/resources/out"
 
+  private val KOTLIN_HOME = scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" )
+
   after {
     cleanOutput()
   }
@@ -22,13 +24,13 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   }
 
   private def assertIrResult(expected: String, srcFile: String, mainClass: String = "Test$") = {
-    K2SJSIRCompiler.main(Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", "/usr/share/kotlin"))
+    K2SJSIRCompiler.main(Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
     val content = Scalajsp.run(Array(s"$ROOT_OUT/$mainClass.sjsir"))
     assert(expected == content)
   }
 
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
-    K2SJSIRCompiler.main(Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", "/usr/share/kotlin"))
+    K2SJSIRCompiler.main(Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
     Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, "-o", s"$ROOT_OUT/$outFile"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
