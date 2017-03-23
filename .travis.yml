@@ -1,0 +1,17 @@
+language: scala
+scala:
+  - 2.12.1
+jdk:
+  - oraclejdk8
+
+before_install:
+  - sudo mkdir -p /usr/share/kotlin/lib
+  - sudo wget -O /usr/share/kotlin/lib/kotlin-runtime.jar http://central.maven.org/maven2/org/jetbrains/kotlin/kotlin-runtime/1.1.1/kotlin-runtime-1.1.1.jar
+  - sudo wget -O /usr/share/kotlin/lib/kotlin-stdlib.jar http://central.maven.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/1.1.1/kotlin-stdlib-1.1.1.jar
+  - sudo wget -O /usr/share/kotlin/lib/kotlin-reflect.jar http://central.maven.org/maven2/org/jetbrains/kotlin/kotlin-reflect/1.1.1/kotlin-reflect-1.1.1.jar
+  - sudo wget -O /usr/share/kotlin/lib/kotlin-script-runtime.jar http://central.maven.org/maven2/org/jetbrains/kotlin/kotlin-script-runtime/1.1.1/kotlin-script-runtime-1.1.1.jar
+
+
+cache:
+  directories:
+    - /usr/share/kotlin
