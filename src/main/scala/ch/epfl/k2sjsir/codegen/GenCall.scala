@@ -3,6 +3,7 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.ClassType
 
@@ -17,9 +18,12 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       else f.toJsMethodIdent
     val args = genArgs(f.getValueParameters.asScala)
     val tpe = f.getReturnType.toJsType
+    val r = d.getDispatchReceiver
     val rec =
-      if (f.getName.toString == "println") LoadModule(ClassType("s_Predef$"))
-      else GenExpr(d.getDispatchReceiver, p).tree
+      if (f.getName.toString == "println")
+        LoadModule(ClassType("s_Predef$"))
+      else if (r != null) GenExpr(r, p).tree
+      else f.getThis
     Apply(rec, idt, args.toList)(tpe)
   }
 

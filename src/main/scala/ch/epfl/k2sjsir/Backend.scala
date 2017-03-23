@@ -19,7 +19,7 @@ package ch.epfl.k2sjsir
 
 import ch.epfl.k2sjsir.codegen.Positioner
 import ch.epfl.k2sjsir.lower.SJSIRLower
-import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.config.JVMConfigurationKeys.OUTPUT_DIRECTORY
@@ -49,7 +49,7 @@ object Backend {
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
-    val lower = new SJSIRLower(context)
+    val lower = new JvmLower(context)
     val p = new Positioner(irFile)
     val outDir = context.getState.getConfiguration.get(OUTPUT_DIRECTORY).toString
     val codegen = new SJSIRCodegen(outDir)
