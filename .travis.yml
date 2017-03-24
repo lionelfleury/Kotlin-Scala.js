@@ -1,0 +1,26 @@
+language: scala
+scala:
+  - 2.12.1
+jdk:
+  - oraclejdk8
+
+before_install:
+  - mkdir -p $HOME/kotlin/bin
+  - mkdir -p $HOME/kotlin/lib
+  - wget -c -O $HOME/kotlin/kotlin.zip https://github.com/JetBrains/kotlin/releases/download/v1.1.1/kotlin-compiler-1.1.1.zip
+  - unzip -j -n $HOME/kotlin/kotlin.zip 'kotlinc/bin/*' -d $HOME/kotlin/bin
+  - unzip -j -n $HOME/kotlin/kotlin.zip 'kotlinc/lib/*' -d $HOME/kotlin/lib
+
+env:
+  - KOTLIN_HOME=$HOME/kotlin/
+
+cache:
+  directories:
+    - $HOME/kotlin
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+
+before_cache:
+  # Cleanup the cached directories to avoid unnecessary cache updates
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
