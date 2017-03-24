@@ -131,8 +131,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       "and" -> BinaryOp.Long_&,
       "xor" -> BinaryOp.Long_^,
       "shl" -> BinaryOp.Long_<<,
-      "shr" -> BinaryOp.Long_>>>,
-      "ushr" -> BinaryOp.Long_>>
+      "shr" -> BinaryOp.Long_>>,
+      "ushr" -> BinaryOp.Long_>>>
     )
 
     val intBinaryOp = Map(
@@ -145,8 +145,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       "and" -> BinaryOp.Int_&,
       "xor" -> BinaryOp.Int_^,
       "shl" -> BinaryOp.Int_<<,
-      "shr" -> BinaryOp.Int_>>>,
-      "ushr" -> BinaryOp.Int_>>
+      "shr" -> BinaryOp.Int_>>,
+      "ushr" -> BinaryOp.Int_>>>
     )
 
     val doubleBinaryOp = Map(
