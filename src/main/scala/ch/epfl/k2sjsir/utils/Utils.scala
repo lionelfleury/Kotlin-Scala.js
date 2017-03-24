@@ -2,7 +2,6 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils.getClassDescriptorForType
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
@@ -14,7 +13,6 @@ object Utils {
   implicit class DeclarationDescriptorTranslator(d: DeclarationDescriptor) {
     def toJsName: String = encodeName(d.getName.asString())
     def toJsIdent(implicit pos: Position): Ident = Ident(d.toJsName, Some(d.getName.asString()))
-    def getThis(implicit pos: Position): Tree = This()(DescriptorUtils.getContainingClass(d).toJsClassType)
   }
 
   implicit class CallableDescriptorTranslator(d: CallableDescriptor) {

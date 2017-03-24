@@ -3,8 +3,8 @@ package ch.epfl.k2sjsir
 import java.io.{File, FileOutputStream}
 
 import ch.epfl.k2sjsir.codegen.{GenClass, Positioner}
+import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{InfoSerializers, Infos, InvalidIRException, Serializers}
@@ -14,12 +14,12 @@ class SJSIRCodegen(outDir: String) {
   def generate(d: IrClass, p: Positioner): Unit = {
     if (outDir == null) sys.error("No output directory found...")
     val tree: ClassDef = GenClass(d, p).tree
-    val suffix = if (d.getDescriptor.isCompanionObject || d.getDescriptor.getKind == OBJECT) "$" else ""
-    genIRFile(outDir, d.getDescriptor, suffix, tree)
+    //    val suffix = if (d.getDescriptor.isCompanionObject || d.getDescriptor.getKind == OBJECT) "$" else ""
+    genIRFile(outDir, d.getDescriptor, "", tree)
   }
 
-  private def genIRFile(outDir: String, sym: ClassDescriptor, suffix: String, tree: ClassDef): Unit = {
-    val file = new File(outDir + "/" + sym.getName + suffix + ".sjsir")
+  private def genIRFile(outDir: String, cd: ClassDescriptor, suffix: String, tree: ClassDef): Unit = {
+    val file = new File(outDir, cd.toJsClassName.drop(1) + ".sjsir")
     file.getParentFile.mkdir()
     val output = new FileOutputStream(file)
     try {

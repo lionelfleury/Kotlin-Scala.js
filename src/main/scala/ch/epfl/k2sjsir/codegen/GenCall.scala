@@ -4,6 +4,7 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
 
@@ -29,6 +30,9 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
         else if (isUnaryOp(name)) genUnaryOp(sf)
         else genStandardApply(sf, sf.toJsMethodIdent, args.toList)
+      case cd: ClassConstructorDescriptor =>
+        val tpe = cd.getConstructedClass.toJsClassType
+        New(tpe, cd.toJsMethodIdent, args.toList)
       case f: FunctionDescriptor => genStandardApply(f, f.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
@@ -37,9 +41,13 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   private def genStandardApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
     val tpe = desc.getReturnType.toJsType
-    val r = d.getDispatchReceiver
-    val rec = if (r != null) GenExpr(r, p).tree else desc.getThis
-    Apply(rec, method, args)(tpe)
+    val static = DescriptorUtils.isStaticDeclaration(desc)
+    if (static) {
+      val classType = DescriptorUtils.getContainingClass(desc).toJsClassType
+      ApplyStatic(classType, method, args)(tpe)
+    } else {
+      Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
+    }
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =

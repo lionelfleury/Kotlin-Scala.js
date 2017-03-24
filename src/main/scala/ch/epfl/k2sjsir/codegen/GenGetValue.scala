@@ -11,8 +11,8 @@ case class GenGetValue(d: IrGetValue, p: Positioner) extends Gen[IrGetValue] {
 
   def tree: Tree = d.getDescriptor match {
     case rp: LazyClassReceiverParameterDescriptor =>
-      val tpe = getClassDescriptorForType(rp.getType).toJsClassType
-      This()(tpe)
+      val ctpe = getClassDescriptorForType(rp.getType).toJsClassType
+      This()(ctpe)
     case vd: ValueDescriptor =>
       val idt = vd.toJsIdent
       val tpe = vd.getReturnType.toJsType

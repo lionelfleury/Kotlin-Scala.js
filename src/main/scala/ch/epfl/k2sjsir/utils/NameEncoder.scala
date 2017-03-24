@@ -3,6 +3,7 @@ package ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.{INTERFACE, OBJECT}
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, Visibilities}
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuperclassesWithoutAny
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
@@ -35,7 +36,7 @@ object NameEncoder {
 
   private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
     val suffix = if (d.isCompanionObject || d.getKind == OBJECT) "$" else ""
-    val name = d.toJsName
+    val name = DescriptorUtils.getFqNameFromTopLevelClass(d).asString().replace(".", "$")
     val n = if (name == "Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }
