@@ -11,42 +11,42 @@ import scala.collection.JavaConverters._
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
-  def tree: Tree = d.getDescriptor match {
-    case bi: IrBuiltinOperatorDescriptor =>
-      //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
-      notImplemented
-    case sf: SimpleFunctionDescriptor =>
-      val name = sf.getName.toString
-      val tpe = sf.getReturnType.toJsType
-      val args = genArgs(sf.getValueParameters.asScala)
-      if (name == "println") {
-        val rec = LoadModule(ClassType("s_Predef$"))
-        val method = Ident("println__O__V", Some("println"))
-        Apply(rec, method, args.toList)(tpe)
-      } else if (sf.isOperator || sf.isInfix) {
-        // @TODO: definitely not be the best way to detect OP
-        genBinaryOp(sf, args.head)
-      } else if (name == "toLong" ||
-        name == "toInt" || name == "toDouble" || name == "toFloat") {
-        genUnaryOp(sf)
-      } else {
-        val method = sf.toJsMethodIdent
-        val r = d.getDispatchReceiver
-        val rec = if (r != null) GenExpr(r, p).tree else d.getDescriptor.getThis
-        Apply(rec, method, args.toList)(tpe)
-      }
-    case c: ClassConstructorDescriptor =>
-      val method = c.toJsMethodIdent
-      val args = genArgs(c.getValueParameters.asScala)
-      val tpe = c.getReturnType.toJsType
-      val r = d.getDispatchReceiver
-      val rec = if (r != null) GenExpr(r, p).tree else d.getDescriptor.getThis
-      Apply(rec, method, args.toList)(tpe)
-    case _ => notImplemented
+  def tree: Tree = {
+    val desc = d.getDescriptor
+    val name = desc.getName.toString
+    val args = genArgs(desc.getValueParameters.asScala)
+    desc match {
+      case _: IrBuiltinOperatorDescriptor =>
+        //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
+        notImplemented
+      case sf: SimpleFunctionDescriptor =>
+        if (name == "println") {
+          val rec = LoadModule(ClassType("s_Predef$"))
+          val method = Ident("println__O__V", Some("println"))
+          val tpe = sf.getReturnType.toJsType
+          Apply(rec, method, args.toList)(tpe)
+          // @TODO: definitely not be the best way to detect OP
+        } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
+        else if (isUnaryOp(name)) genUnaryOp(sf)
+        else genStandardApply(sf, sf.toJsMethodIdent, args.toList)
+      case f: FunctionDescriptor => genStandardApply(f, f.toJsMethodIdent, args.toList)
+      case _ => notImplemented
+    }
+
+  }
+
+  private def genStandardApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
+    val tpe = desc.getReturnType.toJsType
+    val r = d.getDispatchReceiver
+    val rec = if (r != null) GenExpr(r, p).tree else desc.getThis
+    Apply(rec, method, args)(tpe)
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
     for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
+
+  private def isUnaryOp(n: String): Boolean =
+    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat"
 
   private def genUnaryOp(sf: SimpleFunctionDescriptor): Tree = {
     val from = sf.getDispatchReceiverParameter.getType.toJsType
