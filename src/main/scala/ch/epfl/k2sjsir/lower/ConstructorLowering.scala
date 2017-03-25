@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.{IrBlockBodyImpl, IrGetValueImpl
 
 import scala.collection.JavaConverters._
 
-object FieldLowering {
+object ConstructorLowering {
 
   def lower(f: IrFile): Unit = f.getDeclarations.asScala.foreach {
     case irClass: IrClass =>

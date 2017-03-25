@@ -29,22 +29,21 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
           // @TODO: definitely not be the best way to detect OP
         } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
         else if (isUnaryOp(name)) genUnaryOp(sf)
-        else genStandardApply(sf, sf.toJsMethodIdent, args.toList)
+        else genApply(sf, sf.toJsMethodIdent, args.toList)
       case cd: ClassConstructorDescriptor =>
         val tpe = cd.getConstructedClass.toJsClassType
         New(tpe, cd.toJsMethodIdent, args.toList)
-      case f: FunctionDescriptor => genStandardApply(f, f.toJsMethodIdent, args.toList)
+      case f: FunctionDescriptor => genApply(f, f.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
-
   }
 
-  private def genStandardApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
+  private def genApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
     val tpe = desc.getReturnType.toJsType
     val static = DescriptorUtils.isStaticDeclaration(desc)
     if (static) {
-      val classType = DescriptorUtils.getContainingClass(desc).toJsClassType
-      ApplyStatic(classType, method, args)(tpe)
+      val ctpe = DescriptorUtils.getContainingClass(desc).toJsClassType
+      ApplyStatic(ctpe, method, args)(tpe)
     } else {
       Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
     }
@@ -66,7 +65,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val lhs = GenExpr(d.getDispatchReceiver, p).tree
     val rType = sf.getReturnType.toJsType
     val op = getBinaryOp(sf.getName.asString(), rType)
-
     if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
     } else if (isLongOp(op, lhs.tpe, rhs.tpe)) {
@@ -126,9 +124,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private object BinaryOpMaps {
 
     def isLongSpecial(op: BinaryOp.Code): Boolean =
-      op == BinaryOp.Long_<< ||
-        op == BinaryOp.Long_>> ||
-        op == BinaryOp.Long_>>>
+      op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
     val longBinaryOp = Map(
       "plus" -> BinaryOp.Long_+,
