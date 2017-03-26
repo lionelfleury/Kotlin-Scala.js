@@ -14,7 +14,7 @@ public class Positioner {
     }
 
     public Position getPos(int startOffset) {
-        String file = fileEntry.getName().replaceAll("/[.]+/", "/");
+        String file = fileEntry.getName();
         int line = fileEntry.getLineNumber(startOffset);
         int column = fileEntry.getColumnNumber(startOffset);
         return new Position(SourceFile$.MODULE$.apply(file), line, column);
