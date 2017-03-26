@@ -21,7 +21,8 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private def cleanOutput() = {
     val folder = new File(ROOT_OUT)
     val files = folder.listFiles()
-    files.foreach(f => if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js")) f.delete())
+    files.foreach(f =>
+      if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js") || f.getName.endsWith(".class")) f.delete())
   }
 
   private def assertIrResult(expected: String, srcFile: String, mainClass: String = "Test$") = {
