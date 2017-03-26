@@ -48,8 +48,9 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val tpe = desc.getReturnType.toJsType
     val static = isStaticDeclaration(desc)
     if (static) {
-//      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-      Debugger()
+      //TODO: Mega bug for finding where to call...
+      val ctpe = getContainingClass(desc)
+      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
     } else {
       Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
     }

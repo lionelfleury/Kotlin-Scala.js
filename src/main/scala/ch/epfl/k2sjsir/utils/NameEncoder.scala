@@ -39,7 +39,7 @@ object NameEncoder {
   private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
     val suffix = if (d.isCompanionObject || d.getKind == OBJECT) "$" else ""
     val name = getFqName(d).asString()
-    val n = if (name == "Any") "java.lang.Object" else name
+    val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }
 
