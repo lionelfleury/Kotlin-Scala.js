@@ -2,8 +2,9 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
+import org.jetbrains.kotlin.ir.descriptors.{IrBuiltinOperatorDescriptor, IrBuiltinOperatorDescriptorBase, IrSimpleBuiltinOperatorDescriptorImpl}
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.ir.expressions.impl.{IrBinaryPrimitiveImpl, IrPrimitiveCallBase, IrUnaryPrimitiveImpl}
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
@@ -17,9 +18,14 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val name = desc.getName.toString
     val args = genArgs(desc.getValueParameters.asScala)
     desc match {
-      case _: IrBuiltinOperatorDescriptor =>
-        //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
-        notImplemented
+      case bt : IrBuiltinOperatorDescriptorBase =>
+        args match {
+          case Seq(a, b) =>
+            val op = getBinaryOp(bt.getName.toString, a.tpe)
+            BinaryOp(op, a, b)
+          case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
+          case _ => notImplemented
+        }
       case sf: SimpleFunctionDescriptor =>
         if (name == "println") {
           val rec = LoadModule(ClassType("s_Predef$"))
@@ -83,6 +89,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private def isFloatType(t: Type) = t == FloatType
   private def isIntType(t: Type) = t == IntType
   private def isDoubleType(t: Type) = t == DoubleType
+  private def isBooleanType(t: Type) = t == BooleanType
 
   private def intToLong(t: Tree) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
   private def longToInt(t: Tree) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
@@ -127,6 +134,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
     val longBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Long_==,
       "plus" -> BinaryOp.Long_+,
       "minus" -> BinaryOp.Long_-,
       "times" -> BinaryOp.Long_*,
@@ -141,6 +149,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val intBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Int_+,
       "minus" -> BinaryOp.Int_-,
       "times" -> BinaryOp.Int_*,
@@ -155,6 +164,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val doubleBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Double_+,
       "minus" -> BinaryOp.Double_-,
       "times" -> BinaryOp.Double_*,
@@ -163,6 +173,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val floatBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Float_+,
       "minus" -> BinaryOp.Float_-,
       "times" -> BinaryOp.Float_*,
@@ -171,6 +182,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val booleanBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Boolean_==,
       "or" -> BinaryOp.Boolean_|,
       "and" -> BinaryOp.Boolean_&
     )

@@ -1,4 +1,4 @@
-import java.io.{ByteArrayOutputStream, File, PrintStream, StringWriter}
+import java.io.{ByteArrayOutputStream, File, PrintStream}
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
 import org.jetbrains.kotlin.cli.common.CLICompiler
@@ -62,61 +62,83 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
     assertExecResult("1", "TestSimplePrint.kt")
   }
 
+  private def consoleToString(thunk: => Unit) : String = {
+    val baos = new ByteArrayOutputStream()
+    val stream =  new PrintStream(baos)
+    Console.withOut(stream)(thunk)
+    baos.toString()
+  }
+
   test("TestBinaryOps.kt should compute the correct result") {
-    val scalaResult = {
-      val baos = new ByteArrayOutputStream()
-      val stream =  new PrintStream(baos)
-      Console.withOut(stream) {
+    val scalaResult = consoleToString {
+      printlnJSFormat(2 + 2)
+      printlnJSFormat(2 - 2)
+      printlnJSFormat(2 * 2)
+      printlnJSFormat(2 / 2)
+      printlnJSFormat(2 % 2)
+      printlnJSFormat(2 | 2)
+      printlnJSFormat(2 & 2)
+      printlnJSFormat(2 ^ 2)
+      printlnJSFormat(2 << 1)
+      printlnJSFormat(-10 >> 2)
+      printlnJSFormat(-10 >>> 2)
 
-        printlnJSFormat(2 + 2)
-        printlnJSFormat(2 - 2)
-        printlnJSFormat(2 * 2)
-        printlnJSFormat(2 / 2)
-        printlnJSFormat(2 % 2)
-        printlnJSFormat(2 | 2)
-        printlnJSFormat(2 & 2)
-        printlnJSFormat(2 ^ 2)
-        printlnJSFormat(2 << 1)
-        printlnJSFormat(-10 >> 2)
-        printlnJSFormat(-10 >>> 2)
+      printlnJSFormat(true & true)
+      printlnJSFormat(true & false)
 
-        printlnJSFormat(true & true)
-        printlnJSFormat(true & false)
+      printlnJSFormat(true | false)
+      printlnJSFormat(true | true)
 
-        printlnJSFormat(true | false)
-        printlnJSFormat(true | true)
+      printlnJSFormat(2L + 2L)
+      printlnJSFormat(2L - 2L)
+      printlnJSFormat(2L * 2L)
+      printlnJSFormat(2L / 2L)
+      printlnJSFormat(2L % 2L)
+      printlnJSFormat(2L | 2L)
+      printlnJSFormat(2L & 2L)
+      printlnJSFormat(2L ^ 2L)
+      printlnJSFormat(2L << 1)
+      printlnJSFormat(-10L >> 2)
+      printlnJSFormat(-1000000L >>> 2)
 
-        printlnJSFormat(2L + 2L)
-        printlnJSFormat(2L - 2L)
-        printlnJSFormat(2L * 2L)
-        printlnJSFormat(2L / 2L)
-        printlnJSFormat(2L % 2L)
-        printlnJSFormat(2L | 2L)
-        printlnJSFormat(2L & 2L)
-        printlnJSFormat(2L ^ 2L)
-        printlnJSFormat(2L << 1)
-        printlnJSFormat(-10L >> 2)
-        printlnJSFormat(-1000000L >>> 2)
+      printlnJSFormat(2.5 + 2.5)
+      printlnJSFormat(2.5 - 2.5)
+      printlnJSFormat(2.5 * 2.5)
+      printlnJSFormat(2.5 / 2.5)
+      printlnJSFormat(2.5 % 2.5)
 
-        printlnJSFormat(2.5 + 2.5)
-        printlnJSFormat(2.5 - 2.5)
-        printlnJSFormat(2.5 * 2.5)
-        printlnJSFormat(2.5 / 2.5)
-        printlnJSFormat(2.5 % 2.5)
+      printlnJSFormat(2.5f + 2.5f)
+      printlnJSFormat(2.5f - 2.5f)
+      printlnJSFormat(2.5f * 2.5f)
+      printlnJSFormat(2.5f / 2.5f)
+      printlnJSFormat(2.5f % 2.5f)
 
-        printlnJSFormat(2.5f + 2.5f)
-        printlnJSFormat(2.5f - 2.5f)
-        printlnJSFormat(2.5f * 2.5f)
-        printlnJSFormat(2.5f / 2.5f)
-        printlnJSFormat(2.5f % 2.5f)
-
-        printlnJSFormat(2L + 2)
-        printlnJSFormat(100000L + 2147483647)
-        printlnJSFormat(2147483647L + 10000)
-      }
-      baos.toString()
+      printlnJSFormat(2L + 2)
+      printlnJSFormat(100000L + 2147483647)
+      printlnJSFormat(2147483647L + 10000)
     }
     assertExecResult(scalaResult, "TestBinaryOps.kt")
 
+  }
+
+  test("TestEqualities.kt should be accurate") {
+    val result = consoleToString {
+      val a = 1
+      println(a == 1)
+      println(1 == 2)
+      println(2.0 == 3.0)
+      println(true == false)
+      println(false == false)
+
+      println(a != 1)
+      println(1 != 2)
+      println(2.0 != 3.0)
+      println(true != false)
+      println(false != false)
+
+      println(!true)
+      println(!false)
+    }
+    assertExecResult(result, "TestEqualities.kt")
   }
 }
