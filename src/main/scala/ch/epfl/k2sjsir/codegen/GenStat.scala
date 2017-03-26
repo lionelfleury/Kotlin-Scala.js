@@ -22,8 +22,10 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       if (c.getClassDescriptor.getKind == ClassKind.OBJECT) {
         val tpe = c.getClassDescriptor.toJsClassType
         StoreModule(tpe, This()(tpe))
+      } else {
+        println(s"Skipping: $c")
+        Skip()
       }
-      else Skip()
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
     case r: IrReturn => GenExpr(r.getValue, p).tree

@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
 
@@ -20,6 +21,11 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case _: IrBuiltinOperatorDescriptor =>
         //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
         notImplemented
+      case cd: ClassConstructorDescriptor =>
+        val tpe = cd.getConstructedClass.toJsClassType
+        New(tpe, cd.toJsMethodIdent, args.toList)
+//      case c: DeserializedSimpleFunctionDescriptor =>
+//        Skip()
       case sf: SimpleFunctionDescriptor =>
         if (name == "println") {
           val rec = LoadModule(ClassType("s_Predef$"))
@@ -33,9 +39,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
         else if (isUnaryOp(name)) genUnaryOp(sf)
         else genApply(sf, sf.toJsMethodIdent, args.toList)
-      case cd: ClassConstructorDescriptor =>
-        val tpe = cd.getConstructedClass.toJsClassType
-        New(tpe, cd.toJsMethodIdent, args.toList)
       case f: FunctionDescriptor => genApply(f, f.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
@@ -45,8 +48,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val tpe = desc.getReturnType.toJsType
     val static = isStaticDeclaration(desc)
     if (static) {
-      val ctpe = getContainingClass(desc).toJsClassType
-      ApplyStatic(ctpe, method, args)(tpe)
+//      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
+      Debugger()
     } else {
       Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
     }
