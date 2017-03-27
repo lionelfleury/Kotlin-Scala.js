@@ -24,7 +24,7 @@ class SJSIRLower(val context: JvmBackendContext) {
     //    runOnFilePostfix(new BridgeLowering(context.getState), irFile)
     // ********************************************************
     // Own lowering phases: extract inner classes
-    ClassLowering.lower(irFile)
+    new ClassLowering().lower(irFile)
     ConstructorLowering.lower(irFile)
   }
 

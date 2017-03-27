@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.ir.declarations.{IrClass, IrFile}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-object ClassLowering {
+class ClassLowering {
 
   private val classes = ListBuffer[IrClass]()
 
