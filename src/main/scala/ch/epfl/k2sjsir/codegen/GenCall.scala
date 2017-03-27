@@ -4,8 +4,10 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
+import org.scalajs.core.ir.Definitions
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
 
@@ -24,8 +26,22 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case cd: ClassConstructorDescriptor =>
         val tpe = cd.getConstructedClass.toJsClassType
         New(tpe, cd.toJsMethodIdent, args.toList)
-//      case c: DeserializedSimpleFunctionDescriptor =>
-//        Skip()
+      case j: JavaMethodDescriptor =>
+        val tpe = j.getReturnType.toJsType
+        val idt=  j.toJsMethodIdent
+        if (name == "print" || name == "println"){
+          val rec = LoadModule(ClassType("s_Predef$"))
+          Apply(rec, idt, args.toList)(tpe)
+        }
+        else notImplemented
+      case c: DeserializedSimpleFunctionDescriptor =>
+        if (name == "getValue") {
+          val x = c.getContainerSource.getPresentableFqName.asString()
+          val ctpe = Definitions.encodeClassName(x)
+          val rec = LoadModule(ClassType(ctpe))
+          Apply(rec, c.toJsMethodIdent, args.toList)(c.getReturnType.toJsType)
+        }
+        else notImplemented
       case sf: SimpleFunctionDescriptor =>
         if (name == "println") {
           val rec = LoadModule(ClassType("s_Predef$"))
@@ -51,9 +67,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       //TODO: Mega bug for finding where to call...
       val ctpe = getContainingClass(desc)
       ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-    } else {
-      Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
-    }
+    } else Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =

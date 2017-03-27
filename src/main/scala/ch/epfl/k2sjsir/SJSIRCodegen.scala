@@ -19,7 +19,7 @@ class SJSIRCodegen(outDir: String) {
   }
 
   private def genIRFile(outDir: String, cd: ClassDescriptor, suffix: String, tree: ClassDef): Unit = {
-    val file = new File(outDir, cd.toJsClassName.drop(1) + ".sjsir")
+    val file = new File(outDir, cd.toJsClassName.drop(1).replace("_","/") + ".sjsir")
     file.getParentFile.mkdir()
     val output = new FileOutputStream(file)
     try {
