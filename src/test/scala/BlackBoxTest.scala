@@ -1,7 +1,6 @@
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
-import org.jetbrains.kotlin.cli.common.CLICompiler
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import scala.sys.process._
@@ -26,13 +25,15 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   }
 
   private def assertIrResult(expected: String, srcFile: String, mainClass: String = "Test$") = {
-    CLICompiler.doMainNoExit(new K2SJSIRCompiler(), Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
     val content = Scalajsp.run(Array(s"$ROOT_OUT/$mainClass.sjsir"))
     assert(expected == content)
   }
 
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
-    CLICompiler.doMainNoExit(new K2SJSIRCompiler(), Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
     Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, "-o", s"$ROOT_OUT/$outFile"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
