@@ -3,6 +3,9 @@ package ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.{INTERFACE, OBJECT}
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, Visibilities}
+import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuperclassesWithoutAny
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
@@ -34,9 +37,11 @@ object NameEncoder {
     Ident(encodeClassFullName(d))
 
   private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
-    val suffix = if (d.getKind == OBJECT) "$" else ""
-    val name = d.toJsName
-    val n = if (name == "Any") "java.lang.Object" else name
+    val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
+    val parts = getFqNameSafe(d).asString().split('.').toList
+    val (pack, clazz) = parts.partition(_.head.isLower)
+    val name = pack.mkString("", ".", ".") + clazz.mkString("$")
+    val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }
 
@@ -49,13 +54,15 @@ object NameEncoder {
 
   private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())
-    def privateSuffix(c: ClassDescriptor) =
+    def privateSuffix(cl: Option[ClassDescriptor]) = cl.fold("") { c =>
       if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
       else getAllSuperclassesWithoutAny(c).asScala.count(_.getKind != INTERFACE).toString
+    }
     //TODO: Only function in classes supported...
     val owner = d.getContainingDeclaration match {
-      case c: ClassDescriptor => c
-      case x => throw new Error(s"Only Classes are supported for now: $x")
+      case c: ClassDescriptor => Some(c)
+      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
+      case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
     val encodedName =
@@ -74,8 +81,8 @@ object NameEncoder {
     //          if (!hasExplicitThisParameter) paramTypeNames0
     //          else internalName(sym.owner.toTypeConstructor) :: paramTypeNames0
     val paramAndResultTypeNames =
-      if (isInit(d.getName.asString())) paramTypeNames0 :+ "_"
-      else paramTypeNames0 :+ d.getReturnType.toJsInternal
+    if (isInit(d.getName.asString())) paramTypeNames0 :+ "_"
+    else paramTypeNames0 :+ d.getReturnType.toJsInternal
     paramAndResultTypeNames.mkString(OuterSep, OuterSep, "")
   }
 
