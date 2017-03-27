@@ -37,8 +37,10 @@ object NameEncoder {
     Ident(encodeClassFullName(d))
 
   private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
-    val suffix = if (d.isCompanionObject || d.getKind == OBJECT) "$" else ""
-    val name = getFqName(d).asString()
+    val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
+    val parts = getFqNameSafe(d).asString().split('.').toList
+    val (pack, clazz) = parts.partition(_.head.isLower)
+    val name = pack.mkString("", ".", ".") + clazz.mkString("$")
     val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }

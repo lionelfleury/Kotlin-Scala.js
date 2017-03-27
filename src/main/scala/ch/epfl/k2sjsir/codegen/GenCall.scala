@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
+import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Definitions
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
@@ -14,6 +15,7 @@ import org.scalajs.core.ir.Types.{ClassType, _}
 import scala.collection.JavaConverters._
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
+import BinaryOpMaps._
 
   def tree: Tree = {
     val desc = d.getDescriptor
@@ -29,7 +31,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case j: JavaMethodDescriptor =>
         val tpe = j.getReturnType.toJsType
         val idt=  j.toJsMethodIdent
-        if (name == "print" || name == "println"){
+        if (name == "print" || name == "println" || name == "readLine"){
           val rec = LoadModule(ClassType("s_Predef$"))
           Apply(rec, idt, args.toList)(tpe)
         }
@@ -52,7 +54,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
           val x = sf.getExtensionReceiverParameter
           Apply(This()(x.getType.toJsType), sf.toJsMethodIdent, args.toList)(sf.getReturnType.toJsType)
           // @TODO: definitely not be the best way to detect OP
-        } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
+        } else if (intBinaryOp.keySet.contains(sf.getName.asString())) genBinaryOp(sf, args.head)
         else if (isUnaryOp(name)) genUnaryOp(sf)
         else genApply(sf, sf.toJsMethodIdent, args.toList)
       case f: FunctionDescriptor => genApply(f, f.toJsMethodIdent, args.toList)
@@ -205,16 +207,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private def getBinaryOp(op: String, tpe: Type): BinaryOp.Code = {
     import BinaryOpMaps._
 
-    val opMap: Map[String, Int] = tpe match {
+    val opMap: Map[String, Int] = (tpe: @unchecked) match {
       case BooleanType => booleanBinaryOp
       case IntType => intBinaryOp
       case LongType => longBinaryOp
       case FloatType => floatBinaryOp
       case DoubleType => doubleBinaryOp
-      case StringType | ClassType("LString") => stringBinaryOp
-      case _ => throw new Exception(s"Unable to map type $tpe")
+      case StringType | ClassType("Lkotlin_String") => stringBinaryOp
     }
-    opMap(op)
+    opMap.getOrElse(op, throw new Exception(s"Unable to map type $tpe"))
   }
 
 }

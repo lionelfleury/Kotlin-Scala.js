@@ -17,6 +17,7 @@ object ClassLowering {
     }
     f.getDeclarations.clear()
     f.getDeclarations.addAll(classes.asJava)
+    classes.clear()
   }
 
   private def traverse(irClass: IrClass): Unit = {
