@@ -52,14 +52,14 @@ object NameEncoder {
 
   private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())
-    def privateSuffix(c: ClassDescriptor) =
+    def privateSuffix(cl: Option[ClassDescriptor]) = cl.fold("") { c =>
       if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
       else getAllSuperclassesWithoutAny(c).asScala.count(_.getKind != INTERFACE).toString
+    }
     //TODO: Only function in classes supported...
     val owner = d.getContainingDeclaration match {
-      case c: ClassDescriptor => c
-      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment =>
-        getClassDescriptorForType(d.getReturnType)
+      case c: ClassDescriptor => Some(c)
+      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE

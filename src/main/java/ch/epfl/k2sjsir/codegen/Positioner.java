@@ -9,7 +9,7 @@ public class Positioner {
 
     private final FileEntry fileEntry;
 
-    public Positioner(IrFile irFile) {
+    public Positioner(final IrFile irFile) {
         this.fileEntry = irFile.getFileEntry();
     }
 
