@@ -19,9 +19,10 @@ package ch.epfl.k2sjsir
 
 import ch.epfl.k2sjsir.codegen.Positioner
 import ch.epfl.k2sjsir.lower.SJSIRLower
-import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
+import org.jetbrains.kotlin.backend.jvm.{JvmBackendContext, JvmLower}
 import org.jetbrains.kotlin.codegen.CompilationErrorHandler
 import org.jetbrains.kotlin.codegen.state.GenerationState
+import org.jetbrains.kotlin.config.JVMConfigurationKeys.OUTPUT_DIRECTORY
 import org.jetbrains.kotlin.ir.declarations.{IrClass, IrFile}
 import org.jetbrains.kotlin.psi2ir.Psi2IrTranslator
 
@@ -36,25 +37,26 @@ object Backend {
     val psi2irContext = psi2ir.createGeneratorContext(state.getModule, state.getBindingContext)
     val irModuleFragment = psi2ir.generateModuleFragment(psi2irContext, state.getFiles)
     val jvmBackendContext = new JvmBackendContext(state, psi2irContext.getSourceManager, psi2irContext.getIrBuiltIns)
-    try {
-      for (irFile <- irModuleFragment.getFiles.asScala) {
+    irModuleFragment.getFiles.asScala.foreach { irFile =>
+      try {
         generateFile(irFile, jvmBackendContext)
         state.afterIndependentPart()
+      } catch {
+        case e: Throwable =>
+          CompilationErrorHandler.THROW_EXCEPTION.reportException(e, null) // TODO ktFile.virtualFile.url
       }
-    } catch {
-      case e: Throwable =>
-        CompilationErrorHandler.THROW_EXCEPTION.reportException(e, null) // TODO ktFile.virtualFile.url
     }
   }
 
   private def generateFile(irFile: IrFile, context: JvmBackendContext): Unit = {
     val lower = new SJSIRLower(context)
     val p = new Positioner(irFile)
-    val codegen = new SJSIRCodegen(context)
+    val outDir = context.getState.getConfiguration.get(OUTPUT_DIRECTORY).toString
+    val codegen = new SJSIRCodegen(outDir)
     lower.lower(irFile)
-    for (c <- irFile.getDeclarations.asScala) c match {
+    irFile.getDeclarations.asScala.foreach {
       case i: IrClass => codegen.generate(i, p)
-      case _ => throw new AssertionError("Declaration should be IrClass, got: " + c)
+      case c => throw new AssertionError(s"Declaration should be IrClass, got: $c")
     }
   }
 

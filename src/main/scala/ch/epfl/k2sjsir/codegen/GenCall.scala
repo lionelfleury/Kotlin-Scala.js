@@ -2,48 +2,64 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
+import org.jetbrains.kotlin.ir.descriptors.{IrBuiltinOperatorDescriptor, IrBuiltinOperatorDescriptorBase, IrSimpleBuiltinOperatorDescriptorImpl}
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.ir.expressions.impl.{IrBinaryPrimitiveImpl, IrPrimitiveCallBase, IrUnaryPrimitiveImpl}
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
-import org.scalajs.core.ir.Types._
+import org.scalajs.core.ir.Types.{ClassType, _}
 
 import scala.collection.JavaConverters._
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   def tree: Tree = {
-    d.getDescriptor match {
-      case bi: IrBuiltinOperatorDescriptor =>
-        //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
-        notImplemented
+    val desc = d.getDescriptor
+    val name = desc.getName.toString
+    val args = genArgs(desc.getValueParameters.asScala)
+    desc match {
+      case bt : IrBuiltinOperatorDescriptorBase =>
+        args match {
+          case Seq(a, b) =>
+            val op = getBinaryOp(bt.getName.toString, a.tpe)
+            BinaryOp(op, a, b)
+          case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
+          case _ => notImplemented
+        }
       case sf: SimpleFunctionDescriptor =>
-        val name = sf.getName.toString
-        val tpe = sf.getReturnType.toJsType
-        val args = genArgs(sf.getValueParameters.asScala)
         if (name == "println") {
           val rec = LoadModule(ClassType("s_Predef$"))
           val method = Ident("println__O__V", Some("println"))
+          val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
-        } else if (sf.isOperator || sf.isInfix) {
           // @TODO: definitely not be the best way to detect OP
-          genBinaryOp(sf, args.head)
-        } else if (name == "toLong" ||
-          name == "toInt" ||  name == "toDouble" || name == "toFloat"){
-          genUnaryOp(sf)
-        } else {
-          val method = sf.toJsMethodIdent
-          val r = d.getDispatchReceiver
-          if (r == null) println("Null receiver in GenCall!!")
-          val rec = if (r == null) This()(AnyType) else GenExpr(r, p).tree
-          Apply(rec, method, args.toList)(tpe)
-        }
-
+        } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
+        else if (isUnaryOp(name)) genUnaryOp(sf)
+        else genApply(sf, sf.toJsMethodIdent, args.toList)
+      case cd: ClassConstructorDescriptor =>
+        val tpe = cd.getConstructedClass.toJsClassType
+        New(tpe, cd.toJsMethodIdent, args.toList)
+      case f: FunctionDescriptor => genApply(f, f.toJsMethodIdent, args.toList)
       case _ => notImplemented
+    }
+  }
+
+  private def genApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
+    val tpe = desc.getReturnType.toJsType
+    val static = DescriptorUtils.isStaticDeclaration(desc)
+    if (static) {
+      val ctpe = DescriptorUtils.getContainingClass(desc).toJsClassType
+      ApplyStatic(ctpe, method, args)(tpe)
+    } else {
+      Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
     }
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
     for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
+
+  private def isUnaryOp(n: String): Boolean =
+    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat"
 
   private def genUnaryOp(sf: SimpleFunctionDescriptor): Tree = {
     val from = sf.getDispatchReceiverParameter.getType.toJsType
@@ -51,16 +67,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     UnaryOp(convertToOp(from, to), GenExpr(d.getDispatchReceiver, p).tree)
   }
 
-  private def genBinaryOp(sf: SimpleFunctionDescriptor, rhs: Tree) : Tree = {
+  private def genBinaryOp(sf: SimpleFunctionDescriptor, rhs: Tree): Tree = {
     val lhs = GenExpr(d.getDispatchReceiver, p).tree
     val rType = sf.getReturnType.toJsType
     val op = getBinaryOp(sf.getName.asString(), rType)
-
     if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
-    } else if(isLongOp(op, lhs.tpe, rhs.tpe)) {
+    } else if (isLongOp(op, lhs.tpe, rhs.tpe)) {
       val clhs = intToLong(lhs)
-      val crhs = if(BinaryOpMaps.isLongSpecial(op)) longToInt(rhs) else intToLong(rhs)
+      val crhs = if (BinaryOpMaps.isLongSpecial(op)) longToInt(rhs) else intToLong(rhs)
       BinaryOp(op, clhs, crhs)
     } else {
       val lsrc = convertArg(op, lhs, lhs.tpe, rType)
@@ -74,16 +89,16 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private def isFloatType(t: Type) = t == FloatType
   private def isIntType(t: Type) = t == IntType
   private def isDoubleType(t: Type) = t == DoubleType
+  private def isBooleanType(t: Type) = t == BooleanType
 
-  private def intToLong(t: Tree) = if(isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
-  private def longToInt(t: Tree) = if(isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
+  private def intToLong(t: Tree) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
+  private def longToInt(t: Tree) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
 
   /* Long is special, because of its shift operations, that accepts only int */
   private def isLongOp(op: BinaryOp.Code, ltpe: Type, rtpe: Type) = {
     (isLongType(ltpe) || isLongType(rtpe)) &&
-      !(isFloatType(ltpe) ||
-        isFloatType(rtpe) ||
-        isStringType(ltpe)|| isStringType(rtpe) || isDoubleType(ltpe) || isDoubleType(rtpe))
+      !(isFloatType(ltpe) || isFloatType(rtpe) || isStringType(ltpe) ||
+        isStringType(rtpe) || isDoubleType(ltpe) || isDoubleType(rtpe))
 
   }
 
@@ -94,7 +109,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       else if (BinaryOpMaps.isLongSpecial(op)) UnaryOp(UnaryOp.LongToInt, tree)
       else UnaryOp(UnaryOp.LongToDouble, tree)
     }
-
     if (!isFloatType(returnType)) notLong
     else if (isFloatType(t)) notLong
     else UnaryOp(UnaryOp.DoubleToFloat, notLong)
@@ -116,13 +130,12 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   /* Map of all binary ops, sorted by type */
   private object BinaryOpMaps {
 
-    def isLongSpecial(op: BinaryOp.Code) =
-      op ==  BinaryOp.Long_<< ||
-        op ==  BinaryOp.Long_>> ||
-        op ==  BinaryOp.Long_>>>
+    def isLongSpecial(op: BinaryOp.Code): Boolean =
+      op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
     val longBinaryOp = Map(
-      "plus" ->  BinaryOp.Long_+,
+      "EQEQ" -> BinaryOp.Long_==,
+      "plus" -> BinaryOp.Long_+,
       "minus" -> BinaryOp.Long_-,
       "times" -> BinaryOp.Long_*,
       "div" -> BinaryOp.Long_/,
@@ -136,7 +149,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val intBinaryOp = Map(
-      "plus" ->  BinaryOp.Int_+,
+      "EQEQ" -> BinaryOp.Num_==,
+      "plus" -> BinaryOp.Int_+,
       "minus" -> BinaryOp.Int_-,
       "times" -> BinaryOp.Int_*,
       "div" -> BinaryOp.Int_/,
@@ -150,7 +164,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val doubleBinaryOp = Map(
-      "plus" ->  BinaryOp.Double_+,
+      "EQEQ" -> BinaryOp.Num_==,
+      "plus" -> BinaryOp.Double_+,
       "minus" -> BinaryOp.Double_-,
       "times" -> BinaryOp.Double_*,
       "div" -> BinaryOp.Double_/,
@@ -158,7 +173,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val floatBinaryOp = Map(
-      "plus" ->  BinaryOp.Float_+,
+      "EQEQ" -> BinaryOp.Num_==,
+      "plus" -> BinaryOp.Float_+,
       "minus" -> BinaryOp.Float_-,
       "times" -> BinaryOp.Float_*,
       "div" -> BinaryOp.Float_/,
@@ -166,6 +182,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     )
 
     val booleanBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Boolean_==,
       "or" -> BinaryOp.Boolean_|,
       "and" -> BinaryOp.Boolean_&
     )
@@ -176,11 +193,10 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   }
 
   /* Find the correct binary op for a given type */
-  private def getBinaryOp(op: String, tpe: Type) : BinaryOp.Code = {
-
+  private def getBinaryOp(op: String, tpe: Type): BinaryOp.Code = {
     import BinaryOpMaps._
 
-    val opMap : Map[String, Int] = tpe match {
+    val opMap: Map[String, Int] = tpe match {
       case BooleanType => booleanBinaryOp
       case IntType => intBinaryOp
       case LongType => longBinaryOp
@@ -189,7 +205,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case StringType | ClassType("LString") => stringBinaryOp
       case _ => throw new Exception(s"Unable to map type $tpe")
     }
-
     opMap(op)
   }
 

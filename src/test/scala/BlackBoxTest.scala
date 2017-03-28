@@ -1,7 +1,6 @@
-import java.io.{ByteArrayOutputStream, File, PrintStream, StringWriter}
+import java.io.{ByteArrayOutputStream, File, PrintStream}
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
-import org.jetbrains.kotlin.cli.common.CLICompiler
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import scala.sys.process._
@@ -21,17 +20,20 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private def cleanOutput() = {
     val folder = new File(ROOT_OUT)
     val files = folder.listFiles()
-    files.foreach(f => if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js")) f.delete())
+    files.foreach(f =>
+      if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js") || f.getName.endsWith(".class")) f.delete())
   }
 
   private def assertIrResult(expected: String, srcFile: String, mainClass: String = "Test$") = {
-    CLICompiler.doMainNoExit(new K2SJSIRCompiler(), Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
     val content = Scalajsp.run(Array(s"$ROOT_OUT/$mainClass.sjsir"))
     assert(expected == content)
   }
 
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
-    CLICompiler.doMainNoExit(new K2SJSIRCompiler(), Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME))
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
     Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, "-o", s"$ROOT_OUT/$outFile"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
@@ -62,61 +64,83 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
     assertExecResult("1", "TestSimplePrint.kt")
   }
 
+  private def consoleToString(thunk: => Unit) : String = {
+    val baos = new ByteArrayOutputStream()
+    val stream =  new PrintStream(baos)
+    Console.withOut(stream)(thunk)
+    baos.toString()
+  }
+
   test("TestBinaryOps.kt should compute the correct result") {
-    val scalaResult = {
-      val baos = new ByteArrayOutputStream()
-      val stream =  new PrintStream(baos)
-      Console.withOut(stream) {
+    val scalaResult = consoleToString {
+      printlnJSFormat(2 + 2)
+      printlnJSFormat(2 - 2)
+      printlnJSFormat(2 * 2)
+      printlnJSFormat(2 / 2)
+      printlnJSFormat(2 % 2)
+      printlnJSFormat(2 | 2)
+      printlnJSFormat(2 & 2)
+      printlnJSFormat(2 ^ 2)
+      printlnJSFormat(2 << 1)
+      printlnJSFormat(-10 >> 2)
+      printlnJSFormat(-10 >>> 2)
 
-        printlnJSFormat(2 + 2)
-        printlnJSFormat(2 - 2)
-        printlnJSFormat(2 * 2)
-        printlnJSFormat(2 / 2)
-        printlnJSFormat(2 % 2)
-        printlnJSFormat(2 | 2)
-        printlnJSFormat(2 & 2)
-        printlnJSFormat(2 ^ 2)
-        printlnJSFormat(2 << 1)
-        printlnJSFormat(-10 >> 2)
-        printlnJSFormat(-10 >>> 2)
+      printlnJSFormat(true & true)
+      printlnJSFormat(true & false)
 
-        printlnJSFormat(true & true)
-        printlnJSFormat(true & false)
+      printlnJSFormat(true | false)
+      printlnJSFormat(true | true)
 
-        printlnJSFormat(true | false)
-        printlnJSFormat(true | true)
+      printlnJSFormat(2L + 2L)
+      printlnJSFormat(2L - 2L)
+      printlnJSFormat(2L * 2L)
+      printlnJSFormat(2L / 2L)
+      printlnJSFormat(2L % 2L)
+      printlnJSFormat(2L | 2L)
+      printlnJSFormat(2L & 2L)
+      printlnJSFormat(2L ^ 2L)
+      printlnJSFormat(2L << 1)
+      printlnJSFormat(-10L >> 2)
+      printlnJSFormat(-1000000L >>> 2)
 
-        printlnJSFormat(2L + 2L)
-        printlnJSFormat(2L - 2L)
-        printlnJSFormat(2L * 2L)
-        printlnJSFormat(2L / 2L)
-        printlnJSFormat(2L % 2L)
-        printlnJSFormat(2L | 2L)
-        printlnJSFormat(2L & 2L)
-        printlnJSFormat(2L ^ 2L)
-        printlnJSFormat(2L << 1)
-        printlnJSFormat(-10L >> 2)
-        printlnJSFormat(-1000000L >>> 2)
+      printlnJSFormat(2.5 + 2.5)
+      printlnJSFormat(2.5 - 2.5)
+      printlnJSFormat(2.5 * 2.5)
+      printlnJSFormat(2.5 / 2.5)
+      printlnJSFormat(2.5 % 2.5)
 
-        printlnJSFormat(2.5 + 2.5)
-        printlnJSFormat(2.5 - 2.5)
-        printlnJSFormat(2.5 * 2.5)
-        printlnJSFormat(2.5 / 2.5)
-        printlnJSFormat(2.5 % 2.5)
+      printlnJSFormat(2.5f + 2.5f)
+      printlnJSFormat(2.5f - 2.5f)
+      printlnJSFormat(2.5f * 2.5f)
+      printlnJSFormat(2.5f / 2.5f)
+      printlnJSFormat(2.5f % 2.5f)
 
-        printlnJSFormat(2.5f + 2.5f)
-        printlnJSFormat(2.5f - 2.5f)
-        printlnJSFormat(2.5f * 2.5f)
-        printlnJSFormat(2.5f / 2.5f)
-        printlnJSFormat(2.5f % 2.5f)
-
-        printlnJSFormat(2L + 2)
-        printlnJSFormat(100000L + 2147483647)
-        printlnJSFormat(2147483647L + 10000)
-      }
-      baos.toString()
+      printlnJSFormat(2L + 2)
+      printlnJSFormat(100000L + 2147483647)
+      printlnJSFormat(2147483647L + 10000)
     }
     assertExecResult(scalaResult, "TestBinaryOps.kt")
 
+  }
+
+  test("TestEqualities.kt should be accurate") {
+    val result = consoleToString {
+      val a = 1
+      println(a == 1)
+      println(1 == 2)
+      println(2.0 == 3.0)
+      println(true == false)
+      println(false == false)
+
+      println(a != 1)
+      println(1 != 2)
+      println(2.0 != 3.0)
+      println(true != false)
+      println(false != false)
+
+      println(!true)
+      println(!false)
+    }
+    assertExecResult(result, "TestEqualities.kt")
   }
 }

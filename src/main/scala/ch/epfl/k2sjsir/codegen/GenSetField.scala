@@ -3,6 +3,7 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.{ConstructorDescriptor, PropertyDescriptor}
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.resolve.DescriptorUtils.{getClassDescriptorForType, isStaticDeclaration}
 import org.scalajs.core.ir.Trees._
 
 case class GenSetField(d: IrSetField, p: Positioner) extends Gen[IrSetField] {
@@ -13,8 +14,13 @@ case class GenSetField(d: IrSetField, p: Positioner) extends Gen[IrSetField] {
       LoadModule(tpe)
     case pd: PropertyDescriptor =>
       val rhs = GenExpr(d.getValue, p).tree
-      val qual = GenExpr(d.getReceiver, p).tree
-      val lhs = Select(qual, pd.toJsIdent)(pd.getReturnType.toJsType)
+      val tpe = pd.getType.toJsType
+      val idt = pd.toJsIdent
+      val static = isStaticDeclaration(pd)
+      val lhs = if (static) {
+        val ctpe = getClassDescriptorForType(pd.getType).toJsClassType
+        SelectStatic(ctpe, idt)(tpe)
+      } else Select(GenExpr(d.getReceiver, p).tree, idt)(tpe)
       Assign(lhs, rhs)
     case _ => notImplemented
   }
