@@ -67,7 +67,7 @@ object GenBinaryOp {
 
   }
 
-  def isLongSpecial(op: BinaryOp.Code): Boolean =
+  private def isLongSpecial(op: BinaryOp.Code): Boolean =
     op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
   val longBinaryOp = Map(
@@ -140,5 +140,8 @@ object GenBinaryOp {
     }
     opMap.getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
   }
+
+  def isBinaryOp(op: String): Boolean =
+    longBinaryOp.keySet(op) || intBinaryOp.keySet(op)
 
 }

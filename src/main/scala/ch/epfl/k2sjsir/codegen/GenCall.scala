@@ -1,5 +1,7 @@
 package ch.epfl.k2sjsir.codegen
 
+import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
+import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
@@ -34,7 +36,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
           val method = Ident("println__O__V", Some("println"))
           val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
-          // @TODO: definitely not be the best way to detect OP
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
@@ -59,11 +60,5 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
 
   private def isBooleanType(t: Type) = t == BooleanType
-
-  private def isUnaryOp(n: String): Boolean =
-    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat"
-
-  private def isBinaryOp(n: String): Boolean =
-    GenBinaryOp.longBinaryOp.keySet.contains(n)
 
 }
