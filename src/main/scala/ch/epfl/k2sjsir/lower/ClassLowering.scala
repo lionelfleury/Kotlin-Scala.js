@@ -5,11 +5,11 @@ import org.jetbrains.kotlin.ir.declarations.{IrClass, IrFile}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-object ClassLowering {
+class ClassLowering(f: IrFile) {
 
   private val classes = ListBuffer[IrClass]()
 
-  def lower(f: IrFile): Unit = {
+  def lower(): Unit = {
     f.getDeclarations.asScala.foreach {
       case irClass: IrClass =>
         classes += irClass
@@ -17,7 +17,6 @@ object ClassLowering {
     }
     f.getDeclarations.clear()
     f.getDeclarations.addAll(classes.asJava)
-    classes.clear()
   }
 
   private def traverse(irClass: IrClass): Unit = {

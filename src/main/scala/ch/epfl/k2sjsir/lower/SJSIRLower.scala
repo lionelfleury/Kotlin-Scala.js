@@ -1,5 +1,6 @@
 package ch.epfl.k2sjsir.lower
 
+
 import org.jetbrains.kotlin.backend.common.LowerKt._
 import org.jetbrains.kotlin.backend.common.lower.{LocalFunctionsLowering, SharedVariablesLowering}
 import org.jetbrains.kotlin.backend.jvm.JvmBackendContext
@@ -26,7 +27,7 @@ class SJSIRLower(val context: JvmBackendContext) {
     runOnFilePostfix(new BridgeLowering(context.getState), irFile)
     // ********************************************************
     // Own lowering phases: extract inner classes
-    ClassLowering.lower(irFile)
+    new ClassLowering(irFile).lower()
     ConstructorLowering.lower(irFile)
   }
 

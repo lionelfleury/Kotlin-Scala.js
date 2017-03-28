@@ -40,7 +40,7 @@ case class GenClass(d: IrClass, p: Positioner) extends Gen[IrClass] {
     val receiver = This()(cd.toJsClassType)
     val body = Block(Apply(receiver, Ident("main__V", Some("main")), Nil)(NoType), Undefined())
     val main = MethodDef(static = false, StringLiteral("main"), Nil, AnyType, Some(body))(OptimizerHints.empty, None)
-    val name = cd.toJsClassName.drop(1).dropRight(1)
+    val name = cd.getName.asString()
     val mod = if (isModule(cd)) ModuleExportDef(name) else Skip()
     List(main, mod)
   }

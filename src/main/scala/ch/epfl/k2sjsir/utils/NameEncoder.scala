@@ -1,7 +1,7 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.ClassKind.{INTERFACE, OBJECT}
+import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, Visibilities}
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -40,7 +40,7 @@ object NameEncoder {
     val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
     val parts = getFqNameSafe(d).asString().split('.').toList
     val (pack, clazz) = parts.partition(_.head.isLower)
-    val name = pack.mkString("", ".", ".") + clazz.mkString("$")
+    val name = if (pack.nonEmpty) pack.mkString("", ".", ".") else "" + clazz.mkString("$")
     val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }

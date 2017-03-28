@@ -13,9 +13,10 @@ case class GenGetField(d: IrGetField, p: Positioner) extends Gen[IrGetField] {
     val tpe = d.getType.toJsType
     val static = isStaticDeclaration(pd)
     if (static) {
-      val ctpe = getContainingClass(pd)
-      SelectStatic(ctpe.toJsClassType, idt)(tpe)
-    } else Select(GenExpr(d.getReceiver, p).tree, idt)(tpe)
+      val ctpe = getContainingClass(pd).toJsClassType
+      SelectStatic(ctpe, idt)(tpe)
+    }
+    else Select(GenExpr(d.getReceiver, p).tree, idt)(tpe)
   }
 
 }

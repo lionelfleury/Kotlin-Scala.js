@@ -2,61 +2,42 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptor
+import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
-import org.jetbrains.kotlin.resolve.DescriptorUtils._
-import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
-import org.jetbrains.kotlin.types.KotlinType
-import org.scalajs.core.ir.Definitions
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees.{BinaryOp, _}
 import org.scalajs.core.ir.Types.{ClassType, _}
 
 import scala.collection.JavaConverters._
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
-import BinaryOpMaps._
 
   def tree: Tree = {
     val desc = d.getDescriptor
     val name = desc.getName.toString
     val args = genArgs(desc.getValueParameters.asScala)
     desc match {
-      case _: IrBuiltinOperatorDescriptor =>
-        //@TODO: EQEQ and NEQ are builtin and not SimpleFunctionDescriptor
-        notImplemented
-      case cd: ClassConstructorDescriptor =>
-        val tpe = cd.getConstructedClass.toJsClassType
-        New(tpe, cd.toJsMethodIdent, args.toList)
-      case j: JavaMethodDescriptor =>
-        val tpe = j.getReturnType.toJsType
-        val idt=  j.toJsMethodIdent
-        if (name == "print" || name == "println" || name == "readLine"){
-          val rec = LoadModule(ClassType("s_Predef$"))
-          Apply(rec, idt, args.toList)(tpe)
+      case bt: IrBuiltinOperatorDescriptorBase =>
+        args match {
+          case Seq(a, b) =>
+            val op = getBinaryOp(bt.getName.toString, a.tpe)
+            BinaryOp(op, a, b)
+          case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
+          case _ => notImplemented
         }
-        else notImplemented
-      case c: DeserializedSimpleFunctionDescriptor =>
-        if (name == "getValue") {
-          val x = c.getContainerSource.getPresentableFqName.asString()
-          val ctpe = Definitions.encodeClassName(x)
-          val rec = LoadModule(ClassType(ctpe))
-          Apply(rec, c.toJsMethodIdent, args.toList)(c.getReturnType.toJsType)
-        }
-        else notImplemented
       case sf: SimpleFunctionDescriptor =>
-        if (name == "println") {
+        if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
           val method = Ident("println__O__V", Some("println"))
           val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
-        } else if (sf.getExtensionReceiverParameter != null) {
-          val x = sf.getExtensionReceiverParameter
-          Apply(This()(x.getType.toJsType), sf.toJsMethodIdent, args.toList)(sf.getReturnType.toJsType)
           // @TODO: definitely not be the best way to detect OP
-        } else if (intBinaryOp.keySet.contains(sf.getName.asString())) genBinaryOp(sf, args.head)
+        } else if (sf.isOperator || sf.isInfix) genBinaryOp(sf, args.head)
         else if (isUnaryOp(name)) genUnaryOp(sf)
         else genApply(sf, sf.toJsMethodIdent, args.toList)
+      case cd: ClassConstructorDescriptor =>
+        val tpe = cd.getConstructedClass.toJsClassType
+        New(tpe, cd.toJsMethodIdent, args.toList)
       case f: FunctionDescriptor => genApply(f, f.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
@@ -64,12 +45,13 @@ import BinaryOpMaps._
 
   private def genApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
     val tpe = desc.getReturnType.toJsType
-    val static = isStaticDeclaration(desc)
+    val static = DescriptorUtils.isStaticDeclaration(desc)
     if (static) {
-      //TODO: Mega bug for finding where to call...
-      val ctpe = getContainingClass(desc)
-      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-    } else Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
+      val ctpe = DescriptorUtils.getContainingClass(desc).toJsClassType
+      ApplyStatic(ctpe, method, args)(tpe)
+    } else {
+      Apply(GenExpr(d.getDispatchReceiver, p).tree, method, args)(tpe)
+    }
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
@@ -106,6 +88,7 @@ import BinaryOpMaps._
   private def isFloatType(t: Type) = t == FloatType
   private def isIntType(t: Type) = t == IntType
   private def isDoubleType(t: Type) = t == DoubleType
+  private def isBooleanType(t: Type) = t == BooleanType
 
   private def intToLong(t: Tree) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
   private def longToInt(t: Tree) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
@@ -150,6 +133,7 @@ import BinaryOpMaps._
       op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
     val longBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Long_==,
       "plus" -> BinaryOp.Long_+,
       "minus" -> BinaryOp.Long_-,
       "times" -> BinaryOp.Long_*,
@@ -164,6 +148,7 @@ import BinaryOpMaps._
     )
 
     val intBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Int_+,
       "minus" -> BinaryOp.Int_-,
       "times" -> BinaryOp.Int_*,
@@ -178,6 +163,7 @@ import BinaryOpMaps._
     )
 
     val doubleBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Double_+,
       "minus" -> BinaryOp.Double_-,
       "times" -> BinaryOp.Double_*,
@@ -186,6 +172,7 @@ import BinaryOpMaps._
     )
 
     val floatBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Num_==,
       "plus" -> BinaryOp.Float_+,
       "minus" -> BinaryOp.Float_-,
       "times" -> BinaryOp.Float_*,
@@ -194,6 +181,7 @@ import BinaryOpMaps._
     )
 
     val booleanBinaryOp = Map(
+      "EQEQ" -> BinaryOp.Boolean_==,
       "or" -> BinaryOp.Boolean_|,
       "and" -> BinaryOp.Boolean_&
     )
@@ -215,7 +203,7 @@ import BinaryOpMaps._
       case DoubleType => doubleBinaryOp
       case StringType | ClassType("Lkotlin_String") => stringBinaryOp
     }
-    opMap.getOrElse(op, throw new Exception(s"Unable to map type $tpe"))
+    opMap.getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
   }
 
 }
