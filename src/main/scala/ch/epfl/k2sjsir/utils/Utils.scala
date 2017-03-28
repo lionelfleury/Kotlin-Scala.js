@@ -54,7 +54,8 @@ object Utils {
     "Float" -> FloatType,
     "Long" -> LongType,
     "Double" -> DoubleType,
-    "Null" -> NullType
+    "Null" -> NullType,
+    "String" -> StringType
   )
 
   private def getInternal(t: Type): String = t match {

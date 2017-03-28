@@ -22,11 +22,16 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case bt: IrBuiltinOperatorDescriptorBase =>
         args match {
           case Seq(a, b) =>
-            val op = GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
+            val op = if(desc.getContainingDeclaration.getName.asString() == "ir") {
+              GenBinaryOp.getBuiltinOp(bt.getName.toString)
+            } else {
+              GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
+            }
             BinaryOp(op, a, b)
           case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
           case _ => notImplemented
         }
+
       case cd: ClassConstructorDescriptor =>
         val tpe = cd.getConstructedClass.toJsClassType
         New(tpe, cd.toJsMethodIdent, args.toList)
