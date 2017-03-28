@@ -14,12 +14,12 @@ class SJSIRCodegen(outDir: String) {
   def generate(d: IrClass, p: Positioner): Unit = {
     if (outDir == null) sys.error("No output directory found...")
     val tree: ClassDef = GenClass(d, p).tree
-    //    val suffix = if (d.getDescriptor.isCompanionObject || d.getDescriptor.getKind == OBJECT) "$" else ""
-    genIRFile(outDir, d.getDescriptor, "", tree)
+    genIRFile(outDir, d.getDescriptor, tree)
   }
 
-  private def genIRFile(outDir: String, cd: ClassDescriptor, suffix: String, tree: ClassDef): Unit = {
-    val file = new File(outDir, cd.toJsClassName.drop(1) + ".sjsir")
+  private def genIRFile(outDir: String, cd: ClassDescriptor, tree: ClassDef): Unit = {
+    val name = cd.toJsClassName.drop(1).replace("_", "/")
+    val file = new File(outDir, name + ".sjsir")
     file.getParentFile.mkdir()
     val output = new FileOutputStream(file)
     try {

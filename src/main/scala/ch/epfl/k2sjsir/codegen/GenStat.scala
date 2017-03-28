@@ -19,6 +19,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
       ApplyStatically(This()(tpe), tpe, cd.toJsMethodIdent, args.toList)(NoType)
     case c: IrInstanceInitializerCall =>
+      val tpe = c.getClassDescriptor.toJsClassType
       if (c.getClassDescriptor.getKind == ClassKind.OBJECT) {
         val tpe = c.getClassDescriptor.toJsClassType
         StoreModule(tpe, This()(tpe))

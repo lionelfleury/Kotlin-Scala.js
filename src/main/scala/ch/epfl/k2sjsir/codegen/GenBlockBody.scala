@@ -7,9 +7,9 @@ import scala.collection.JavaConverters._
 
 case class GenBlockBody(d: IrBlockBody, p: Positioner) extends Gen[IrBlockBody] {
 
-  def tree: Tree = {
-    val stats = d.getStatements.asScala.map(GenStat(_, p).tree)
-    Block(stats.toList)
+  def tree: Tree = d.getStatements match {
+    case null => Block(Nil)
+    case stats => Block(stats.asScala.map(GenStat(_, p).tree).toList)
   }
 
 }

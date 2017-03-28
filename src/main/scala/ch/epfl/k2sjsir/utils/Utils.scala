@@ -2,7 +2,8 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.resolve.DescriptorUtils.getClassDescriptorForType
+import org.jetbrains.kotlin.descriptors.impl.AbstractTypeParameterDescriptor
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyTypeParameterDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -31,7 +32,13 @@ object Utils {
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = types.getOrElse(t.toString, getClassDescriptorForType(t).toJsClassType)
+    def toJsType: Type = types.getOrElse(t.toString,
+      t.getConstructor.getDeclarationDescriptor match {
+        case c: ClassDescriptor => c.toJsClassType
+        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
+        case x: AbstractTypeParameterDescriptor => ClassType(x.toJsName)
+        case x => throw new Error(s"Not implemented type: $x")
+      })
     private[utils] def toJsInternal: String = getInternal(t.toJsType)
   }
 
