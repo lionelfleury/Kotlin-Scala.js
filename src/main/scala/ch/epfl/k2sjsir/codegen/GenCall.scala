@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
+import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
@@ -9,7 +9,6 @@ import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
-import org.scalajs.core.ir.Definitions
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ClassType, _}
 
@@ -25,8 +24,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case bt: IrBuiltinOperatorDescriptorBase =>
         args match {
           case Seq(a, b) =>
-            val op = GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
-            BinaryOp(op, a, b)
+            BinaryOp(getBinaryOp(bt.getName.toString, a.tpe), a, b)
           case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
           case _ => notImplemented
         }
@@ -34,22 +32,18 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         val tpe = cd.getConstructedClass.toJsClassType
         val method = cd.toJsMethodIdent
         New(tpe, method, args.toList)
+      case j: JavaMethodDescriptor =>
+        genApply(j, j.toJsMethodIdent, args.toList)
       case sf: DeserializedSimpleFunctionDescriptor =>
         if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
-          val method = Ident("println__O__V", Some("println"))
+          val method = sf.toJsMethodIdent
           val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else {
-          val ctpe = DescriptorUtils.getContainingClass(sf)
-          val name = if (ctpe == null) sf.getContainerSource.getPresentableFqName.asString() else ctpe.getName.asString()
-          val tpe = Definitions.encodeClassName(name)
-          notImplemented
-        }
-      case j: JavaMethodDescriptor => genApply(j, j.toJsMethodIdent, args.toList)
+        else notImplemented
       case _ => notImplemented
     }
   }
@@ -60,12 +54,12 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val x = desc.getExtensionReceiverParameter
     if (x != null) {
       val t = x.getType.toJsType
-      This()(t)
+      This()(t) //TODO: Extension receiver present...
     } else if (static) {
       val ctpe = DescriptorUtils.getContainingClass(desc)
-      //      if (ctpe == null) println("Desc is null")
+      if (ctpe == null) println("Desc is null")
       //      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-      Skip()
+      notImplemented
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)
