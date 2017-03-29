@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
-import org.jetbrains.kotlin.resolve.DescriptorUtils
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ClassType, _}
@@ -46,20 +46,23 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         else if (name == "arrayOf") {
           args.head
         } else genApply(sf, sf.toJsMethodIdent, args.toList)
+      case p: PropertyGetterDescriptor =>
+        //TODO: call to getter function
+        Skip()
       case _ => notImplemented
     }
   }
 
   private def genApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
     val tpe = desc.getReturnType.toJsType
-    val static = DescriptorUtils.isStaticDeclaration(desc)
+    val static = isStaticDeclaration(desc)
     val x = desc.getExtensionReceiverParameter
     if (x != null) {
       val t = x.getType.toJsType
       This()(t) //TODO: Extension receiver present...
     } else if (static) {
       // TODO: Arrays class is encoded as a Module
-      val name = DescriptorUtils.getContainingClass(desc).toJsClassName
+      val name = getContainingClass(desc).toJsClassName
       if (name == null) println("Desc is null")
       Apply(LoadModule(ClassType(name + (if (name.endsWith("$")) "" else "$"))), method, args)(tpe)
     } else {
