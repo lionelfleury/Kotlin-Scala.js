@@ -32,13 +32,18 @@ object Utils {
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = types.getOrElse(t.toString,
-      t.getConstructor.getDeclarationDescriptor match {
-        case c: ClassDescriptor => c.toJsClassType
-        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
-        case x: AbstractTypeParameterDescriptor => ClassType(x.toJsName)
-        case x => throw new Error(s"Not implemented type: $x")
+    def toJsType: Type = {
+      val tpe = t.getConstructor.getDeclarationDescriptor
+      val name = tpe.getName.asString()
+      types.getOrElse(name, {
+        tpe match {
+          case c: ClassDescriptor => c.toJsClassType
+          case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
+          case x: AbstractTypeParameterDescriptor => ClassType(x.toJsName)
+          case x => throw new Error(s"Not implemented type: $x")
+        }
       })
+    }
     private[utils] def toJsInternal: String = getInternal(t.toJsType)
   }
 
@@ -54,7 +59,8 @@ object Utils {
     "Float" -> FloatType,
     "Long" -> LongType,
     "Double" -> DoubleType,
-    "Null" -> NullType
+    "Null" -> NullType,
+    "String" -> ClassType("T")
   )
 
   private def getInternal(t: Type): String = t match {
@@ -65,6 +71,7 @@ object Utils {
     case LongType => "J"
     case FloatType => "F"
     case DoubleType => "D"
+    case StringType | ClassType("T") => "T"
     case ArrayType(elem, _) => "A" + encodeName(elem.toString)
     case ClassType(name) => Definitions.encodeClassName(name)
     case NothingType => Definitions.RuntimeNothingClass

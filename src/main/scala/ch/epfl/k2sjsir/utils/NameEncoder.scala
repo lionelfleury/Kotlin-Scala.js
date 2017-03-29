@@ -17,7 +17,7 @@ object NameEncoder {
   private val OuterSep = "__"
 
   /** Inner separator character (replace dots in full names) */
-  //  private val InnerSep = "_"
+  private val InnerSep = "_"
 
   /** Name given to the local Scala.js environment variable */
   //  private val ScalaJSEnvironmentName = "ScalaJS"
@@ -40,7 +40,8 @@ object NameEncoder {
     val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
     val parts = getFqNameSafe(d).asString().split('.').toList
     val (pack, clazz) = parts.partition(_.head.isLower)
-    val name = if (pack.nonEmpty) pack.mkString("", ".", ".") else "" + clazz.mkString("$")
+    val name = (if (pack.nonEmpty) pack.mkString("", ".", ".") else "") +
+      (if (clazz.length > 1) clazz.mkString("$") else clazz.head.toString)
     val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
   }
@@ -66,7 +67,8 @@ object NameEncoder {
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
     val encodedName =
-      if (isPrivate && !isInit(name)) encodeName(name) + OuterSep + "p" + privateSuffix(owner)
+      if (isInit(name)) "init" + InnerSep
+      else if (isPrivate) encodeName(name) + OuterSep + "p" + privateSuffix(owner)
       else encodeName(name)
     val paramsString = makeParamsString(d, reflProxy, inRTClass)
     Seq(encodedName, paramsString)
@@ -81,7 +83,8 @@ object NameEncoder {
     //          if (!hasExplicitThisParameter) paramTypeNames0
     //          else internalName(sym.owner.toTypeConstructor) :: paramTypeNames0
     val paramAndResultTypeNames =
-    if (isInit(d.getName.asString())) paramTypeNames0 :+ "_"
+    if (isInit(d.getName.asString())) paramTypeNames0
+    else if (reflProxy) paramTypeNames0 :+ ""
     else paramTypeNames0 :+ d.getReturnType.toJsInternal
     paramAndResultTypeNames.mkString(OuterSep, OuterSep, "")
   }
