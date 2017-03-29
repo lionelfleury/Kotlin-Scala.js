@@ -28,7 +28,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
           case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
           case _ => notImplemented
         }
-      case cd: ClassConstructorDescriptor =>
+      case cd: ConstructorDescriptor =>
         val tpe = cd.getConstructedClass.toJsClassType
         val method = cd.toJsMethodIdent
         New(tpe, method, args.toList)

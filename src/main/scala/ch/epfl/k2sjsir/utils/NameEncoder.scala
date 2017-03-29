@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
-import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, Visibilities}
+import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, TypeAliasDescriptor, Visibilities}
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
@@ -60,8 +60,9 @@ object NameEncoder {
       else getAllSuperclassesWithoutAny(c).asScala.count(_.getKind != INTERFACE).toString
     }
     //TODO: Only function in classes supported...
-    val owner = d.getContainingDeclaration match {
+    val owner: Option[ClassDescriptor] = d.getContainingDeclaration match {
       case c: ClassDescriptor => Some(c)
+      case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
       case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
