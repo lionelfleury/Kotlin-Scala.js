@@ -37,13 +37,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case sf: DeserializedSimpleFunctionDescriptor =>
         if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
-          val method = sf.toJsMethodIdent
+          val method = Ident(s"${name}__O__V", Some(name))
           val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else notImplemented
+        else if (name == "arrayOf") {
+          args.head
+        } else genApply(sf, sf.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
   }
@@ -67,7 +69,13 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
-    for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
+    for (i <- as.indices) yield {
+      val arg = d.getValueArgument(i)
+      arg match {
+        case a: IrVararg => GenVararg(a, p).tree
+        case _ => GenExpr(arg, p).tree
+      }
+    }
 
   private def isBooleanType(t: Type) = t == BooleanType
 
