@@ -58,10 +58,10 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       val t = x.getType.toJsType
       This()(t) //TODO: Extension receiver present...
     } else if (static) {
-      val ctpe = DescriptorUtils.getContainingClass(desc)
-      if (ctpe == null) println("Desc is null")
-      //      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-      notImplemented
+      // TODO: Arrays class is encoded as a Module
+      val name = DescriptorUtils.getContainingClass(desc).toJsClassName
+      if (name == null) println("Desc is null")
+      Apply(LoadModule(ClassType(name + (if (name.endsWith("$")) "" else "$"))), method, args)(tpe)
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)

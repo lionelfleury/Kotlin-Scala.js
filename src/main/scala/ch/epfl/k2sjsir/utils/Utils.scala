@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
+import scala.collection.JavaConverters._
 
 object Utils {
 
@@ -32,19 +33,19 @@ object Utils {
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = {
-      val tpe = t.getConstructor.getDeclarationDescriptor
-      val name = tpe.getName.asString()
-      types.getOrElse(name, {
-        tpe match {
-          case c: ClassDescriptor => c.toJsClassType
-          case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
-          case x: AbstractTypeParameterDescriptor => ClassType(x.toJsName)
-          case x => throw new Error(s"Not implemented type: $x")
-        }
+    def toJsType: Type = getType(t.getConstructor.getDeclarationDescriptor)
+    def toJsInternal: String = getInternal(t.toJsType)
+  }
+
+  private def getType(tpe: ClassifierDescriptor): Type = {
+    val name = tpe.getName.asString()
+    types.getOrElse(name, tpe match {
+        case c: ClassDescriptor => if (name == "Array") ArrayType("I", 1)
+        else c.toJsClassType
+//        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
+//        case x: AbstractTypeParameterDescriptor => ClassType("I")
+        case x => throw new Error(s"Not implemented type: $x")
       })
-    }
-    private[utils] def toJsInternal: String = getInternal(t.toJsType)
   }
 
   private val types = Map(
@@ -72,7 +73,7 @@ object Utils {
     case FloatType => "F"
     case DoubleType => "D"
     case StringType | ClassType("T") => "T"
-    case ArrayType(elem, _) => "A" + encodeName(elem.toString)
+    case ArrayType(elem, _) => "A" + encodeName(elem)
     case ClassType(name) => Definitions.encodeClassName(name)
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
