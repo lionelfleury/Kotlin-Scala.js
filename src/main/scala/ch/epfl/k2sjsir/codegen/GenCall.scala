@@ -47,8 +47,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
           args.head
         } else genApply(sf, sf.toJsMethodIdent, args.toList)
       case p: PropertyGetterDescriptor =>
-        //TODO: call to getter function
-        Skip()
+        genApply(p, Ident("length__I"), args.toList)
       case _ => notImplemented
     }
   }
