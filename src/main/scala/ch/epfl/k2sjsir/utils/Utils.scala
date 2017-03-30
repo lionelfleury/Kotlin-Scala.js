@@ -74,7 +74,7 @@ object Utils {
     case DoubleType => "D"
     case StringType | ClassType("T") => "T"
     case ArrayType(elem, _) => "A" + encodeName(elem)
-    case ClassType(name) => Definitions.encodeClassName(name)
+    case ClassType(name) => name
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case _ => throw new Error(s"Unknown Scala.js type: $t")
