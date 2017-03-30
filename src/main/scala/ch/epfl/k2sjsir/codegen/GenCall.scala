@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
-import org.jetbrains.kotlin.resolve.DescriptorUtils
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ClassType, _}
@@ -42,29 +42,33 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case sf: DeserializedSimpleFunctionDescriptor =>
         if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
-          val method = sf.toJsMethodIdent
+          val method = Ident(s"${name}__O__V", Some(name))
           val tpe = sf.getReturnType.toJsType
           Apply(rec, method, args.toList)(tpe)
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else notImplemented
+        else if (name == "arrayOf") {
+          args.head
+        } else genApply(sf, sf.toJsMethodIdent, args.toList)
+      case p: PropertyGetterDescriptor =>
+        genApply(p, Ident("length__I"), args.toList)
       case _ => notImplemented
     }
   }
 
   private def genApply(desc: CallableDescriptor, method: Ident, args: List[Tree]) = {
     val tpe = desc.getReturnType.toJsType
-    val static = DescriptorUtils.isStaticDeclaration(desc)
+    val static = isStaticDeclaration(desc)
     val x = desc.getExtensionReceiverParameter
     if (x != null) {
       val t = x.getType.toJsType
       This()(t) //TODO: Extension receiver present...
     } else if (static) {
-      val ctpe = DescriptorUtils.getContainingClass(desc)
-      if (ctpe == null) println("Desc is null")
-      //      ApplyStatic(ctpe.toJsClassType, method, args)(tpe)
-      notImplemented
+      // TODO: Arrays class is encoded as a Module
+      val name = getContainingClass(desc).toJsClassName
+      if (name == null) println("Desc is null")
+      Apply(LoadModule(ClassType(name + (if (name.endsWith("$")) "" else "$"))), method, args)(tpe)
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)
@@ -72,7 +76,13 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   }
 
   private def genArgs(as: Seq[ValueParameterDescriptor]): Seq[Tree] =
-    for (i <- as.indices) yield GenExpr(d.getValueArgument(i), p).tree
+    for (i <- as.indices) yield {
+      val arg = d.getValueArgument(i)
+      arg match {
+        case a: IrVararg => GenVararg(a, p).tree
+        case _ => GenExpr(arg, p).tree
+      }
+    }
 
   private def isBooleanType(t: Type) = t == BooleanType
 
