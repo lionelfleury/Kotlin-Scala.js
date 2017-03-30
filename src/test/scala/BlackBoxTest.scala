@@ -154,7 +154,11 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
 
   test("TestNullable.kt") {
     assertExecResult(
-      """1
-        |NonNullTwicenull""".stripMargin, "TestNullable.kt")
+      """7
+        |7
+        |null
+        |7
+        |-1
+        |NonNullnull""".stripMargin, "TestNullable.kt")
   }
 }

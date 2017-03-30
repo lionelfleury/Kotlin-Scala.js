@@ -1,14 +1,21 @@
 object Test {
     fun main() {
-        val a : Int? = 1
         val b : String? = "NonNull"
-        val c : String? = "Twice"
         val d : String? = null
 
-        println(a)
         if(b != null) println(b.length)
-        /*if(c != null) println(c.length)*/
+        if(d != null) println(d.length)
 
-        println(b + c + d)
+        val c = b?.length
+        println(c)
+        println(d?.length)
+
+        val l = b?.length ?: -1
+        val q = d?.length ?: -1
+
+        println(l)
+        println(q)
+
+        println(b + d)
     }
 }
