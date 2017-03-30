@@ -142,7 +142,7 @@ object GenBinaryOp {
       case LongType => longBinaryOp
       case FloatType => floatBinaryOp
       case DoubleType => doubleBinaryOp
-      case StringType | ClassType("Lkotlin_String") => stringBinaryOp
+      case StringType | ClassType("T") => stringBinaryOp
     }
 
     opMap.getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))

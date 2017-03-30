@@ -6,8 +6,8 @@ object Test {
         val d : String? = null
 
         println(a)
-       /* if(b != null) println(b.length)
-        if(c != null) println(c.length)*/
+        if(b != null) println(b.length)
+        /*if(c != null) println(c.length)*/
 
         println(b + c + d)
     }
