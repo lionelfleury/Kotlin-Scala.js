@@ -6,8 +6,9 @@ import org.jetbrains.kotlin.descriptors.impl.AbstractTypeParameterDescriptor
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyTypeParameterDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types._
+import org.scalajs.core.ir.Types.{ReferenceType, _}
 import org.scalajs.core.ir.{Definitions, Position}
+
 import scala.collection.JavaConverters._
 
 object Utils {
@@ -40,12 +41,26 @@ object Utils {
   private def getType(tpe: ClassifierDescriptor): Type = {
     val name = tpe.getName.asString()
     types.getOrElse(name, tpe match {
-        case c: ClassDescriptor => if (name == "Array") ArrayType("I", 1)
-        else c.toJsClassType
-//        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
-//        case x: AbstractTypeParameterDescriptor => ClassType("I")
-        case x => throw new Error(s"Not implemented type: $x")
-      })
+      case c: ClassDescriptor =>
+        val name = tpe.getName.asString()
+        if (name == "Array") {
+          ArrayType(getRefType(c.getDeclaredTypeParameters.get(0)))
+        } else c.toJsClassType
+      //        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
+      //        case x: AbstractTypeParameterDescriptor => ClassType("I")
+      case x => throw new Error(s"Not implemented type: $x")
+    })
+  }
+
+  private def getRefType(tpe: ClassifierDescriptor): ReferenceType = tpe match {
+    case _: AbstractTypeParameterDescriptor => ClassType("O")
+    case c: ClassDescriptor =>
+      val name = tpe.getName.asString()
+      if (name == "Array") {
+        val t = c.getTypeConstructor.getParameters.asScala
+        ArrayType(getRefType(t.head))
+      } else c.toJsClassType
+    case x => ClassType(x.toJsName)
   }
 
   private val types = Map(

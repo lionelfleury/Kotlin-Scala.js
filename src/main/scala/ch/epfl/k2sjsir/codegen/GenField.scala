@@ -11,7 +11,7 @@ case class GenField(d: IrField, p: Positioner) extends Gen[IrField] {
     val pd = d.getDescriptor
     val static = isStaticDeclaration(pd)
     val idt = pd.toJsIdent
-    val tpe = pd.getType.toJsType
+    val tpe = pd.getReturnType.toJsType
     FieldDef(static, idt, tpe, pd.isVar)
   }
 
