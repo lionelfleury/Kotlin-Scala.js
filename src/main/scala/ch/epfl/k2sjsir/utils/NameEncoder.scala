@@ -25,11 +25,11 @@ object NameEncoder {
   /** Name given to all exported stuff of a class for DCE */
   //  private val dceExportName = "<exported>"
 
-  private val nonValid = Set('<', '-', '?', '>')
+  private val nonValid = Seq("<get-", "<set-", "-", "?", ">")
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
   private[utils] def encodeName(name: String): String = {
-    val n = name.filterNot(nonValid)
+    val n = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
     if (isKeyword(n) || n(0).isDigit || n(0) == '$') "$" + n else n
   }
 
@@ -51,7 +51,6 @@ object NameEncoder {
 
   private[utils] def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false): String =
     encodeMethodNameInternal(d, reflProxy).mkString
-
 
   private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())

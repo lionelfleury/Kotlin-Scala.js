@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
+import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors._
@@ -24,7 +24,12 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case bt: IrBuiltinOperatorDescriptorBase =>
         args match {
           case Seq(a, b) =>
-            BinaryOp(getBinaryOp(bt.getName.toString, a.tpe), a, b)
+            val op = if (desc.getContainingDeclaration.getName.asString() == "ir") {
+              GenBinaryOp.getBuiltinOp(bt.getName.toString)
+            } else {
+              GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
+            }
+            BinaryOp(op, a, b)
           case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
           case _ => notImplemented
         }
