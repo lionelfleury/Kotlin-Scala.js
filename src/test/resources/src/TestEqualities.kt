@@ -13,5 +13,8 @@ object Test {
         println(false != false)
         println(!true)
         println(!false)
+
+        println("a" == "b")
+        println("a" == "a")
     }
 }

@@ -46,5 +46,11 @@ object Test {
         println(2L+2)
         println(100000L + 2147483647)
         println(2147483647L + 10000)
+
+
+        val e = "First"
+        val f = "Second"
+
+        println(e + f)
     }
 }

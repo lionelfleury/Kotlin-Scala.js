@@ -118,6 +118,11 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
       printlnJSFormat(2L + 2)
       printlnJSFormat(100000L + 2147483647)
       printlnJSFormat(2147483647L + 10000)
+
+      val e = "First"
+      val f = "Second"
+
+      println(e + f)
     }
     assertExecResult(scalaResult, "TestBinaryOps.kt")
 
@@ -140,7 +145,20 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
 
       println(!true)
       println(!false)
+
+      println("a" == "b")
+      println("a" == "a")
     }
     assertExecResult(result, "TestEqualities.kt")
+  }
+
+  test("TestNullable.kt") {
+    assertExecResult(
+      """7
+        |7
+        |null
+        |7
+        |-1
+        |NonNullnull""".stripMargin, "TestNullable.kt")
   }
 }

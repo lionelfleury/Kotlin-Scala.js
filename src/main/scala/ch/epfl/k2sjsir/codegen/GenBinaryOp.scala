@@ -16,7 +16,9 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val args = for (i <- desc.getValueParameters.asScala.indices)
       yield GenExpr(d.getValueArgument(i), p).tree
     val rhs = args.head
-    val lhs = GenExpr(d.getDispatchReceiver, p).tree
+    val lhs =
+      if(d.getDispatchReceiver != null) GenExpr(d.getDispatchReceiver, p).tree
+      else  GenExpr(d.getExtensionReceiver, p).tree
     val rType = desc.getReturnType.toJsType
     val op = getBinaryOp(desc.getName.asString(), rType)
     if (lhs.tpe == rhs.tpe) {
@@ -51,7 +53,6 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 }
 
 object GenBinaryOp {
-
   private def isLongType(t: Type) = t == LongType
   private def isStringType(t: Type) = t == StringType
   private def isFloatType(t: Type) = t == FloatType
@@ -125,7 +126,12 @@ object GenBinaryOp {
   )
 
   val stringBinaryOp = Map(
-    "plus" -> BinaryOp.String_+
+    "plus" -> BinaryOp.String_+,
+    "EQEQ" -> BinaryOp.===
+  )
+
+  val builtinBinarOp = Map(
+    "EQEQ" -> BinaryOp.===
   )
 
   /* Find the correct binary op for a given type */
@@ -136,10 +142,14 @@ object GenBinaryOp {
       case LongType => longBinaryOp
       case FloatType => floatBinaryOp
       case DoubleType => doubleBinaryOp
-      case StringType | ClassType("Lkotlin_String") => stringBinaryOp
+      case StringType | ClassType("T") => stringBinaryOp
     }
+
     opMap.getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
   }
+
+  def getBuiltinOp(op: String) : BinaryOp.Code =
+    builtinBinarOp.getOrElse(op, throw new Error(s"Binary op not found: $op"))
 
   def isBinaryOp(op: String): Boolean =
     longBinaryOp.keySet(op) || intBinaryOp.keySet(op)
