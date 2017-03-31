@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.descriptors.impl.AbstractTypeParameterDescriptor
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ReferenceType, _}
@@ -33,24 +33,22 @@ object Utils {
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = getType(t.getConstructor.getDeclarationDescriptor)
+    def toJsType: Type = getType(t)
     def toJsInternal: String = getInternal(t.toJsType)
   }
 
-  private def getType(tpe: ClassifierDescriptor): Type = {
-    val name = tpe.getName.asString()
+  private def getType(tpe: KotlinType): Type = {
+    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
     types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
   }
 
-  private def getRefType(tpe: ClassifierDescriptor): ReferenceType = tpe match {
-    case _: AbstractTypeParameterDescriptor => ClassType("O")
-    case c: ClassDescriptor =>
-      val name = tpe.getName.asString()
-      if (name == "Array") {
-        val t = c.getTypeConstructor.getParameters.asScala
-        ArrayType(getRefType(t.head))
-      } else c.toJsClassType
-    case x => ClassType(x.toJsName)
+  private def getRefType(tpe: KotlinType): ReferenceType = {
+    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
+    val args = tpe.getArguments.asScala.map(t => getRefType(t.getType))
+    if (name.startsWith("Array<")) {
+      if (args.size > 1) println("Not supported Type parameters > 1")
+      ArrayType(args.head)
+    } else getClassDescriptorForType(tpe).toJsClassType
   }
 
   private val types = Map(

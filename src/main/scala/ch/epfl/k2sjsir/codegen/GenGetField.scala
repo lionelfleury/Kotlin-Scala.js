@@ -10,7 +10,7 @@ case class GenGetField(d: IrGetField, p: Positioner) extends Gen[IrGetField] {
   def tree: Tree = {
     val pd = d.getDescriptor
     val idt = pd.toJsIdent
-    val tpe = d.getType.toJsType
+    val tpe = pd.getReturnType.toJsType
     val static = isStaticDeclaration(pd)
     if (static) {
       val ctpe = getContainingClass(pd).toJsClassType

@@ -1,7 +1,6 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, TypeAliasDescriptor, Visibilities}
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
@@ -64,7 +63,7 @@ object NameEncoder {
       case c: ClassDescriptor => Some(c)
       case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
       case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
-      case _: BuiltInsPackageFragment => Option(getClassDescriptorForType(d.getReturnType))
+
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
@@ -77,8 +76,8 @@ object NameEncoder {
   }
 
   private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean): String = {
-    val tpes = d.getValueParameters
-    val paramTypeNames0 = tpes.asScala.map(_.getType.toJsInternal)
+    val tpes = d.getValueParameters.asScala
+    val paramTypeNames0 = tpes.map(_.getReturnType.toJsInternal)
     //    val hasExplicitThisParameter =
     //      inRTClass || isScalaJSDefinedJSClass(sym.owner)
     //        val paramTypeNames =

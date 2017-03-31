@@ -40,6 +40,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         New(tpe, method, args.toList)
       case j: JavaMethodDescriptor =>
         genApply(j, j.toJsMethodIdent, args.toList)
+      case p: PropertyGetterDescriptor =>
+        genApply(p, p.toJsMethodIdent, args.toList)
       case sf: DeserializedSimpleFunctionDescriptor =>
         if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
@@ -49,11 +51,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (name == "arrayOf") {
-          args.head
-        } else genApply(sf, sf.toJsMethodIdent, args.toList)
-      case p: PropertyGetterDescriptor =>
-        genApply(p, p.toJsMethodIdent, args.toList)
+        else genApply(sf, sf.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
   }
