@@ -3,7 +3,6 @@ package ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.descriptors.impl.AbstractTypeParameterDescriptor
-import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyTypeParameterDescriptor
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ReferenceType, _}
@@ -40,16 +39,7 @@ object Utils {
 
   private def getType(tpe: ClassifierDescriptor): Type = {
     val name = tpe.getName.asString()
-    types.getOrElse(name, tpe match {
-      case c: ClassDescriptor =>
-        val name = tpe.getName.asString()
-        if (name == "Array") {
-          ArrayType(getRefType(c.getDeclaredTypeParameters.get(0)))
-        } else c.toJsClassType
-      //        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
-      //        case x: AbstractTypeParameterDescriptor => ClassType("I")
-      case x => throw new Error(s"Not implemented type: $x")
-    })
+    types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
   }
 
   private def getRefType(tpe: ClassifierDescriptor): ReferenceType = tpe match {

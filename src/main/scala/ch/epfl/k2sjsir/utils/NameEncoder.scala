@@ -64,7 +64,7 @@ object NameEncoder {
       case c: ClassDescriptor => Some(c)
       case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
       case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
-      case _: BuiltInsPackageFragment => None
+      case _: BuiltInsPackageFragment => Option(getClassDescriptorForType(d.getReturnType))
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
