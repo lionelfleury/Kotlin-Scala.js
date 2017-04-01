@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions._
-import org.scalajs.core.ir.Trees.{LoadModule, Tree, _}
+import org.scalajs.core.ir.Trees._
 
 case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
 
