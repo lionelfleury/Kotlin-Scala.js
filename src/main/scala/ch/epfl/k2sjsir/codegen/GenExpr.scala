@@ -2,11 +2,13 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions._
+import org.scalajs.core.ir.Position.NoPosition
 import org.scalajs.core.ir.Trees._
 
 case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
 
   def tree: Tree = d match {
+    case null => Skip()(NoPosition)
     case g: IrGetField => GenGetField(g, p).tree
     case c: IrCall => GenCall(c, p).tree
     case c: IrConst[_] => GenConst(c, p).tree
@@ -21,7 +23,6 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
     case c: IrCallableReference =>
       val ref = c.getDescriptor.toJsIdent
       VarRef(ref)(c.getDescriptor.getReturnType.toJsType)
-    case null => notImplemented
     case _ => notImplemented
   }
 

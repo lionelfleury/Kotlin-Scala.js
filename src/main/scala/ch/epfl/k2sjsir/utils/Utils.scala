@@ -70,7 +70,8 @@ object Utils {
     "Long" -> LongType,
     "Double" -> DoubleType,
     "Null" -> NullType,
-    "String" -> ClassType("T")
+    "String" -> ClassType("T"),
+    "Throwable" -> AnyType
   )
 
   private def getInternal(t: Type): String = t match {

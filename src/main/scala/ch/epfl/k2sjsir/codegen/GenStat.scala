@@ -19,12 +19,10 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       val args = cd.getValueParameters.asScala.map(_.toJsVarRef)
       ApplyStatically(This()(tpe), tpe, cd.toJsMethodIdent, args.toList)(NoType)
     case c: IrInstanceInitializerCall =>
-      val tpe = c.getClassDescriptor.toJsClassType
       if (c.getClassDescriptor.getKind == ClassKind.OBJECT) {
         val tpe = c.getClassDescriptor.toJsClassType
         StoreModule(tpe, This()(tpe))
-      }
-      else Skip()
+      } else Skip()
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
     case r: IrReturn => GenExpr(r.getValue, p).tree
@@ -35,6 +33,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case w: IrWhileLoop => GenWhile(w, p).tree
     case w: IrDoWhileLoop => GenDoWhile(w, p).tree
     case oc: IrTypeOperatorCall => GenExpr(oc.getArgument, p).tree
+    case t: IrTry => GenTryCatchFinally(t, p).tree
     case _ => notImplemented
   }
 

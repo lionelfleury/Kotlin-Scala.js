@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.VariableDescriptor
 import org.jetbrains.kotlin.ir.declarations.IrVariable
-import org.scalajs.core.ir.Trees.{Tree, _}
+import org.scalajs.core.ir.Trees._
 
 case class GenVar(d: IrVariable, p: Positioner) extends Gen[IrVariable] {
 
