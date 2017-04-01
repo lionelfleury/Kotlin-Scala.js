@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ReferenceType, _}
+import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
 
 import scala.collection.JavaConverters._
@@ -28,8 +28,8 @@ object Utils {
   }
 
   implicit class ValueParameterTranslator(d: ValueParameterDescriptor) {
-    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getType.toJsType)
-    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getType.toJsType, d.isVar, rest = false)
+    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getReturnType.toJsType)
+    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getReturnType.toJsType, d.isVar, rest = false)
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {

@@ -2,6 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
+import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
@@ -64,7 +65,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       Skip() //TODO: Extension receiver present...
     } else if (static) {
       val n = desc.getContainingDeclaration match {
-        case _: BuiltInsPackageFragment => getClassDescriptorForType(desc.getReturnType).toJsClassName
+        case _: BuiltInsPackageFragment =>
+          getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
         case e => throw new Error(s"Not implemented yet: $e")
       }

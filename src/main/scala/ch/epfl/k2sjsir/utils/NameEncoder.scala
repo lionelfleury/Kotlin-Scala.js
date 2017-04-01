@@ -25,7 +25,7 @@ object NameEncoder {
   /** Name given to all exported stuff of a class for DCE */
   //  private val dceExportName = "<exported>"
 
-  private val nonValid = Seq("<get-", "<set-", "-", "?", ">")
+  private val nonValid = Seq("<get-", "<set-", "<", "-", "?", ">")
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
   private[utils] def encodeName(name: String): String = {
@@ -36,14 +36,19 @@ object NameEncoder {
   private[utils] def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
     Ident(encodeClassFullName(d))
 
-  private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
-    val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
-    val parts = getFqNameSafe(d).asString().split('.').toList
+  def encodeClassName(className: String, suffix: String): String = {
+    val parts = className.split('.').toList
     val (pack, clazz) = parts.partition(_.head.isLower)
     val name = (if (pack.nonEmpty) pack.mkString("", ".", ".") else "") +
-      (if (clazz.length > 1) clazz.mkString("$") else clazz.head.toString)
+      (if (clazz.length > 1) clazz.mkString("$") else clazz.head)
     val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
+  }
+
+  private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
+    val suffix = if (isCompanionObject(d) || isObject(d)) "$" else ""
+    val className = getFqName(d).asString()
+    encodeClassName(className, suffix)
   }
 
   private[utils] def encodeMethodIdent(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): Ident =
