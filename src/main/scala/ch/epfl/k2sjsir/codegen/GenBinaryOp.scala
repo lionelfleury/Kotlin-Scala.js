@@ -17,8 +17,8 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
       yield GenExpr(d.getValueArgument(i), p).tree
     val rhs = args.head
     val lhs =
-      if(d.getDispatchReceiver != null) GenExpr(d.getDispatchReceiver, p).tree
-      else  GenExpr(d.getExtensionReceiver, p).tree
+      if (d.getDispatchReceiver != null) GenExpr(d.getDispatchReceiver, p).tree
+      else GenExpr(d.getExtensionReceiver, p).tree
     val rType = desc.getReturnType.toJsType
     val op = getBinaryOp(desc.getName.asString(), rType)
     if (lhs.tpe == rhs.tpe) {
@@ -71,7 +71,7 @@ object GenBinaryOp {
   private def isLongSpecial(op: BinaryOp.Code): Boolean =
     op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
-  val longBinaryOp = Map(
+  private val longBinaryOp = Map(
     "EQEQ" -> BinaryOp.Long_==,
     "plus" -> BinaryOp.Long_+,
     "minus" -> BinaryOp.Long_-,
@@ -86,7 +86,7 @@ object GenBinaryOp {
     "ushr" -> BinaryOp.Long_>>>
   )
 
-  val intBinaryOp = Map(
+  private val intBinaryOp = Map(
     "EQEQ" -> BinaryOp.Num_==,
     "plus" -> BinaryOp.Int_+,
     "minus" -> BinaryOp.Int_-,
@@ -101,7 +101,7 @@ object GenBinaryOp {
     "ushr" -> BinaryOp.Int_>>>
   )
 
-  val doubleBinaryOp = Map(
+  private val doubleBinaryOp = Map(
     "EQEQ" -> BinaryOp.Num_==,
     "plus" -> BinaryOp.Double_+,
     "minus" -> BinaryOp.Double_-,
@@ -110,7 +110,7 @@ object GenBinaryOp {
     "rem" -> BinaryOp.Double_%
   )
 
-  val floatBinaryOp = Map(
+  private val floatBinaryOp = Map(
     "EQEQ" -> BinaryOp.Num_==,
     "plus" -> BinaryOp.Float_+,
     "minus" -> BinaryOp.Float_-,
@@ -119,37 +119,35 @@ object GenBinaryOp {
     "rem" -> BinaryOp.Float_%
   )
 
-  val booleanBinaryOp = Map(
+  private val booleanBinaryOp = Map(
     "EQEQ" -> BinaryOp.Boolean_==,
     "or" -> BinaryOp.Boolean_|,
     "and" -> BinaryOp.Boolean_&
   )
 
-  val stringBinaryOp = Map(
+  private val stringBinaryOp = Map(
     "plus" -> BinaryOp.String_+,
     "EQEQ" -> BinaryOp.===
   )
 
-  val builtinBinarOp = Map(
+  private val builtinBinarOp = Map(
     "EQEQ" -> BinaryOp.===
   )
 
-  /* Find the correct binary op for a given type */
-  def getBinaryOp(op: String, tpe: Type): BinaryOp.Code = {
-    val opMap: Map[String, Int] = (tpe: @unchecked) match {
-      case BooleanType => booleanBinaryOp
-      case IntType => intBinaryOp
-      case LongType => longBinaryOp
-      case FloatType => floatBinaryOp
-      case DoubleType => doubleBinaryOp
-      case StringType | ClassType("T") => stringBinaryOp
-    }
-
-    opMap.getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
+  private def opMap(tpe: Type): Map[String, Int] = tpe match {
+    case BooleanType => booleanBinaryOp
+    case IntType => intBinaryOp
+    case LongType => longBinaryOp
+    case FloatType => floatBinaryOp
+    case DoubleType => doubleBinaryOp
+    case StringType | ClassType("T") => stringBinaryOp
+    case _ => builtinBinarOp
   }
 
-  def getBuiltinOp(op: String) : BinaryOp.Code =
-    builtinBinarOp.getOrElse(op, throw new Error(s"Binary op not found: $op"))
+  /* Find the correct binary op for a given type */
+  def getBinaryOp(op: String, tpe: Type): BinaryOp.Code = {
+    opMap(tpe).getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
+  }
 
   def isBinaryOp(op: String): Boolean =
     longBinaryOp.keySet(op) || intBinaryOp.keySet(op)

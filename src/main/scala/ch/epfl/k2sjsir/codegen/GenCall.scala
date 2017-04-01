@@ -1,8 +1,7 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
+import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
-import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
@@ -12,7 +11,7 @@ import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ClassType, _}
+import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
 
@@ -23,18 +22,11 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val name = desc.getName.toString
     val args = genArgs(desc.getValueParameters.asScala)
     desc match {
-      case bt: IrBuiltinOperatorDescriptorBase =>
-        args match {
-          case Seq(a, b) =>
-            val op = if (desc.getContainingDeclaration.getName.asString() == "ir") {
-              GenBinaryOp.getBuiltinOp(bt.getName.toString)
-            } else {
-              GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
-            }
-            BinaryOp(op, a, b)
-          case Seq(a) if isBooleanType(a.tpe) => UnaryOp(UnaryOp.Boolean_!, a)
-          case _ => notImplemented
-        }
+      case _: IrBuiltinOperatorDescriptorBase => args match {
+        case Seq(a, b) => BinaryOp(getBinaryOp(name, a.tpe), a, b)
+        case Seq(a) if a.tpe == BooleanType => UnaryOp(UnaryOp.Boolean_!, a)
+        case _ => notImplemented
+      }
       case cd: ConstructorDescriptor =>
         val tpe = cd.getConstructedClass.toJsClassType
         val method = cd.toJsMethodIdent
@@ -52,7 +44,9 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else genApply(sf, sf.toJsMethodIdent, args.toList)
+        else if (name == "arrayOf") {
+          args.head
+        } else genApply(sf, sf.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
   }
@@ -85,7 +79,5 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case _ => GenExpr(arg, p).tree
       }
     }
-
-  private def isBooleanType(t: Type) = t == BooleanType
 
 }

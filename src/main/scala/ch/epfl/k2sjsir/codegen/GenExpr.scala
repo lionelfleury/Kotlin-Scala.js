@@ -17,10 +17,7 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
     case e: IrGetObjectValue =>
       val ctpe = e.getDescriptor.toJsClassType
       LoadModule(ctpe)
-    case t: IrTypeOperatorCall =>
-      val arg = GenExpr(t.getArgument, p).tree
-      val y = t.getOperator // TODO: For example IMPLICIT_NOTNULL
-      arg
+    case t: IrTypeOperatorCall => GenTypeOp(t, p).tree
     case c: IrCallableReference =>
       val ref = c.getDescriptor.toJsIdent
       VarRef(ref)(c.getDescriptor.getReturnType.toJsType)

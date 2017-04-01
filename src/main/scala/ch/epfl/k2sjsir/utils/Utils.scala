@@ -34,6 +34,7 @@ object Utils {
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
     def toJsType: Type = getType(t)
+    def toJsRefType: ReferenceType = getRefType(t)
     def toJsInternal: String = getInternal(t.toJsType)
   }
 
@@ -48,7 +49,7 @@ object Utils {
     if (name.startsWith("Array<")) {
       if (args.size > 1) println("Not supported Type parameters > 1")
       ArrayType(args.head)
-    } else getClassDescriptorForType(tpe).toJsClassType
+    } else ClassType(getInternal(types.getOrElse(name, ClassType(name))))
   }
 
   private val types = Map(
@@ -64,7 +65,7 @@ object Utils {
     "Long" -> LongType,
     "Double" -> DoubleType,
     "Null" -> NullType,
-    "String" -> ClassType("T")
+    "String" -> StringType
   )
 
   private def getInternal(t: Type): String = t match {
@@ -75,9 +76,9 @@ object Utils {
     case LongType => "J"
     case FloatType => "F"
     case DoubleType => "D"
-    case StringType | ClassType("T") => "T"
+    case StringType => "T"
     case ArrayType(elem, _) => "A" + encodeName(elem)
-    case ClassType(name) => name
+    case ClassType(name) => encodeName(name)
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case _ => throw new Error(s"Unknown Scala.js type: $t")
