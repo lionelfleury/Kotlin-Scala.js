@@ -2,7 +2,6 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -45,11 +44,12 @@ object Utils {
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
-    val args = tpe.getArguments.asScala.map(t => getRefType(t.getType))
+    val args = tpe.getArguments.asScala.map(_.getType.toJsRefType)
     if (name.startsWith("Array<")) {
       if (args.size > 1) println("Not supported Type parameters > 1")
       ArrayType(args.head)
-    } else ClassType(getInternal(types.getOrElse(name, ClassType(name))))
+    }
+    else ClassType(getInternal(types.getOrElse(name, ClassType(name))))
   }
 
   private val types = Map(
@@ -65,7 +65,7 @@ object Utils {
     "Long" -> LongType,
     "Double" -> DoubleType,
     "Null" -> NullType,
-    "String" -> StringType
+    "String" -> ClassType("T")
   )
 
   private def getInternal(t: Type): String = t match {
