@@ -15,7 +15,6 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
     case g: IrGetValue => GenGetValue(g, p).tree
     case b: IrBlock => GenBlock(b, p).tree
     case i: IrWhen => GenWhen(i, p).tree
-    case s: IrStringConcatenation => GenString(s, p).tree
     case e: IrGetObjectValue =>
       val ctpe = e.getDescriptor.toJsClassType
       LoadModule(ctpe)
