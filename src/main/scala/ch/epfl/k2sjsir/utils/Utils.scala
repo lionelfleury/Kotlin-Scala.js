@@ -8,6 +8,8 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
 
+import scala.collection.JavaConverters._
+
 object Utils {
 
   implicit class DeclarationDescriptorTranslator(d: DeclarationDescriptor) {
@@ -48,11 +50,18 @@ object Utils {
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
-    ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
+    if (name == "kotlin.Array.O" || name == "kotlin.Array.It.O") ClassType("O")
+    else if (name == "kotlin.Array.It") ClassType(encodeName(name))
+    else if (name == "kotlin.Array") {
+      val args = tpe.getArguments.asScala.map(_.getType.toJsRefType)
+      if (args.size > 1) println("Not supported Type parameters > 1")
+      ArrayType(args.head)
+    } else
+      ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
   }
 
   private val types = Map(
-    "kotlin.Any" -> AnyType,
+    "kotlin.Any" -> ClassType("O"),
     "kotlin.Unit" -> NoType,
     "kotlin.Nothing" -> NothingType,
     "kotlin.Boolean" -> BooleanType,

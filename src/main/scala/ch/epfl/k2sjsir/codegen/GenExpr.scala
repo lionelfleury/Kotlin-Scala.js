@@ -22,6 +22,8 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
     case c: IrCallableReference =>
       val ref = c.getDescriptor.toJsIdent
       VarRef(ref)(c.getDescriptor.getReturnType.toJsType)
+    case r: IrReturn => Return(GenExpr(r.getValue, p).tree)
+    case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case _ => notImplemented
   }
 

@@ -30,7 +30,8 @@ object NameEncoder {
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
   private[utils] def encodeName(name: String): String = {
-    val n = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
+    val n1 = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
+    val n = if (n1.isEmpty) "set" else n1
     if (isKeyword(n) || n(0).isDigit || n(0) == '$') "$" + n else n
   }
 
