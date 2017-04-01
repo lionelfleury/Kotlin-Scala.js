@@ -86,13 +86,13 @@ object NameEncoder {
     val paramTypeNames0 = tpes.map(_.getReturnType.toJsInternal)
     //    val hasExplicitThisParameter =
     //      inRTClass || isScalaJSDefinedJSClass(sym.owner)
-    //        val paramTypeNames =
-    //          if (!hasExplicitThisParameter) paramTypeNames0
-    //          else internalName(sym.owner.toTypeConstructor) :: paramTypeNames0
+    val paramTypeNames =
+    if (d.getExtensionReceiverParameter == null) paramTypeNames0
+    else d.getExtensionReceiverParameter.getReturnType.toJsInternal +: paramTypeNames0
     val paramAndResultTypeNames =
-    if (isInit(d.getName.asString())) paramTypeNames0
-    else if (reflProxy) paramTypeNames0 :+ ""
-    else paramTypeNames0 :+ d.getReturnType.toJsInternal
+      if (isInit(d.getName.asString())) paramTypeNames
+      else if (reflProxy) paramTypeNames :+ ""
+      else paramTypeNames :+ d.getReturnType.toJsInternal
     paramAndResultTypeNames.mkString(OuterSep, OuterSep, "")
   }
 

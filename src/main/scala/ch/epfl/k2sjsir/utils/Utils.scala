@@ -26,9 +26,14 @@ object Utils {
     def toJsClassType: ClassType = ClassType(d.toJsClassName)
   }
 
-  implicit class ValueParameterTranslator(d: ValueParameterDescriptor) {
-    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getReturnType.toJsType)
-    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getReturnType.toJsType, d.isVar, rest = false)
+  implicit class ParameterTranslator(d: ParameterDescriptor) {
+    def toJsParamDef(implicit pos: Position): ParamDef =
+      ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
+  }
+
+  implicit class VariableTranslator(d: VariableDescriptor) {
+    def toJsVarRef(implicit pos: Position): VarRef =
+      VarRef(d.toJsIdent)(d.getReturnType.toJsType)
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
