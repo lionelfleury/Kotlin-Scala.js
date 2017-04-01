@@ -42,7 +42,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (name == "arrayOf") args.head //TODO: add other kind: intArrayOf, charArrayOf,...
+        else if (name == "arrayOf") //TODO: add other kind: intArrayOf, charArrayOf,...
+          New(ClassType("Lkotlin_Array"), Ident("init___AO"), List(args.head))
         else genApply(sf, args.toList)
       case _: JavaMethodDescriptor |
            _: PropertyGetterDescriptor |

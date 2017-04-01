@@ -2,12 +2,11 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
-
-import scala.collection.JavaConverters._
 
 object Utils {
 
@@ -43,35 +42,30 @@ object Utils {
   }
 
   private def getType(tpe: KotlinType): Type = {
-    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
+    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
     types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
   }
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
-    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
-    val args = tpe.getArguments.asScala.map(_.getType.toJsRefType)
-    if (name.startsWith("Array<")) {
-      if (args.size > 1) println("Not supported Type parameters > 1")
-      ArrayType(args.head)
-    }
-    else ClassType(getInternal(types.getOrElse(name, ClassType(name))))
+    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+    ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
   }
 
   private val types = Map(
-    "Any" -> AnyType,
-    "Unit" -> NoType,
-    "Nothing" -> NothingType,
-    "Boolean" -> BooleanType,
-    "Char" -> IntType,
-    "Byte" -> IntType,
-    "Short" -> IntType,
-    "Int" -> IntType,
-    "Float" -> FloatType,
-    "Long" -> LongType,
-    "Double" -> DoubleType,
-    "Null" -> NullType,
-    "String" -> ClassType("T"),
-    "Throwable" -> AnyType
+    "kotlin.Any" -> AnyType,
+    "kotlin.Unit" -> NoType,
+    "kotlin.Nothing" -> NothingType,
+    "kotlin.Boolean" -> BooleanType,
+    "kotlin.Char" -> IntType,
+    "kotlin.Byte" -> IntType,
+    "kotlin.Short" -> IntType,
+    "kotlin.Int" -> IntType,
+    "kotlin.Float" -> FloatType,
+    "kotlin.Long" -> LongType,
+    "kotlin.Double" -> DoubleType,
+    "kotlin.Null" -> NullType,
+    "kotlin.String" -> ClassType("T"),
+    "kotlin.Throwable" -> AnyType
   )
 
   private def getInternal(t: Type): String = t match {
