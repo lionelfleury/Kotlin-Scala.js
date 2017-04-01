@@ -14,13 +14,12 @@ case class GenSetField(d: IrSetField, p: Positioner) extends Gen[IrSetField] {
       LoadModule(tpe)
     case pd: PropertyDescriptor =>
       val rhs = GenExpr(d.getValue, p).tree
-      val tpe = pd.getType.toJsType
       val idt = pd.toJsIdent
       val static = isStaticDeclaration(pd)
       val lhs = if (static) {
         val ctpe = getClassDescriptorForType(pd.getType).toJsClassType
-        SelectStatic(ctpe, idt)(tpe)
-      } else Select(GenExpr(d.getReceiver, p).tree, idt)(tpe)
+        SelectStatic(ctpe, idt)(rhs.tpe)
+      } else Select(GenExpr(d.getReceiver, p).tree, idt)(rhs.tpe)
       Assign(lhs, rhs)
     case _ => notImplemented
   }

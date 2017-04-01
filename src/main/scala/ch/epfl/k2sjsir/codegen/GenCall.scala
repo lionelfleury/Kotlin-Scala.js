@@ -1,8 +1,10 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
+import ch.epfl.k2sjsir.codegen.GenBinaryOp.isBinaryOp
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
+import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
@@ -24,7 +26,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case bt: IrBuiltinOperatorDescriptorBase =>
         args match {
           case Seq(a, b) =>
-            val op = if(desc.getContainingDeclaration.getName.asString() == "ir") {
+            val op = if (desc.getContainingDeclaration.getName.asString() == "ir") {
               GenBinaryOp.getBuiltinOp(bt.getName.toString)
             } else {
               GenBinaryOp.getBinaryOp(bt.getName.toString, a.tpe)
@@ -39,6 +41,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         New(tpe, method, args.toList)
       case j: JavaMethodDescriptor =>
         genApply(j, j.toJsMethodIdent, args.toList)
+      case p: PropertyGetterDescriptor =>
+        genApply(p, p.toJsMethodIdent, args.toList)
       case sf: DeserializedSimpleFunctionDescriptor =>
         if (name == "println" || name == "print") {
           val rec = LoadModule(ClassType("s_Predef$"))
@@ -48,11 +52,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (name == "arrayOf") {
-          args.head
-        } else genApply(sf, sf.toJsMethodIdent, args.toList)
-      case p: PropertyGetterDescriptor =>
-        genApply(p, Ident("length__I"), args.toList)
+        else genApply(sf, sf.toJsMethodIdent, args.toList)
       case _ => notImplemented
     }
   }
@@ -62,13 +62,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val static = isStaticDeclaration(desc)
     val x = desc.getExtensionReceiverParameter
     if (x != null) {
-      val t = x.getType.toJsType
-      This()(t) //TODO: Extension receiver present...
+      Skip() //TODO: Extension receiver present...
     } else if (static) {
-      // TODO: Arrays class is encoded as a Module
-      val name = getContainingClass(desc).toJsClassName
-      if (name == null) println("Desc is null")
-      Apply(LoadModule(ClassType(name + (if (name.endsWith("$")) "" else "$"))), method, args)(tpe)
+      val n = desc.getContainingDeclaration match {
+        case _: BuiltInsPackageFragment =>
+          getClassDescriptorForType(desc.getReturnType).toJsClassName
+        case c: ClassDescriptor => c.toJsClassName
+        case e => throw new Error(s"Not implemented yet: $e")
+      }
+      Apply(LoadModule(ClassType(n + (if (n.endsWith("$")) "" else "$"))), method, args)(tpe)
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)

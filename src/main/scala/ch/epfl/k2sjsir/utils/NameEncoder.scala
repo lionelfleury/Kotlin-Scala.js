@@ -25,25 +25,30 @@ object NameEncoder {
   /** Name given to all exported stuff of a class for DCE */
   //  private val dceExportName = "<exported>"
 
-  private val nonValid = Set('<', '-', '?', '>')
+  private val nonValid = Seq("<get-", "<set-", "<", "-", "?", ">")
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
   private[utils] def encodeName(name: String): String = {
-    val n = name.filterNot(nonValid)
+    val n = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
     if (isKeyword(n) || n(0).isDigit || n(0) == '$') "$" + n else n
   }
 
   private[utils] def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
     Ident(encodeClassFullName(d))
 
-  private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
-    val suffix = if (isCompanionObject(d) || isObject(d) || isSingletonOrAnonymousObject(d)) "$" else ""
-    val parts = getFqNameSafe(d).asString().split('.').toList
+  def encodeClassName(className: String, suffix: String): String = {
+    val parts = className.split('.').toList
     val (pack, clazz) = parts.partition(_.head.isLower)
     val name = (if (pack.nonEmpty) pack.mkString("", ".", ".") else "") +
-      (if (clazz.length > 1) clazz.mkString("$") else clazz.head.toString)
+      (if (clazz.length > 1) clazz.mkString("$") else clazz.head)
     val n = if (name == "kotlin.Any") "java.lang.Object" else name
     Definitions.encodeClassName(n + suffix)
+  }
+
+  private[utils] def encodeClassFullName(d: ClassDescriptor): String = {
+    val suffix = if (isCompanionObject(d) || isObject(d)) "$" else ""
+    val className = getFqName(d).asString()
+    encodeClassName(className, suffix)
   }
 
   private[utils] def encodeMethodIdent(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): Ident =
@@ -51,7 +56,6 @@ object NameEncoder {
 
   private[utils] def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false): String =
     encodeMethodNameInternal(d, reflProxy).mkString
-
 
   private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())
@@ -64,6 +68,7 @@ object NameEncoder {
       case c: ClassDescriptor => Some(c)
       case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
       case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
+
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
@@ -76,8 +81,8 @@ object NameEncoder {
   }
 
   private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean): String = {
-    val tpes = d.getValueParameters
-    val paramTypeNames0 = tpes.asScala.map(_.getType.toJsInternal)
+    val tpes = d.getValueParameters.asScala
+    val paramTypeNames0 = tpes.map(_.getReturnType.toJsInternal)
     //    val hasExplicitThisParameter =
     //      inRTClass || isScalaJSDefinedJSClass(sym.owner)
     //        val paramTypeNames =

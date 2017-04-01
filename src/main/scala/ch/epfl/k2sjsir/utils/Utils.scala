@@ -2,12 +2,12 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.descriptors.impl.AbstractTypeParameterDescriptor
-import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyTypeParameterDescriptor
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
+
 import scala.collection.JavaConverters._
 
 object Utils {
@@ -28,24 +28,27 @@ object Utils {
   }
 
   implicit class ValueParameterTranslator(d: ValueParameterDescriptor) {
-    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getType.toJsType)
-    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getType.toJsType, d.isVar, rest = false)
+    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getReturnType.toJsType)
+    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getReturnType.toJsType, d.isVar, rest = false)
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
-    def toJsType: Type = getType(t.getConstructor.getDeclarationDescriptor)
+    def toJsType: Type = getType(t)
     def toJsInternal: String = getInternal(t.toJsType)
   }
 
-  private def getType(tpe: ClassifierDescriptor): Type = {
-    val name = tpe.getName.asString()
-    types.getOrElse(name, tpe match {
-        case c: ClassDescriptor => if (name == "Array") ArrayType("I", 1)
-        else c.toJsClassType
-//        case l: LazyTypeParameterDescriptor => ClassType(l.toJsName)
-//        case x: AbstractTypeParameterDescriptor => ClassType("I")
-        case x => throw new Error(s"Not implemented type: $x")
-      })
+  private def getType(tpe: KotlinType): Type = {
+    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
+    types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
+  }
+
+  private def getRefType(tpe: KotlinType): ReferenceType = {
+    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
+    val args = tpe.getArguments.asScala.map(t => getRefType(t.getType))
+    if (name.startsWith("Array<")) {
+      if (args.size > 1) println("Not supported Type parameters > 1")
+      ArrayType(args.head)
+    } else getClassDescriptorForType(tpe).toJsClassType
   }
 
   private val types = Map(
@@ -74,7 +77,7 @@ object Utils {
     case DoubleType => "D"
     case StringType | ClassType("T") => "T"
     case ArrayType(elem, _) => "A" + encodeName(elem)
-    case ClassType(name) => Definitions.encodeClassName(name)
+    case ClassType(name) => name
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case _ => throw new Error(s"Unknown Scala.js type: $t")
