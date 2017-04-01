@@ -34,6 +34,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case w: IrDoWhileLoop => GenDoWhile(w, p).tree
     case oc: IrTypeOperatorCall => GenExpr(oc.getArgument, p).tree
     case t: IrTry => GenTryCatchFinally(t, p).tree
+    case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case _ => notImplemented
   }
 
