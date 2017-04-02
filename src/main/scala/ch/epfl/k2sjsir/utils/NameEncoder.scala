@@ -1,6 +1,7 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, TypeAliasDescriptor, Visibilities}
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
@@ -29,12 +30,13 @@ object NameEncoder {
   private def isInit(s: String): Boolean = s == "<clinit>" || s == "<init>"
 
   private[utils] def encodeName(name: String): String = {
-    val n = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
+    val n0 = nonValid.foldLeft(name)((n, r) => n.replace(r, ""))
+    val n = if (n0.isEmpty) "set" else n0
     if (isKeyword(n) || n(0).isDigit || n(0) == '$') "$" + n else n
   }
 
   private[utils] def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
-    Ident(encodeClassFullName(d))
+    Ident(encodeClassFullName(d), Some(d.getName.asString()))
 
   def encodeClassName(className: String, suffix: String): String = {
     val parts = className.split('.').toList
@@ -63,12 +65,11 @@ object NameEncoder {
       if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
       else getAllSuperclassesWithoutAny(c).asScala.count(_.getKind != INTERFACE).toString
     }
-    //TODO: Only function in classes supported...
     val owner: Option[ClassDescriptor] = d.getContainingDeclaration match {
       case c: ClassDescriptor => Some(c)
       case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
-      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
-
+      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment
+           | _: BuiltInsPackageFragment => Option(getContainingClass(d))
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
@@ -82,17 +83,14 @@ object NameEncoder {
 
   private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean): String = {
     val tpes = d.getValueParameters.asScala
-    val paramTypeNames0 = tpes.map(_.getReturnType.toJsInternal)
-    //    val hasExplicitThisParameter =
-    //      inRTClass || isScalaJSDefinedJSClass(sym.owner)
-    //        val paramTypeNames =
-    //          if (!hasExplicitThisParameter) paramTypeNames0
-    //          else internalName(sym.owner.toTypeConstructor) :: paramTypeNames0
-    val paramAndResultTypeNames =
-    if (isInit(d.getName.asString())) paramTypeNames0
-    else if (reflProxy) paramTypeNames0 :+ ""
-    else paramTypeNames0 :+ d.getReturnType.toJsInternal
-    paramAndResultTypeNames.mkString(OuterSep, OuterSep, "")
+    val params0 = tpes.map(_.getReturnType.toJsInternal)
+    val x = d.getExtensionReceiverParameter
+    val params1 = if (x == null) params0 else x.getReturnType.toJsInternal +: params0
+    val params =
+      if (isInit(d.getName.asString())) params1
+      else if (reflProxy) params1 :+ ""
+      else params1 :+ d.getReturnType.toJsInternal
+    params.mkString(OuterSep, OuterSep, "")
   }
 
   private def encodeMemberNameInternal(s: String): String = s.replace("_", "$und")

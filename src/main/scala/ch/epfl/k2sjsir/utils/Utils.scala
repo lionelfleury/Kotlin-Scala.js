@@ -8,8 +8,6 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
 
-import scala.collection.JavaConverters._
-
 object Utils {
 
   implicit class DeclarationDescriptorTranslator(d: DeclarationDescriptor) {
@@ -27,44 +25,46 @@ object Utils {
     def toJsClassType: ClassType = ClassType(d.toJsClassName)
   }
 
-  implicit class ValueParameterTranslator(d: ValueParameterDescriptor) {
+  implicit class ParameterTranslator(d: ParameterDescriptor) {
+    def toJsParamDef(implicit pos: Position): ParamDef =
+      ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
+  }
+
+  implicit class VariableTranslator(d: VariableDescriptor) {
     def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getReturnType.toJsType)
-    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, d.getReturnType.toJsType, d.isVar, rest = false)
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
     def toJsType: Type = getType(t)
+    def toJsRefType: ReferenceType = getRefType(t)
     def toJsInternal: String = getInternal(t.toJsType)
   }
 
   private def getType(tpe: KotlinType): Type = {
-    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
+    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
     types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
   }
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
-    val name = tpe.getConstructor.getDeclarationDescriptor.getDefaultType.toString
-    val args = tpe.getArguments.asScala.map(t => getRefType(t.getType))
-    if (name.startsWith("Array<")) {
-      if (args.size > 1) println("Not supported Type parameters > 1")
-      ArrayType(args.head)
-    } else getClassDescriptorForType(tpe).toJsClassType
+    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+    ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
   }
 
   private val types = Map(
-    "Any" -> AnyType,
-    "Unit" -> NoType,
-    "Nothing" -> NothingType,
-    "Boolean" -> BooleanType,
-    "Char" -> IntType,
-    "Byte" -> IntType,
-    "Short" -> IntType,
-    "Int" -> IntType,
-    "Float" -> FloatType,
-    "Long" -> LongType,
-    "Double" -> DoubleType,
-    "Null" -> NullType,
-    "String" -> ClassType("T")
+    "kotlin.Any" -> AnyType,
+    "kotlin.Unit" -> NoType,
+    "kotlin.Nothing" -> NothingType,
+    "kotlin.Boolean" -> BooleanType,
+    "kotlin.Char" -> IntType,
+    "kotlin.Byte" -> IntType,
+    "kotlin.Short" -> IntType,
+    "kotlin.Int" -> IntType,
+    "kotlin.Float" -> FloatType,
+    "kotlin.Long" -> LongType,
+    "kotlin.Double" -> DoubleType,
+    "kotlin.Null" -> NullType,
+    "kotlin.String" -> ClassType("T"),
+    "kotlin.Throwable" -> AnyType
   )
 
   private def getInternal(t: Type): String = t match {
@@ -75,7 +75,7 @@ object Utils {
     case LongType => "J"
     case FloatType => "F"
     case DoubleType => "D"
-    case StringType | ClassType("T") => "T"
+    case StringType => "T"
     case ArrayType(elem, _) => "A" + encodeName(elem)
     case ClassType(name) => name
     case NothingType => Definitions.RuntimeNothingClass

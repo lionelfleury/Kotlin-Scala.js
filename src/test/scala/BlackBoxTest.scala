@@ -161,4 +161,12 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
         |-1
         |NonNullnull""".stripMargin, "TestNullable.kt")
   }
+
+
+  test("TestTryCatch.kt") {
+    assertExecResult(
+      """Exception caught
+        |Reached finally""".stripMargin, "TestTryCatch.kt")
+  }
+
 }

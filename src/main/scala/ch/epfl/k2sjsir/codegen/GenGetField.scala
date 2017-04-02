@@ -17,7 +17,7 @@ case class GenGetField(d: IrGetField, p: Positioner) extends Gen[IrGetField] {
     if (static) {
       val className = getFqName(pd.getContainingDeclaration).asString()
       val c = ClassType(encodeClassName(className, "$"))
-      if (className.startsWith("java")) {
+      if (className.startsWith("java")) { //TODO: Check for compatibility with Scala.js
         Apply(LoadModule(c), idt, Nil)(tpe)
       } else SelectStatic(c, idt)(tpe)
     }
