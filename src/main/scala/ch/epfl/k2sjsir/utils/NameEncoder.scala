@@ -36,7 +36,7 @@ object NameEncoder {
   }
 
   private[utils] def encodeClassFullNameIdent(d: ClassDescriptor)(implicit pos: Position): Ident =
-    Ident(encodeClassFullName(d))
+    Ident(encodeClassFullName(d), Some(d.getName.asString()))
 
   def encodeClassName(className: String, suffix: String): String = {
     val parts = className.split('.').toList

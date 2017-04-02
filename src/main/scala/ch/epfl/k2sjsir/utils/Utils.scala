@@ -31,8 +31,7 @@ object Utils {
   }
 
   implicit class VariableTranslator(d: VariableDescriptor) {
-    def toJsVarRef(implicit pos: Position): VarRef =
-      VarRef(d.toJsIdent)(d.getReturnType.toJsType)
+    def toJsVarRef(implicit pos: Position): VarRef = VarRef(d.toJsIdent)(d.getReturnType.toJsType)
   }
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
@@ -48,12 +47,10 @@ object Utils {
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
-    //    if (name == "kotlin.Array") {
-    //      val args = tpe.getArguments.asScala.map(_.getType.toJsRefType)
-    //      if (args.size > 1) println("Not supported Type parameters > 1")
-    //      ArrayType(args.head)
-    //    } else
+
+    //    if (tpe.getArguments.isEmpty)
     ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
+    //    else ClassType("O")
   }
 
   private val types = Map(

@@ -1,5 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
+import ch.epfl.k2sjsir.codegen.GenArray.isArrayOp
 import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.Utils._
@@ -44,8 +45,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (name == "arrayOf") //TODO: add other kind: intArrayOf, charArrayOf,...
-          New(ClassType("Lkotlin_Array"), Ident("init___AO"), List(args.head))
+        else if (isArrayOp(name) && args.nonEmpty) GenArray(d, p, args.head).tree
+        else if (name == "compareTo") GenExpr(d.getDispatchReceiver, p).tree
         else genApply(sf, args.toList)
       case _: JavaMethodDescriptor |
            _: PropertyGetterDescriptor |
