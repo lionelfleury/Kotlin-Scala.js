@@ -14,6 +14,7 @@ case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclara
     //    case _: IrAnonymousInitializer => Skip()
     //    case _: IrTypeAlias => Skip()
     case c: IrClass => GenClass(c, p).tree
+    case a: IrAnonymousInitializer => GenBlockBody(a.getBody, p).tree
     case _ => notImplemented
   }
 
