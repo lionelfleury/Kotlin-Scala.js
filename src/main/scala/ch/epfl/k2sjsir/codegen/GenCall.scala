@@ -28,7 +28,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       case _: IrBuiltinOperatorDescriptorBase => args match {
         case Seq(a, b) => BinaryOp(getBinaryOp(name, a.tpe), a, b)
         case Seq(a) if name == "LT0" => BinaryOp(BinaryOp.Num_<, a, IntLiteral(0))
-//        case Seq(a) if a.tpe == BooleanType => UnaryOp(UnaryOp.Boolean_!, a)
+        case Seq(a) if name == "NOT" => UnaryOp(UnaryOp.Boolean_!, a)
         case _ => notImplemented
       }
       case cd: ConstructorDescriptor =>
@@ -44,7 +44,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (name == "compareTo") GenExpr(d.getDispatchReceiver, p).tree
         else if (name == "arrayOf") //TODO: add other kind: intArrayOf, charArrayOf,...
           New(ClassType("Lkotlin_Array"), Ident("init___AO"), List(args.head))
         else genApply(sf, args.toList)

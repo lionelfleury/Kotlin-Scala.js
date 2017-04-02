@@ -25,7 +25,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       } else Skip()
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
-    case r: IrReturn => GenExpr(r.getValue, p).tree
+    case r: IrReturn => Return(GenExpr(r.getValue, p).tree)
     case s: IrSetField => GenSetField(s, p).tree
     case i: IrWhen => GenWhen(i, p).tree
     case v: IrVariable => GenVar(v, p).tree

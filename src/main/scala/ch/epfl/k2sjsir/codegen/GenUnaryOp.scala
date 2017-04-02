@@ -21,7 +21,7 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 object GenUnaryOp {
 
   def isUnaryOp(n: String): Boolean =
-    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat"
+    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat" || n == "not"
 
   /* Useful for explicit type conversion (toInt, toDouble, ...) */
   private def convertToOp(from: Type, to: Type) = (from, to) match {
@@ -31,6 +31,7 @@ object GenUnaryOp {
     case (DoubleType, IntType) => UnaryOp.DoubleToInt
     case (DoubleType, FloatType) => UnaryOp.DoubleToFloat
     case (DoubleType, LongType) => UnaryOp.DoubleToLong
+    case (BooleanType, BooleanType) => UnaryOp.Boolean_!
     case _ => throw new Exception("Unsupported type conversion")
   }
 
