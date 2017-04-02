@@ -8,7 +8,6 @@ import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.ir.expressions.impl.IrUnaryPrimitiveImpl
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -78,7 +77,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private def genArgs(as: Range): Seq[Tree] = as.map(d.getValueArgument).map {
     case a: IrVararg => GenVararg(a, p).tree
     case a: IrExpression => GenExpr(a, p).tree
-    case i: IrUnaryPrimitiveImpl => GenExpr(i.argument, p).tree
     case _ => notImplemented
   }
 
