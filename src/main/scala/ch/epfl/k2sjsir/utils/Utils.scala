@@ -47,10 +47,7 @@ object Utils {
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
-
-    //    if (tpe.getArguments.isEmpty)
     ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
-    //    else ClassType("O")
   }
 
   private val types = Map(
