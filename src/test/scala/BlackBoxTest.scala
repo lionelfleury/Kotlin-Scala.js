@@ -169,4 +169,8 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
         |Reached finally""".stripMargin, "TestTryCatch.kt")
   }
 
+  test("TestStringConcat.kt") {
+    assertExecResult("5 Hello World", "TestStringConcat.kt")
+  }
+
 }
