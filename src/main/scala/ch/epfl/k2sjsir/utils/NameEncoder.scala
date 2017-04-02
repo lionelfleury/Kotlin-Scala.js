@@ -1,6 +1,7 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, TypeAliasDescriptor, Visibilities}
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
@@ -67,8 +68,8 @@ object NameEncoder {
     val owner: Option[ClassDescriptor] = d.getContainingDeclaration match {
       case c: ClassDescriptor => Some(c)
       case t: TypeAliasDescriptor => Some(t.getClassDescriptor)
-      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment => Option(getContainingClass(d))
-
+      case _: LazyPackageDescriptor | _: LazyJavaPackageFragment
+           | _: BuiltInsPackageFragment => Option(getContainingClass(d))
       case x => throw new Error(s"${getClass.toString}: Not supported yet: $x")
     }
     val isPrivate = d.getVisibility == Visibilities.PRIVATE
