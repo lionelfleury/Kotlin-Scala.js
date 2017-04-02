@@ -13,6 +13,7 @@ case class GenVararg(d: IrVararg, p: Positioner) extends Gen[IrVararg] {
     val tpe = d.getVarargElementType.toJsRefType
     val args = d.getElements.asScala.map {
       case x: IrConst[_] => GenConst(x, p).tree
+      case x: IrSpreadElement => return GenExpr(x.getExpression, p).tree
       case _ => notImplemented
     }
     ArrayValue(ArrayType(tpe), args.toList)
