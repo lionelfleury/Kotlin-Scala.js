@@ -10,7 +10,7 @@ case class GenVar(d: IrVariable, p: Positioner) extends Gen[IrVariable] {
   def tree: Tree = d.getDescriptor match {
     case v: VariableDescriptor =>
       val rhs = GenExpr(d.getInitializer, p).tree
-      VarDef(v.toJsIdent, v.getReturnType.toJsType, v.isVar, rhs)
+      VarDef(v.toJsIdent, rhs.tpe, v.isVar, rhs)
     case _ => notImplemented
   }
 

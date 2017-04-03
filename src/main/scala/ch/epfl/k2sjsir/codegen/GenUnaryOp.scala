@@ -14,10 +14,7 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val from = sf.getDispatchReceiverParameter.getType.toJsType
     val to = sf.getReturnType.toJsType
     val converted = convertToOp(from, to)
-    converted match {
-      case Some(op) => UnaryOp(op, GenExpr(d.getDispatchReceiver, p).tree)
-      case None => GenExpr(d.getDispatchReceiver, p).tree
-    }
+    converted.fold(GenExpr(d.getDispatchReceiver, p).tree)(UnaryOp(_, GenExpr(d.getDispatchReceiver, p).tree))
   }
 
 }
