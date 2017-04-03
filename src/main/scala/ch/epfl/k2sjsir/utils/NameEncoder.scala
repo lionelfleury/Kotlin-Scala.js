@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
-import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassDescriptor, TypeAliasDescriptor, Visibilities}
+import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
@@ -56,10 +56,10 @@ object NameEncoder {
   private[utils] def encodeMethodIdent(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): Ident =
     Ident(encodeMethodName(d, reflProxy), Some(d.getName.asString()))
 
-  private[utils] def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false): String =
+  private[utils] def encodeMethodName(d: CallableDescriptor, reflProxy: Boolean = false)(implicit pos: Position): String =
     encodeMethodNameInternal(d, reflProxy).mkString
 
-  private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false): Seq[String] = {
+  private def encodeMethodNameInternal(d: CallableDescriptor, reflProxy: Boolean = false, inRTClass: Boolean = false)(implicit pos: Position): Seq[String] = {
     val name = encodeMemberNameInternal(d.getName.asString())
     def privateSuffix(cl: Option[ClassDescriptor]) = cl.fold("") { c =>
       if (c.getKind == INTERFACE && !c.isImpl) encodeClassFullName(c)
@@ -81,9 +81,12 @@ object NameEncoder {
     Seq(encodedName, paramsString)
   }
 
-  private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean): String = {
+  private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean)(implicit pos: Position): String = {
     val tpes = d.getValueParameters.asScala
-    val params0 = tpes.map(_.getReturnType.toJsInternal)
+    val params0 = tpes.map {
+      case dd: ValueParameterDescriptor if isVarArg(dd) => "A"+dd.getVarargElementType.toJsInternal
+      case e => e.getReturnType.toJsInternal
+    }
     val x = d.getExtensionReceiverParameter
     val params1 = if (x == null) params0 else x.getReturnType.toJsInternal +: params0
     val params =

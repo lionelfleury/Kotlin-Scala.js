@@ -26,8 +26,18 @@ object Utils {
   }
 
   implicit class ParameterTranslator(d: ParameterDescriptor) {
-    def toJsParamDef(implicit pos: Position): ParamDef =
-      ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
+    def toJsParamDef(implicit pos: Position): ParamDef = d match {
+      case dd: ValueParameterDescriptor if isVarArg(d) =>
+        val tpe = dd.getVarargElementType.toJsRefType
+        ParamDef(d.toJsIdent, ArrayType(tpe), mutable = false, rest = false)
+      case _ =>
+        ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
+    }
+  }
+
+  def isVarArg(d: ParameterDescriptor): Boolean = d match {
+    case dd: ValueParameterDescriptor if dd.getVarargElementType != null => true
+    case _ => false
   }
 
   implicit class VariableTranslator(d: VariableDescriptor) {
