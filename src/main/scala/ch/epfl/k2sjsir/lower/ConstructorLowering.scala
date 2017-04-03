@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.{IrBlockBodyImpl, IrGetValueImpl
 
 import scala.collection.JavaConverters._
 
-object ConstructorLowering {
+class ConstructorLowering {
 
   def lower(f: IrFile): Unit = f.getDeclarations.asScala.foreach {
     case irClass: IrClass =>
@@ -34,7 +34,9 @@ object ConstructorLowering {
         val receiver = if (hasReceiver(d)) new IrGetValueImpl(start, end, getThis(i), null) else null
         Seq(new IrSetFieldImpl(start, end, d.getDescriptor, receiver, exp, null, null))
       }.getOrElse(Nil)
-    case d: IrAnonymousInitializer => d.getBody.getStatements.asScala
+    case d: IrAnonymousInitializer =>
+      i.getDeclarations.remove(d)
+      d.getBody.getStatements.asScala
   }.flatten
 
   private def hasReceiver(d: IrField): Boolean =
