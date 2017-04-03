@@ -2,6 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
+import org.scalajs.core.ir.Trees.Skip
 import org.scalajs.core.ir.{Trees => js}
 
 case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclaration] {
@@ -14,7 +15,6 @@ case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclara
     //    case _: IrAnonymousInitializer => Skip()
     //    case _: IrTypeAlias => Skip()
     case c: IrClass => GenClass(c, p).tree
-    case a: IrAnonymousInitializer => GenBlockBody(a.getBody, p).tree
     case _ => notImplemented
   }
 

@@ -173,4 +173,8 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
     assertExecResult("5 Hello World", "TestStringConcat.kt")
   }
 
+  test("TestAnonClass.kt") {
+    assertExecResult("Hello World", "TestAnonClass.kt")
+  }
+
 }

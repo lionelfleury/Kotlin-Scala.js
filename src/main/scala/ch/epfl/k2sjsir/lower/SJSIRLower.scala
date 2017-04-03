@@ -28,7 +28,7 @@ class SJSIRLower(val context: JvmBackendContext) {
     // ********************************************************
     // Own lowering phases: extract inner classes
     new ClassLowering().lower(irFile)
-    ConstructorLowering.lower(irFile)
+    new ConstructorLowering().lower(irFile)
   }
 
 }
