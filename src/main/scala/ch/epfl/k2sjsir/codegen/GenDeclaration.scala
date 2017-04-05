@@ -2,7 +2,6 @@ package ch.epfl.k2sjsir.codegen
 
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
-import org.scalajs.core.ir.Trees.Skip
 import org.scalajs.core.ir.{Trees => js}
 
 case class GenDeclaration(d: IrDeclaration, p: Positioner) extends Gen[IrDeclaration] {
