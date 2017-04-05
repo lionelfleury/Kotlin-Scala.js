@@ -169,4 +169,14 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
         |Reached finally""".stripMargin, "TestTryCatch.kt")
   }
 
+  test("TestClassExtension.kt") {
+    assertExecResult(
+      """
+        |4
+        |8
+        |8
+        |16
+      """.stripMargin, "TestClassExtension.kt")
+  }
+
 }
