@@ -2,7 +2,12 @@ package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.resolve.source.PsiSourceFile
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -33,6 +38,12 @@ object Utils {
       case _ =>
         ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
     }
+  }
+
+  def encodeWithSourceFile(d: DeclarationDescriptor) = {
+    val b: PsiSourceFile = DescriptorUtils.getContainingSourceFile(d).asInstanceOf[PsiSourceFile]
+    val name = JvmFileClassUtil.getFileClassInfoNoResolve(b.getPsiFile.asInstanceOf[KtFile]).getFileClassFqName.asString()
+    NameEncoder.encodeClassName(name, "")
   }
 
   def isVarArg(d: ParameterDescriptor): Boolean = d match {

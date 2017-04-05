@@ -10,6 +10,7 @@ import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.psi.KtFile
@@ -31,8 +32,14 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val args = x ++ genArgs(desc.getValueParameters.asScala.indices)
     desc match {
       case _: IrBuiltinOperatorDescriptorBase => args match {
+        case Seq(b) if name == "rem" =>
+          val a = GenExpr(d.getDispatchReceiver, p).tree
+          BinaryOp(getBinaryOp(name, a.tpe), a, b)
         case Seq(a, b) => BinaryOp(getBinaryOp(name, a.tpe), a, b)
         case Seq(a) if name == "LT0" => BinaryOp(BinaryOp.Num_<, a, IntLiteral(0))
+        case Seq(a) if name == "LTEQ0" => BinaryOp(BinaryOp.Num_<=, a, IntLiteral(0))
+        case Seq(a) if name == "GT0" => BinaryOp(BinaryOp.Num_>, a, IntLiteral(0))
+        case Seq(a) if name == "GTEQ0" => BinaryOp(BinaryOp.Num_>=, a, IntLiteral(0))
         case Seq(a) if name == "NOT" => UnaryOp(UnaryOp.Boolean_!, a)
         case _ => notImplemented
       }
@@ -70,10 +77,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
           getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
+        case p: LazyPackageDescriptor => encodeWithSourceFile(desc)
         case e => throw new Error(s"Not implemented yet: $e")
       }
-      val suffix = if (n.endsWith("$")) "" else "$"
-      Apply(LoadModule(ClassType(n + suffix)), method, args)(tpe)
+      if(n.endsWith("Kt")) {
+        ApplyStatic(ClassType(n), method, args)(tpe)
+      } else {
+        val suffix = if (n.endsWith("$")) "" else "$"
+        Apply(LoadModule(ClassType(n + suffix)), method, args)(tpe)
+      }
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)
@@ -88,10 +100,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) = {
     val argsWithReceiver = GenExpr(d.getExtensionReceiver, p).tree +: args
-    //@TODO: resolve origin in a better way
-    val b: PsiSourceFile = DescriptorUtils.getContainingSourceFile(desc).asInstanceOf[PsiSourceFile]
-    val name = JvmFileClassUtil.getFileClassInfoNoResolve(b.getPsiFile.asInstanceOf[KtFile]).getFileClassFqName.asString()
-    ApplyStatic(ClassType(NameEncoder.encodeClassName(name, "")), desc.toJsMethodIdent, argsWithReceiver)(desc.getReturnType.toJsType)
+    ApplyStatic(ClassType(encodeWithSourceFile(desc)), desc.toJsMethodIdent, argsWithReceiver)(desc.getReturnType.toJsType)
   }
 
   private def isTopLevelExtension(sf: SimpleFunctionDescriptor) =

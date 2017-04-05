@@ -10,6 +10,7 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private val ROOT_SOURCE = "src/test/resources/src"
   private val ROOT_LIB    = "src/test/resources/lib"
   private val ROOT_OUT    = "src/test/resources/out"
+  private val ROOT_LIB_OUT= "src/test/resources/kotlin-out"
 
   private val KOTLIN_HOME = scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" )
 
@@ -34,7 +35,7 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
     new K2SJSIRCompiler()
       .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
-    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, "-o", s"$ROOT_OUT/$outFile"))
+    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, ROOT_LIB_OUT, "-o", s"$ROOT_OUT/$outFile"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
       val result = s"node $ROOT_OUT/$outFile".!!
@@ -179,14 +180,22 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
       """.stripMargin, "TestClassExtension.kt")
   }
 
-  test("TestRanges.kt") {
-    assertExecResult(
-      """
-        |4
-        |8
-        |8
-        |16
-      """.stripMargin, "TestRanges.kt")
+  test("TestStringConcat.kt") {
+    assertExecResult("5 Hello World", "TestStringConcat.kt")
   }
 
+  test("TestAnonClass.kt") {
+    assertExecResult("Hello World", "TestAnonClass.kt")
+  }
+
+  test("TestRanges.kt") {
+    val result = consoleToString {
+      (0 to 10).foreach(println)
+    }
+    assertExecResult(result, "TestRanges.kt")
+  }
+
+  test("TestGenParentConstructor.kt") {
+    assertExecResult("5 1", "TestGenParentConstructor.kt")
+  }
 }
