@@ -13,7 +13,8 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val sf = d.getDescriptor
     val from = sf.getDispatchReceiverParameter.getType.toJsType
     val to = sf.getReturnType.toJsType
-    UnaryOp(convertToOp(from, to), GenExpr(d.getDispatchReceiver, p).tree)
+    val converted = convertToOp(from, to)
+    converted.fold(GenExpr(d.getDispatchReceiver, p).tree)(UnaryOp(_, GenExpr(d.getDispatchReceiver, p).tree))
   }
 
 }
@@ -25,14 +26,14 @@ object GenUnaryOp {
 
   /* Useful for explicit type conversion (toInt, toDouble, ...) */
   private def convertToOp(from: Type, to: Type) = (from, to) match {
-    case (IntType, LongType) => UnaryOp.IntToLong
-    case (LongType, IntType) => UnaryOp.LongToInt
-    case (LongType, DoubleType) => UnaryOp.LongToDouble
-    case (DoubleType, IntType) => UnaryOp.DoubleToInt
-    case (DoubleType, FloatType) => UnaryOp.DoubleToFloat
-    case (DoubleType, LongType) => UnaryOp.DoubleToLong
-    case (BooleanType, BooleanType) => UnaryOp.Boolean_!
-    case _ => throw new Exception("Unsupported type conversion")
+    case (IntType, LongType) => Some(UnaryOp.IntToLong)
+    case (LongType, IntType) => Some(UnaryOp.LongToInt)
+    case (LongType, DoubleType) => Some(UnaryOp.LongToDouble)
+    case (DoubleType, IntType) => Some(UnaryOp.DoubleToInt)
+    case (DoubleType, FloatType) => Some(UnaryOp.DoubleToFloat)
+    case (DoubleType, LongType) => Some(UnaryOp.DoubleToLong)
+    case (BooleanType, BooleanType) => Some(UnaryOp.Boolean_!)
+    case _ => None
   }
 
 }

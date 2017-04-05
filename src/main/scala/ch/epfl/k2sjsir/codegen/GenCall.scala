@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -26,8 +27,14 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val args = x ++ genArgs(desc.getValueParameters.asScala.indices)
     desc match {
       case _: IrBuiltinOperatorDescriptorBase => args match {
+        case Seq(b) if name == "rem" =>
+          val a = GenExpr(d.getDispatchReceiver, p).tree
+          BinaryOp(getBinaryOp(name, a.tpe), a, b)
         case Seq(a, b) => BinaryOp(getBinaryOp(name, a.tpe), a, b)
         case Seq(a) if name == "LT0" => BinaryOp(BinaryOp.Num_<, a, IntLiteral(0))
+        case Seq(a) if name == "LTEQ0" => BinaryOp(BinaryOp.Num_<=, a, IntLiteral(0))
+        case Seq(a) if name == "GT0" => BinaryOp(BinaryOp.Num_>, a, IntLiteral(0))
+        case Seq(a) if name == "GTEQ0" => BinaryOp(BinaryOp.Num_>=, a, IntLiteral(0))
         case Seq(a) if name == "NOT" => UnaryOp(UnaryOp.Boolean_!, a)
         case _ => notImplemented
       }
@@ -64,6 +71,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
           getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
+        case p: LazyPackageDescriptor => p.getName.toString
         case e => throw new Error(s"Not implemented yet: $e")
       }
       val suffix = if (n.endsWith("$")) "" else "$"
