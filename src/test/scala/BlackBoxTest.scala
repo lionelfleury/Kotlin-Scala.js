@@ -179,4 +179,14 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
       """.stripMargin, "TestClassExtension.kt")
   }
 
+  test("TestRanges.kt") {
+    assertExecResult(
+      """
+        |4
+        |8
+        |8
+        |16
+      """.stripMargin, "TestRanges.kt")
+  }
+
 }
