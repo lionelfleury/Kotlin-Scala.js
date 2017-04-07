@@ -1,25 +1,40 @@
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 
 import scala.sys.process._
 
-class BlackBoxTest extends FunSuite with BeforeAndAfter {
+class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
 
   private val ROOT_SOURCE = "src/test/resources/src"
   private val ROOT_LIB    = "src/test/resources/lib"
   private val ROOT_OUT    = "src/test/resources/out"
+  private val ROOT_SRC_LIB= "src/test/resources/src/lib"
   private val ROOT_LIB_OUT= "src/test/resources/kotlin-out"
 
   private val KOTLIN_HOME = scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" )
 
-  after {
-    cleanOutput()
+  override def beforeAll = {
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(ROOT_SRC_LIB, "-d", ROOT_LIB_OUT, "-kotlin-home", KOTLIN_HOME, "-Xallow-kotlin-package"):_*)
   }
 
-  private def cleanOutput() = {
-    val folder = new File(ROOT_OUT)
+  private def deleteRecursively(file: File): Unit = {
+    if (file.isDirectory)
+      file.listFiles.foreach(deleteRecursively)
+    file.delete()
+  }
+
+  override def afterAll = {
+    deleteRecursively(new File(ROOT_LIB_OUT))
+  }
+
+  after {
+    cleanOutput(new File(ROOT_OUT))
+  }
+
+  private def cleanOutput(folder: File) = {
     val files = folder.listFiles()
     files.foreach(f =>
       if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js") || f.getName.endsWith(".class")) f.delete())
