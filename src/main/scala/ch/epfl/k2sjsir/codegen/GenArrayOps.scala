@@ -49,9 +49,7 @@ case class GenArrayOps(d: IrCall, p: Positioner, args: List[Tree]) extends Gen[I
 object GenArrayOps {
 
   private val genericIterator = "Lkotlin_collections_Iterator"
-
   private val specialArrays = Set("arrayOfNulls", "emptyArray")
-
   private val arrayFuns = Set(
     "arrayOf",
     "booleanArrayOf",

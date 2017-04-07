@@ -3,7 +3,6 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types
 import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
@@ -76,15 +75,10 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 object GenBinaryOp {
 
   private def isLongType(t: Type) = t == LongType
-
   private def isStringType(t: Type) = t == StringType
-
   private def isFloatType(t: Type) = t == FloatType
-
   private def isIntType(t: Type) = t == IntType
-
   private def isDoubleType(t: Type) = t == DoubleType
-
 
   /* Long is special, because of its shift operations, that accepts only int */
   private def isLongOp(op: BinaryOp.Code, ltpe: Type, rtpe: Type) = {
