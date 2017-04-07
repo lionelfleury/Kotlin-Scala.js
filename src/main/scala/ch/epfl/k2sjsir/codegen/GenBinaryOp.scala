@@ -2,7 +2,8 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.scalajs.core.ir.Trees.{BinaryOp, IntLiteral, Tree, UnaryOp}
+import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types
 import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
@@ -13,14 +14,17 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   def tree: Tree = {
     val desc = d.getDescriptor
+    val name = desc.getName.asString()
     val args = for (i <- desc.getValueParameters.asScala.indices)
       yield GenExpr(d.getValueArgument(i), p).tree
     val rhs = if (args.nonEmpty) args.head else IntLiteral(1)
     val rec = if (d.getDispatchReceiver != null) d.getDispatchReceiver else d.getExtensionReceiver
     val lhs = GenExpr(rec, p).tree
     val rType = desc.getReturnType.toJsType
-    val op = getBinaryOp(desc.getName.asString(), rType)
-    if (lhs.tpe == rhs.tpe) {
+    val op = getBinaryOp(name, rType)
+    if (name == "compareTo") {
+      BinaryOp(BinaryOp.Double_-, genConversion(lhs.tpe, IntType, lhs), genConversion(rhs.tpe, IntType, rhs))
+    } else if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
     } else if (isLongOp(op, lhs.tpe, rhs.tpe)) {
       val clhs = intToLong(lhs)
@@ -30,6 +34,24 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
       val lsrc = convertArg(op, lhs, lhs.tpe, rType)
       val rsrc = convertArg(op, rhs, rhs.tpe, rType)
       BinaryOp(op, lsrc, rsrc)
+    }
+  }
+
+  private def genConversion(from: Type, to: Type, value: Tree): Tree = {
+    lazy val int0 = IntLiteral(0)
+    lazy val int1 = IntLiteral(1)
+    lazy val long0 = LongLiteral(0L)
+    lazy val long1 = LongLiteral(1L)
+    lazy val float0 = FloatLiteral(0.0f)
+    lazy val float1 = FloatLiteral(1.0f)
+    (from, to) match {
+      case (IntType, BooleanType) => BinaryOp(BinaryOp.Num_!=, value, int0)
+      case (LongType, BooleanType) => BinaryOp(BinaryOp.Long_!=, value, long0)
+      case (FloatType, BooleanType) => BinaryOp(BinaryOp.Num_!=, value, float0)
+      case (BooleanType, IntType) => If(value, int1, int0)(IntType)
+      case (BooleanType, LongType) => If(value, long1, long0)(LongType)
+      case (BooleanType, FloatType) => If(value, float1, float0)(FloatType)
+      case _ => value
     }
   }
 
@@ -52,6 +74,7 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 }
 
 object GenBinaryOp {
+
   private def isLongType(t: Type) = t == LongType
 
   private def isStringType(t: Type) = t == StringType
