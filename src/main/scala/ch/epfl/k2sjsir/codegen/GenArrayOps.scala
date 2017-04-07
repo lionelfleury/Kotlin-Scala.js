@@ -16,21 +16,21 @@ case class GenArrayOps(d: IrCall, p: Positioner, args: List[Tree]) extends Gen[I
     } else if (arrayFuns(name)) {
       args.head
     } else {
-      val rec = GenExpr(d.getDispatchReceiver, p).tree
+      val array = GenExpr(d.getDispatchReceiver, p).tree
       if (isGenericNext(d)) {
         val rtpe = d.getDescriptor.getReturnType.toJsRefType
-        AsInstanceOf(Apply(rec, Ident("next__O"), args)(AnyType), rtpe)
+        AsInstanceOf(Apply(array, Ident("next__O"), args)(AnyType), rtpe)
       } else name match {
         case "get" =>
           require(args.size == 1)
           val tpe = d.getDescriptor.getReturnType.toJsType
-          ArraySelect(rec, args.head)(tpe)
+          ArraySelect(array, args.head)(tpe)
         case "set" =>
           require(args.size == 2)
-          Assign(ArraySelect(rec, args.head)(args(1).tpe), args(1))
+          Assign(ArraySelect(array, args.head)(args(1).tpe), args(1))
         case "size" =>
           require(args.isEmpty)
-          ArrayLength(rec)
+          ArrayLength(array)
         case "iterator" =>
           val ctpe = d.getDescriptor.getReturnType.toJsClassType
           val (s, tpe) =
@@ -38,7 +38,7 @@ case class GenArrayOps(d: IrCall, p: Positioner, args: List[Tree]) extends Gen[I
             else ("s", d.getDispatchReceiver.getType.toJsInternal)
           val clazz = ClassType(s"Lkotlin_jvm_internal_ArrayIterator${s}Kt")
           val method = Ident(s"iterator__${tpe}__${ctpe.className}")
-          ApplyStatic(clazz, method, List(rec))(ctpe)
+          ApplyStatic(clazz, method, List(array))(ctpe)
         case _ => notImplemented
       }
     }
