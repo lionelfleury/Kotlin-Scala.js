@@ -8,11 +8,16 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 import org.scalajs.core.ir.{Definitions, Position}
 
+import scala.collection.JavaConverters._
+
 object Utils {
 
   implicit class DeclarationDescriptorTranslator(d: DeclarationDescriptor) {
-    def toJsName: String = encodeName(d.getName.asString())
-    def toJsIdent(implicit pos: Position): Ident = Ident(d.toJsName, Some(d.getName.asString()))
+    private val name = d.getName.asString()
+
+    def toJsName: String = encodeName(name)
+
+    def toJsIdent(implicit pos: Position): Ident = Ident(d.toJsName, Some(name))
   }
 
   implicit class CallableDescriptorTranslator(d: CallableDescriptor) {
@@ -21,23 +26,18 @@ object Utils {
 
   implicit class ClassDescriptorTranslator(d: ClassDescriptor) {
     def toJsClassName: String = encodeClassFullName(d)
+
     def toJsClassIdent(implicit pos: Position): Ident = encodeClassFullNameIdent(d)
+
     def toJsClassType: ClassType = ClassType(d.toJsClassName)
   }
 
   implicit class ParameterTranslator(d: ParameterDescriptor) {
-    def toJsParamDef(implicit pos: Position): ParamDef = d match {
-      case dd: ValueParameterDescriptor if isVarArg(d) =>
-        val tpe = dd.getVarargElementType.toJsRefType
-        ParamDef(d.toJsIdent, ArrayType(tpe), mutable = false, rest = false)
-      case _ =>
-        ParamDef(d.toJsIdent, d.getReturnType.toJsType, mutable = false, rest = false)
-    }
-  }
+    private val tpe = d.getReturnType.toJsType
 
-  def isVarArg(d: ParameterDescriptor): Boolean = d match {
-    case dd: ValueParameterDescriptor if dd.getVarargElementType != null => true
-    case _ => false
+    def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, tpe, mutable = false, rest = false)
+
+    def toJsInternal: String = toInternal(tpe)
   }
 
   implicit class VariableTranslator(d: VariableDescriptor) {
@@ -46,19 +46,50 @@ object Utils {
 
   implicit class KotlinTypeTranslator(t: KotlinType) {
     def toJsType: Type = getType(t)
+
     def toJsRefType: ReferenceType = getRefType(t)
-    def toJsInternal: String = getInternal(t.toJsType)
+
+    def toJsClassType: ClassType = getClassType(t)
+
+    def toJsArrayType: ArrayType = getArrayType(t)
+
+    def toJsInternal: String = toInternal(t.toJsType)
   }
 
-  private def getType(tpe: KotlinType): Type = {
-    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
-    types.getOrElse(name, getRefType(tpe).asInstanceOf[Type])
+  def getName(tpe: KotlinType): String =
+    getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+
+  private def getType(tpe: KotlinType, isVararg: Boolean = false): Type = {
+    types.getOrElse(getName(tpe), getRefType(tpe).asInstanceOf[Type])
   }
 
   private def getRefType(tpe: KotlinType): ReferenceType = {
-    val name = getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
-    ClassType(getInternal(types.getOrElse(name, ClassType(encodeClassName(name, "")))))
+    val name = getName(tpe)
+    if (name == "kotlin.Array" || arrayTypes.contains(name)) getArrayType(tpe)
+    else ClassType(toInternal(types.getOrElse(name, getClassType(tpe))))
   }
+
+  private def getClassType(tpe: KotlinType): ClassType =
+    ClassType(encodeClassName(getName(tpe), ""))
+
+  private def getArrayType(tpe: KotlinType): ArrayType = {
+    val name = getName(tpe)
+    val args = tpe.getArguments.asScala.map(_.getType)
+    if (name == "kotlin.Array") ArrayType(getRefType(args.head))
+    else arrayTypes(name)
+  }
+
+  private val arrayTypes = Map(
+    "kotlin.IntArray" -> IntType,
+    "kotlin.BooleanArray" -> BooleanType,
+    "kotlin.CharArray" -> IntType,
+    "kotlin.ByteArray" -> IntType,
+    "kotlin.ShortArray" -> IntType,
+    "kotlin.IntArray" -> IntType,
+    "kotlin.FloatArray" -> FloatType,
+    "kotlin.LongArray" -> LongType,
+    "kotlin.DoubleArray" -> DoubleType
+  ).mapValues(t => ArrayType(ClassType(toInternal(t))))
 
   private val types = Map(
     "kotlin.Any" -> AnyType,
@@ -77,7 +108,7 @@ object Utils {
     "kotlin.Throwable" -> AnyType
   )
 
-  private def getInternal(t: Type): String = t match {
+  private def toInternal(t: Type): String = t match {
     case NoType => "V"
     case AnyType => "O"
     case BooleanType => "Z"
@@ -91,6 +122,13 @@ object Utils {
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case _ => throw new Error(s"Unknown Scala.js type: $t")
+  }
+
+  def fromInternal(t: String): Type = t match {
+    case "O" => AnyType
+    case "T" => StringType
+    case "I" => IntType
+    case _ => throw new Error(s"Not implemented")
   }
 
 }

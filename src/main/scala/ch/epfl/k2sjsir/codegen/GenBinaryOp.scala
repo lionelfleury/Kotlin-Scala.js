@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.scalajs.core.ir.Trees.{BinaryOp, Tree, UnaryOp}
+import org.scalajs.core.ir.Trees.{BinaryOp, IntLiteral, Tree, UnaryOp}
 import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
@@ -15,10 +15,9 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val desc = d.getDescriptor
     val args = for (i <- desc.getValueParameters.asScala.indices)
       yield GenExpr(d.getValueArgument(i), p).tree
-    val rhs = args.head
-    val lhs =
-      if (d.getDispatchReceiver != null) GenExpr(d.getDispatchReceiver, p).tree
-      else GenExpr(d.getExtensionReceiver, p).tree
+    val rhs = if (args.nonEmpty) args.head else IntLiteral(1)
+    val rec = if (d.getDispatchReceiver != null) d.getDispatchReceiver else d.getExtensionReceiver
+    val lhs = GenExpr(rec, p).tree
     val rType = desc.getReturnType.toJsType
     val op = getBinaryOp(desc.getName.asString(), rType)
     if (lhs.tpe == rhs.tpe) {
@@ -54,9 +53,13 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
 object GenBinaryOp {
   private def isLongType(t: Type) = t == LongType
+
   private def isStringType(t: Type) = t == StringType
+
   private def isFloatType(t: Type) = t == FloatType
+
   private def isIntType(t: Type) = t == IntType
+
   private def isDoubleType(t: Type) = t == DoubleType
 
 
@@ -83,7 +86,10 @@ object GenBinaryOp {
     "xor" -> BinaryOp.Long_^,
     "shl" -> BinaryOp.Long_<<,
     "shr" -> BinaryOp.Long_>>,
-    "ushr" -> BinaryOp.Long_>>>
+    "ushr" -> BinaryOp.Long_>>>,
+    "compareTo" -> BinaryOp.Long_-,
+    "inc" -> BinaryOp.Long_+,
+    "dec" -> BinaryOp.Long_-
   )
 
   private val intBinaryOp = Map(
@@ -98,7 +104,10 @@ object GenBinaryOp {
     "xor" -> BinaryOp.Int_^,
     "shl" -> BinaryOp.Int_<<,
     "shr" -> BinaryOp.Int_>>,
-    "ushr" -> BinaryOp.Int_>>>
+    "ushr" -> BinaryOp.Int_>>>,
+    "compareTo" -> BinaryOp.Int_-,
+    "inc" -> BinaryOp.Int_+,
+    "dec" -> BinaryOp.Int_-
   )
 
   private val doubleBinaryOp = Map(
@@ -107,7 +116,10 @@ object GenBinaryOp {
     "minus" -> BinaryOp.Double_-,
     "times" -> BinaryOp.Double_*,
     "div" -> BinaryOp.Double_/,
-    "rem" -> BinaryOp.Double_%
+    "rem" -> BinaryOp.Double_%,
+    "compareTo" -> BinaryOp.Double_-,
+    "inc" -> BinaryOp.Double_+,
+    "dec" -> BinaryOp.Double_-
   )
 
   private val floatBinaryOp = Map(
@@ -116,7 +128,10 @@ object GenBinaryOp {
     "minus" -> BinaryOp.Float_-,
     "times" -> BinaryOp.Float_*,
     "div" -> BinaryOp.Float_/,
-    "rem" -> BinaryOp.Float_%
+    "rem" -> BinaryOp.Float_%,
+    "compareTo" -> BinaryOp.Float_-,
+    "inc" -> BinaryOp.Float_+,
+    "dec" -> BinaryOp.Float_-
   )
 
   private val booleanBinaryOp = Map(
@@ -145,9 +160,8 @@ object GenBinaryOp {
   }
 
   /* Find the correct binary op for a given type */
-  def getBinaryOp(op: String, tpe: Type): BinaryOp.Code = {
+  def getBinaryOp(op: String, tpe: Type): BinaryOp.Code =
     opMap(tpe).getOrElse(op, throw new Error(s"Binary op not found: $op for type: $tpe"))
-  }
 
   def isBinaryOp(op: String): Boolean =
     longBinaryOp.keySet(op) || intBinaryOp.keySet(op)

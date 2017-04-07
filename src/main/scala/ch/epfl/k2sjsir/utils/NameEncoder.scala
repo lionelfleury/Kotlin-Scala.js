@@ -82,11 +82,7 @@ object NameEncoder {
   }
 
   private def makeParamsString(d: CallableDescriptor, reflProxy: Boolean, inRTClass: Boolean)(implicit pos: Position): String = {
-    val tpes = d.getValueParameters.asScala
-    val params0 = tpes.map {
-      case dd: ValueParameterDescriptor if isVarArg(dd) => "A"+dd.getVarargElementType.toJsInternal
-      case e => e.getReturnType.toJsInternal
-    }
+    val params0 = d.getValueParameters.asScala.map(_.toJsInternal)
     val x = d.getExtensionReceiverParameter
     val params1 = if (x == null) params0 else x.getReturnType.toJsInternal +: params0
     val params =
