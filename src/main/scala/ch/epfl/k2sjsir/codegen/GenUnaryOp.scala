@@ -25,7 +25,6 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
       BinaryOp(GenBinaryOp.getBinaryOp("minus", tpe), IntLiteral(0), GenExpr(d.getDispatchReceiver, p).tree)
     case _ => Debugger()
   }
-
 }
 
 object GenUnaryOp {

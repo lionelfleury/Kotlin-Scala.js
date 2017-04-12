@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.codegen
 
-import ch.epfl.k2sjsir.codegen.GenArray.isArrayOp
+import ch.epfl.k2sjsir.codegen.GenArrayOps._
 import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.NameEncoder
@@ -56,8 +56,6 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         }
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else if (isArrayOp(name) && args.nonEmpty) GenArray(d, p, args.head).tree
-        else if (name == "compareTo") GenExpr(d.getDispatchReceiver, p).tree
         else genApply(sf, args.toList)
       case sf: SimpleFunctionDescriptor if isTopLevelExtension(sf) => genClassExtension(sf, args.toList)
       case _: JavaMethodDescriptor |
@@ -72,7 +70,8 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val method = desc.toJsMethodIdent
     val tpe = desc.getReturnType.toJsType
     val static = isStaticDeclaration(desc)
-    if (static) {
+    if (isArrayOps(d)) GenArrayOps(d, p, args).tree
+    else if (static) {
       val n = desc.getContainingDeclaration match {
         case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
           getClassDescriptorForType(desc.getReturnType).toJsClassName
