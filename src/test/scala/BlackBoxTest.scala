@@ -232,4 +232,5 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
         |11
       """.stripMargin, "TestAssignationOrder.kt")
   }
+
 }
