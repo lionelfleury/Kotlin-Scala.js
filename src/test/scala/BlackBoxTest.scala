@@ -205,6 +205,13 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
 
   test("TestRanges.kt") {
     val result = consoleToString {
+      val i = 0 to 10
+      println(i.head)
+      println(i.end)
+
+      Seq(0, 11, -12).foreach(x => println(i contains x))
+
+      println(true)
       (0 to 10).foreach(println)
     }
     assertExecResult(result, "TestRanges.kt")
@@ -212,5 +219,17 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
 
   test("TestGenParentConstructor.kt") {
     assertExecResult("5 1", "TestGenParentConstructor.kt")
+  }
+
+  test("TestAssignationOrder.kt") {
+    assertExecResult(
+      """
+        |true
+        |6
+        |12
+        |false
+        |5
+        |11
+      """.stripMargin, "TestAssignationOrder.kt")
   }
 }
