@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.resolve.source.PsiSourceFile
 import org.jetbrains.kotlin.types.KotlinType
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
-import org.scalajs.core.ir.{Definitions, Position}
+import org.scalajs.core.ir.{Definitions, Position, Types}
 
 import scala.collection.JavaConverters._
 
@@ -147,5 +147,7 @@ object Utils {
     case "I" => IntType
     case _ => throw new Error(s"Not implemented")
   }
+
+  val isValueType = Set[Types.Type](IntType, LongType, DoubleType, BooleanType, FloatType)
 
 }
