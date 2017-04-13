@@ -248,6 +248,9 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
       printlnJSFormat(a(3))
       printlnJSFormat(a.size)
       a.foreach(printlnJSFormat)
+
+      val b = Seq(12, 42)
+      b.foreach(println)
     }
     assertExecResult(result, "TestArrays.kt")
   }
