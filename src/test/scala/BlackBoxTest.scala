@@ -1,24 +1,40 @@
 import java.io.{ByteArrayOutputStream, File, PrintStream}
 
 import ch.epfl.k2sjsir.K2SJSIRCompiler
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 
 import scala.sys.process._
 
-class BlackBoxTest extends FunSuite with BeforeAndAfter {
+class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
 
   private val ROOT_SOURCE = "src/test/resources/src"
   private val ROOT_LIB    = "src/test/resources/lib"
   private val ROOT_OUT    = "src/test/resources/out"
+  private val ROOT_SRC_LIB= "src/test/resources/src/lib"
+  private val ROOT_LIB_OUT= "src/test/resources/kotlin-out"
 
   private val KOTLIN_HOME = scala.util.Properties.envOrElse("KOTLIN_HOME", "/usr/share/kotlin" )
 
-  after {
-    cleanOutput()
+  override def beforeAll = {
+    new K2SJSIRCompiler()
+      .exec(System.err, Array(ROOT_SRC_LIB, "-d", ROOT_LIB_OUT, "-kotlin-home", KOTLIN_HOME, "-Xallow-kotlin-package"):_*)
   }
 
-  private def cleanOutput() = {
-    val folder = new File(ROOT_OUT)
+  private def deleteRecursively(file: File): Unit = {
+    if (file.isDirectory)
+      file.listFiles.foreach(deleteRecursively)
+    file.delete()
+  }
+
+  override def afterAll = {
+    deleteRecursively(new File(ROOT_LIB_OUT))
+  }
+
+  after {
+    cleanOutput(new File(ROOT_OUT))
+  }
+
+  private def cleanOutput(folder: File) = {
     val files = folder.listFiles()
     files.foreach(f =>
       if (f.getName.endsWith(".sjsir") || f.getName.endsWith(".js") || f.getName.endsWith(".class")) f.delete())
@@ -34,7 +50,7 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
     new K2SJSIRCompiler()
       .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
-    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, "-o", s"$ROOT_OUT/$outFile"))
+    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, ROOT_LIB_OUT, "-o", s"$ROOT_OUT/$outFile"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
       val result = s"node $ROOT_OUT/$outFile".!!
@@ -169,12 +185,52 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter {
         |Reached finally""".stripMargin, "TestTryCatch.kt")
   }
 
+  test("TestClassExtension.kt") {
+    assertExecResult(
+      """
+        |4
+        |8
+        |8
+        |16
+      """.stripMargin, "TestClassExtension.kt")
+  }
+
   test("TestStringConcat.kt") {
     assertExecResult("5 Hello World", "TestStringConcat.kt")
   }
 
   test("TestAnonClass.kt") {
     assertExecResult("Hello World", "TestAnonClass.kt")
+  }
+
+  test("TestRanges.kt") {
+    val result = consoleToString {
+      val i = 0 to 10
+      println(i.head)
+      println(i.end)
+
+      Seq(0, 11, -12).foreach(x => println(i contains x))
+
+      println(true)
+      (0 to 10).foreach(println)
+    }
+    assertExecResult(result, "TestRanges.kt")
+  }
+
+  test("TestGenParentConstructor.kt") {
+    assertExecResult("5 1", "TestGenParentConstructor.kt")
+  }
+
+  test("TestAssignationOrder.kt") {
+    assertExecResult(
+      """
+        |true
+        |6
+        |12
+        |false
+        |5
+        |11
+      """.stripMargin, "TestAssignationOrder.kt")
   }
 
 }

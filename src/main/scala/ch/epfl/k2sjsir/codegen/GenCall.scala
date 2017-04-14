@@ -3,15 +3,20 @@ package ch.epfl.k2sjsir.codegen
 import ch.epfl.k2sjsir.codegen.GenArrayOps._
 import ch.epfl.k2sjsir.codegen.GenBinaryOp.{getBinaryOp, isBinaryOp}
 import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
+import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.resolve.source.PsiSourceFile
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -52,6 +57,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
         else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
         else genApply(sf, args.toList)
+      case sf: SimpleFunctionDescriptor if isTopLevelExtension(sf) => genClassExtension(sf, args.toList)
       case _: JavaMethodDescriptor |
            _: PropertyGetterDescriptor |
            _: PropertySetterDescriptor |
@@ -70,11 +76,15 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
           getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
-        case p: LazyPackageDescriptor => p.getName.toString
+        case p: LazyPackageDescriptor => encodeWithSourceFile(desc)
         case e => throw new Error(s"Not implemented yet: $e")
       }
-      val suffix = if (n.endsWith("$")) "" else "$"
-      Apply(LoadModule(ClassType(n + suffix)), method, args)(tpe)
+      if(n.endsWith("Kt")) {
+        ApplyStatic(ClassType(n), method, args)(tpe)
+      } else {
+        val suffix = if (n.endsWith("$")) "" else "$"
+        Apply(LoadModule(ClassType(n + suffix)), method, args)(tpe)
+      }
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
       Apply(rec, method, args)(tpe)
@@ -86,5 +96,13 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     case a: IrExpression => GenExpr(a, p).tree
     case _ => notImplemented
   }
+
+  private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) = {
+    val argsWithReceiver = GenExpr(d.getExtensionReceiver, p).tree +: args
+    ApplyStatic(ClassType(encodeWithSourceFile(desc)), desc.toJsMethodIdent, argsWithReceiver)(desc.getReturnType.toJsType)
+  }
+
+  private def isTopLevelExtension(sf: SimpleFunctionDescriptor) =
+    sf.getExtensionReceiverParameter != null && sf.getContainingDeclaration.getName.asString() == "<root>"
 
 }

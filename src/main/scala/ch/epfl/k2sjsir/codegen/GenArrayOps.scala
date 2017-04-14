@@ -68,9 +68,9 @@ object GenArrayOps {
 
   def isArrayOps(d: IrCall): Boolean = {
     val name = d.getDescriptor.getName.asString()
-    arrayFuns(name) || specialArrays(name) ||
-      d.getDispatchReceiver.getType.toJsType.isInstanceOf[ArrayType] ||
-      isGenericNext(d)
+    arrayFuns(name) || specialArrays(name) || (d.getDispatchReceiver != null &&
+      (d.getDispatchReceiver.getType.toJsType.isInstanceOf[ArrayType] ||
+      isGenericNext(d)))
   }
 
 }
