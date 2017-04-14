@@ -254,5 +254,4 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
     }
     assertExecResult(result, "TestArrays.kt")
   }
-
 }
