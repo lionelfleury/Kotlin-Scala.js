@@ -233,4 +233,13 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
       """.stripMargin, "TestAssignationOrder.kt")
   }
 
+  test("TestHighFunction.kt") {
+    assertExecResult(
+      """
+        |1
+        |2
+        |3
+      """.stripMargin, "TestHighOrderFunction.kt")
+  }
+
 }
