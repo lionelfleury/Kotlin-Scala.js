@@ -97,10 +97,9 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     case _ => notImplemented
   }
 
-  private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) = {
-    val argsWithReceiver = GenExpr(d.getExtensionReceiver, p).tree +: args
-    ApplyStatic(ClassType(encodeWithSourceFile(desc)), desc.toJsMethodIdent, argsWithReceiver)(desc.getReturnType.toJsType)
-  }
+  private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) =
+    ApplyStatic(ClassType(encodeWithSourceFile(desc)), desc.toJsMethodIdent, args)(desc.getReturnType.toJsType)
+
 
   private def isTopLevelExtension(sf: SimpleFunctionDescriptor) =
     sf.getExtensionReceiverParameter != null && sf.getContainingDeclaration.getName.asString() == "<root>"
