@@ -6,9 +6,7 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
-import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{AnyType, ClassType}
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
 
@@ -33,9 +31,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case g: IrGetValue => GenGetValue(g, p).tree
     case ic: IrCompositeImpl => BinaryOp(BinaryOp.Int_+, IntLiteral(5), IntLiteral(6)) // @TODO: figure why there is always a CompositeImpl with empty body
-    case ic: IrCallableReference =>
-      val desc = ic.getDescriptor
-      ApplyStatic(ClassType(DescriptorUtils.getContainingClass(desc).toJsClassName), desc.toJsMethodIdent, List())(AnyType)
+    case ic: IrCallableReference => GenClosure(ic, p).tree
     case _ => notImplemented
   }
 
