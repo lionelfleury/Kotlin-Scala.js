@@ -18,8 +18,9 @@ case class GenArrayOps(d: IrCall, p: Positioner, args: List[Tree]) extends Gen[I
     } else {
       val array = GenExpr(d.getDispatchReceiver, p).tree
       if (isGenericNext(d)) {
-        val rtpe = d.getDescriptor.getReturnType.toJsRefType
-        AsInstanceOf(Apply(array, Ident("next__O"), args)(AnyType), rtpe)
+        val rtpe = d.getDescriptor.getReturnType
+        if(isValueType(rtpe.toJsType)) Unbox(Apply(array, Ident("next__O"), args)(AnyType), rtpe.toJsInternal.head)
+        else AsInstanceOf(Apply(array, Ident("next__O"), args)(AnyType), rtpe.toJsRefType)
       } else name match {
         case "get" =>
           require(args.size == 1)

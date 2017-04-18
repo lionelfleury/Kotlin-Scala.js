@@ -4,14 +4,13 @@ import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.source.PsiSourceFile
-import org.jetbrains.kotlin.types.KotlinType
+import org.jetbrains.kotlin.types.{KotlinType, TypeUtils}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
-import org.scalajs.core.ir.{Definitions, Position}
+import org.scalajs.core.ir.{Definitions, Position, Types}
 
 import scala.collection.JavaConverters._
 
@@ -73,8 +72,10 @@ object Utils {
     def toJsInternal: String = toInternal(t.toJsType)
   }
 
-  def getName(tpe: KotlinType): String =
-    getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+  def getName(tpe: KotlinType): String =  {
+    if(TypeUtils.isTypeParameter(tpe)) "kotlin.Any"
+    else getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+  }
 
   private def getType(tpe: KotlinType, isVararg: Boolean = false): Type = {
     types.getOrElse(getName(tpe), getRefType(tpe).asInstanceOf[Type])
@@ -147,5 +148,7 @@ object Utils {
     case "I" => IntType
     case _ => throw new Error(s"Not implemented")
   }
+
+  val isValueType = Set[Types.Type](IntType, LongType, DoubleType, BooleanType, FloatType)
 
 }
