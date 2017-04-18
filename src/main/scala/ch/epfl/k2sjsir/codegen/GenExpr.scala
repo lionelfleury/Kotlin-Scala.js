@@ -2,7 +2,6 @@ package ch.epfl.k2sjsir.codegen
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.ir.expressions._
-import org.scalajs.core.ir.Position.NoPosition
 import org.scalajs.core.ir.Trees._
 
 case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
@@ -18,9 +17,7 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
       val ctpe = e.getDescriptor.toJsClassType
       LoadModule(ctpe)
     case t: IrTypeOperatorCall => GenTypeOp(t, p).tree
-    case c: IrCallableReference =>
-      val ref = c.getDescriptor.toJsIdent
-      VarRef(ref)(c.getDescriptor.getReturnType.toJsType)
+    case c: IrCallableReference => GenClosure(c, p).tree
     case r: IrReturn => Return(GenExpr(r.getValue, p).tree)
     case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case s: IrStringConcatenation => GenStringConcat(s, p).tree

@@ -1,8 +1,10 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
+import org.jetbrains.kotlin.builtins.functions.FunctionClassDescriptor
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
+import org.jetbrains.kotlin.ir.expressions.{IrCall, IrCallableReference, IrExpression}
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -45,12 +47,6 @@ object Utils {
 
   }
 
-  def encodeWithSourceFile(d: DeclarationDescriptor) = {
-    val b: PsiSourceFile = DescriptorUtils.getContainingSourceFile(d).asInstanceOf[PsiSourceFile]
-    val name = JvmFileClassUtil.getFileClassInfoNoResolve(b.getPsiFile.asInstanceOf[KtFile]).getFileClassFqName.asString()
-    NameEncoder.encodeClassName(name, "")
-  }
-
   def isVarArg(d: ParameterDescriptor): Boolean = d match {
     case dd: ValueParameterDescriptor if dd.getVarargElementType != null => true
     case _ => false
@@ -84,7 +80,13 @@ object Utils {
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = getName(tpe)
     if (name == "kotlin.Array" || arrayTypes.contains(name)) getArrayType(tpe)
+    else if(name.startsWith("kotlin.Function")) getFunctionType(name)
     else ClassType(toInternal(types.getOrElse(name, getClassType(tpe))))
+  }
+
+  private def getFunctionType(name: String) : ReferenceType = {
+    val suffix = name.replace("kotlin.Function", "")
+    ClassType(s"F$suffix")
   }
 
   private def getClassType(tpe: KotlinType): ClassType =

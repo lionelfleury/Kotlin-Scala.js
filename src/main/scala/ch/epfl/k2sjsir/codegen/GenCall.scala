@@ -6,17 +6,15 @@ import ch.epfl.k2sjsir.codegen.GenUnaryOp.isUnaryOp
 import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
+import org.jetbrains.kotlin.builtins.functions.FunctionClassDescriptor
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltinOperatorDescriptorBase
 import org.jetbrains.kotlin.ir.expressions._
-import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
 import org.jetbrains.kotlin.load.java.descriptors.JavaMethodDescriptor
-import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
-import org.jetbrains.kotlin.resolve.source.PsiSourceFile
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -76,7 +74,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
           getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
-        case p: LazyPackageDescriptor => encodeWithSourceFile(desc)
+        case p: LazyPackageDescriptor => NameEncoder.encodeWithSourceFile(desc)
         case e => throw new Error(s"Not implemented yet: $e")
       }
       if(n.endsWith("Kt")) {
@@ -87,9 +85,13 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       }
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
-      Apply(rec, method, args)(tpe)
+      if(isFunction && desc.getName.toString == "invoke") genFunctionCall(desc, rec, args)
+      else Apply(rec, method, args)(tpe)
     }
   }
+
+  private def genFunctionCall(desc: CallableDescriptor, rec: Tree, args: List[Tree]) =
+    Apply(rec, NameEncoder.encodeApply(desc), args)(desc.getReturnType.toJsType)
 
   private def genArgs(as: Range): Seq[Tree] = as.map(d.getValueArgument).map {
     case a: IrVararg => GenVararg(a, p).tree
@@ -97,12 +99,16 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     case _ => notImplemented
   }
 
-  private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) = {
-    val argsWithReceiver = GenExpr(d.getExtensionReceiver, p).tree +: args
-    ApplyStatic(ClassType(encodeWithSourceFile(desc)), desc.toJsMethodIdent, argsWithReceiver)(desc.getReturnType.toJsType)
-  }
+  private def genClassExtension(desc: SimpleFunctionDescriptor, args: List[Tree]) =
+    ApplyStatic(ClassType(NameEncoder.encodeWithSourceFile(desc)), desc.toJsMethodIdent, args)(desc.getReturnType.toJsType)
+
 
   private def isTopLevelExtension(sf: SimpleFunctionDescriptor) =
     sf.getExtensionReceiverParameter != null && sf.getContainingDeclaration.getName.asString() == "<root>"
 
+  private def isFunction = {
+    val rec = d.getDispatchReceiver
+    rec.isInstanceOf[IrCallableReference] ||
+      DescriptorUtils.getClassDescriptorForType(rec.getType).isInstanceOf[FunctionClassDescriptor]
+  }
 }

@@ -4,10 +4,14 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.builtins.BuiltInsPackageFragment
 import org.jetbrains.kotlin.descriptors.ClassKind.INTERFACE
 import org.jetbrains.kotlin.descriptors._
+import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.load.java.`lazy`.descriptors.LazyJavaPackageFragment
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt.getAllSuperclassesWithoutAny
+import org.jetbrains.kotlin.resolve.source.PsiSourceFile
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{Definitions, Position}
 
@@ -90,6 +94,21 @@ object NameEncoder {
       else if (reflProxy) params1 :+ ""
       else params1 :+ d.getReturnType.toJsInternal
     params.mkString(OuterSep, OuterSep, "")
+  }
+
+  def encodeApply(desc: CallableDescriptor)(implicit pos: Position) = {
+    val retType = desc.getReturnType.toJsInternal
+    val concatType = desc.getValueParameters.asScala.map(_.toJsInternal).mkString("")
+    val types =
+      if(desc.getValueParameters.isEmpty) ""
+      else desc.getValueParameters.asScala.map(_.toJsInternal).mkString(OuterSep, OuterSep, "")
+    Ident(s"apply$$mc$retType$concatType$$sp${types}__$retType")
+  }
+
+  def encodeWithSourceFile(d: DeclarationDescriptor) = {
+    val b: PsiSourceFile = DescriptorUtils.getContainingSourceFile(d).asInstanceOf[PsiSourceFile]
+    val name = JvmFileClassUtil.getFileClassInfoNoResolve(b.getPsiFile.asInstanceOf[KtFile]).getFileClassFqName.asString()
+    NameEncoder.encodeClassName(name, "")
   }
 
   private def encodeMemberNameInternal(s: String): String = s.replace("_", "$und")

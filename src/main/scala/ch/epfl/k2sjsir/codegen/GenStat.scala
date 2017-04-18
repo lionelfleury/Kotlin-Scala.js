@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
+import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
 import org.scalajs.core.ir.Trees._
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
@@ -29,6 +30,8 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case t: IrTry => GenTryCatchFinally(t, p).tree
     case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case g: IrGetValue => GenGetValue(g, p).tree
+    case ic: IrCompositeImpl => Undefined() // @TODO: figure why there is always a CompositeImpl with empty body
+    case ic: IrCallableReference => GenClosure(ic, p).tree
     case _ => notImplemented
   }
 
