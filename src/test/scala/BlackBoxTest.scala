@@ -247,4 +247,26 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
       """.stripMargin, "TestHighOrderFunction.kt")
   }
 
+  test("TestTypeCast.kt") {
+    assertExecResult(
+      """
+        |15
+        |12.5
+      """.stripMargin, "TestTypeCast.kt")
+  }
+
+  test("TestArrays.kt") {
+    val result = consoleToString {
+      val a = Seq(1, 2, 3, 12.5)
+      printlnJSFormat(a(0))
+      printlnJSFormat(a(3))
+      printlnJSFormat(a.size)
+      a.foreach(printlnJSFormat)
+
+      val b = Seq(12, 42)
+      b.foreach(println)
+    }
+    assertExecResult(result, "TestArrays.kt")
+  }
+
 }
