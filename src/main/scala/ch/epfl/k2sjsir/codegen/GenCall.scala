@@ -77,7 +77,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
         case p: LazyPackageDescriptor => NameEncoder.encodeWithSourceFile(desc)
         case e => throw new Error(s"Not implemented yet: $e")
       }
-      if(n.endsWith("Kt")) {
+      if (n.endsWith("Kt")) {
         ApplyStatic(ClassType(n), method, args)(tpe)
       } else {
         val suffix = if (n.endsWith("$")) "" else "$"
@@ -85,7 +85,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
       }
     } else {
       val rec = GenExpr(d.getDispatchReceiver, p).tree
-      if(isFunction && desc.getName.toString == "invoke") genFunctionCall(desc, rec, args)
+      if (isFunction && desc.getName.toString == "invoke") genFunctionCall(desc, rec, args)
       else Apply(rec, method, args)(tpe)
     }
   }

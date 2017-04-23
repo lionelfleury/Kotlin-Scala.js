@@ -8,7 +8,7 @@ case class GenStringConcat(d: IrStringConcatenation, p: Positioner) extends Gen[
 
   def tree: Tree = {
     val args = d.getArguments.asScala.map(GenExpr(_, p).tree)
-    args.foldLeft(StringLiteral("") : Tree)((n, acc : Tree) => BinaryOp(BinaryOp.String_+, n, acc))
+    args.foldLeft(StringLiteral(""): Tree)((n, acc: Tree) => BinaryOp(BinaryOp.String_+, n, acc))
   }
 
 }

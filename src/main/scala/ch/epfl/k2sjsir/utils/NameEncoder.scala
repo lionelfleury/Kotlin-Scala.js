@@ -96,16 +96,16 @@ object NameEncoder {
     params.mkString(OuterSep, OuterSep, "")
   }
 
-  def encodeApply(desc: CallableDescriptor)(implicit pos: Position) = {
+  def encodeApply(desc: CallableDescriptor)(implicit pos: Position): Ident = {
     val retType = desc.getReturnType.toJsInternal
     val concatType = desc.getValueParameters.asScala.map(_.toJsInternal).mkString("")
     val types =
-      if(desc.getValueParameters.isEmpty) ""
+      if (desc.getValueParameters.isEmpty) ""
       else desc.getValueParameters.asScala.map(_.toJsInternal).mkString(OuterSep, OuterSep, "")
     Ident(s"apply$$mc$retType$concatType$$sp${types}__$retType")
   }
 
-  def encodeWithSourceFile(d: DeclarationDescriptor) = {
+  def encodeWithSourceFile(d: DeclarationDescriptor): String = {
     val b: PsiSourceFile = DescriptorUtils.getContainingSourceFile(d).asInstanceOf[PsiSourceFile]
     val name = JvmFileClassUtil.getFileClassInfoNoResolve(b.getPsiFile.asInstanceOf[KtFile]).getFileClassFqName.asString()
     NameEncoder.encodeClassName(name, "")
