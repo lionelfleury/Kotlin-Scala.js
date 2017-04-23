@@ -39,8 +39,8 @@ case class GenArrayOps(d: IrCall, p: Positioner, args: List[Tree]) extends Gen[I
           val (s, tpe) =
             if (ctpe.className == genericIterator) ("", "AO")
             else ("s", d.getDispatchReceiver.getType.toJsInternal)
-          val clazz = ClassType(s"Lkotlin_jvm_internal_ArrayIterator${ s }Kt")
-          val method = Ident(s"iterator__${ tpe }__${ ctpe.className }")
+          val clazz = ClassType(s"Lkotlin_jvm_internal_ArrayIterator${s}Kt")
+          val method = Ident(s"iterator__${tpe}__${ctpe.className}")
           ApplyStatic(clazz, method, List(array))(ctpe)
         case _ => notImplemented
       }
