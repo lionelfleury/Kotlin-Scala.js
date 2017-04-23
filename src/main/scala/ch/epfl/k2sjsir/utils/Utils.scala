@@ -66,7 +66,7 @@ object Utils {
     if (TypeUtils.isTypeParameter(tpe)) {
       val tps = desc.asInstanceOf[TypeParameterDescriptor].getUpperBounds
       if (tps.isEmpty) "kotlin.Any"
-      else tps.get(0).getConstructor.getDeclarationDescriptor.getName.asString()
+      else getFqName(tps.get(0).getConstructor.getDeclarationDescriptor).asString()
     } else getFqName(desc).asString()
   }
 
