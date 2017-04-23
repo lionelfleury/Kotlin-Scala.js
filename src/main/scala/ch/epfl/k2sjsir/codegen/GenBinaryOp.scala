@@ -22,7 +22,11 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val rType = desc.getReturnType.toJsType
     val op = getBinaryOp(name, rType)
     if (name == "compareTo") {
-      BinaryOp(BinaryOp.Double_-, genConversion(lhs.tpe, IntType, lhs), genConversion(rhs.tpe, IntType, rhs))
+      if (lhs.tpe == StringType || lhs.tpe == ClassType("T")) {
+        Apply(LoadModule(ClassType("sjsr_RuntimeString$")),
+              Ident("compareTo__T__T__I", Some("compareTo__T__T__I")),
+              List(lhs, AsInstanceOf(rhs, ClassType("T"))))(IntType)
+      } else BinaryOp(BinaryOp.Double_-, genConversion(lhs.tpe, IntType, lhs), genConversion(rhs.tpe, IntType, rhs))
     } else if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
     } else if (isLongOp(op, lhs.tpe, rhs.tpe)) {
