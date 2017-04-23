@@ -62,8 +62,12 @@ object Utils {
   }
 
   def getName(tpe: KotlinType): String = {
-    if (TypeUtils.isTypeParameter(tpe)) "kotlin.Any"
-    else getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+    val desc = tpe.getConstructor.getDeclarationDescriptor
+    if (TypeUtils.isTypeParameter(tpe)) {
+      val tps = desc.asInstanceOf[TypeParameterDescriptor].getUpperBounds
+      if (tps.isEmpty) "kotlin.Any"
+      else tps.get(0).getConstructor.getDeclarationDescriptor.getName.asString()
+    } else getFqName(desc).asString()
   }
 
   private def getType(tpe: KotlinType, isVararg: Boolean = false): Type = {
