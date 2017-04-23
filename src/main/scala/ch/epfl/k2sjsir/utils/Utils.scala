@@ -67,7 +67,8 @@ object Utils {
       val tps = desc.asInstanceOf[TypeParameterDescriptor].getUpperBounds
       if (tps.isEmpty) "kotlin.Any"
       else getFqName(tps.get(0).getConstructor.getDeclarationDescriptor).asString()
-    } else getFqName(desc).asString()
+    }
+    else getFqName(desc).asString()
   }
 
   private def getType(tpe: KotlinType, isVararg: Boolean = false): Type = {
