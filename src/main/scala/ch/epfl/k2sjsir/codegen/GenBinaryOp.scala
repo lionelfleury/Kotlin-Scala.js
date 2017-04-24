@@ -21,8 +21,17 @@ case class GenBinaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val lhs = GenExpr(rec, p).tree
     val rType = desc.getReturnType.toJsType
     val op = getBinaryOp(name, rType)
-    if (name == "compareTo") {
-      BinaryOp(BinaryOp.Double_-, genConversion(lhs.tpe, IntType, lhs), genConversion(rhs.tpe, IntType, rhs))
+    if (name == "rangeTo") {
+      if (lhs.tpe == LongType || rhs.tpe == LongType)
+        New(ClassType("Lkotlin_ranges_LongRange"), Ident("init___J__J"), List(lhs, rhs))
+      else
+        New(ClassType("Lkotlin_ranges_IntRange"), Ident("init___I__I"), List(lhs, rhs))
+    } else if (name == "compareTo") {
+      if (lhs.tpe == StringType || lhs.tpe == ClassType("T")) {
+        Apply(LoadModule(ClassType("sjsr_RuntimeString$")),
+              Ident("compareTo__T__T__I", Some("compareTo__T__T__I")),
+              List(lhs, AsInstanceOf(rhs, ClassType("T"))))(IntType)
+      } else BinaryOp(BinaryOp.Double_-, genConversion(lhs.tpe, IntType, lhs), genConversion(rhs.tpe, IntType, rhs))
     } else if (lhs.tpe == rhs.tpe) {
       BinaryOp(op, lhs, rhs)
     } else if (isLongOp(op, lhs.tpe, rhs.tpe)) {
@@ -106,7 +115,8 @@ object GenBinaryOp {
     "ushr" -> BinaryOp.Long_>>>,
     "compareTo" -> BinaryOp.Long_-,
     "inc" -> BinaryOp.Long_+,
-    "dec" -> BinaryOp.Long_-
+    "dec" -> BinaryOp.Long_-,
+    "rangeTo" -> -1
   )
 
   private val intBinaryOp = Map(
@@ -124,7 +134,8 @@ object GenBinaryOp {
     "ushr" -> BinaryOp.Int_>>>,
     "compareTo" -> BinaryOp.Int_-,
     "inc" -> BinaryOp.Int_+,
-    "dec" -> BinaryOp.Int_-
+    "dec" -> BinaryOp.Int_-,
+    "rangeTo" -> -1
   )
 
   private val doubleBinaryOp = Map(
@@ -173,6 +184,8 @@ object GenBinaryOp {
     case FloatType => floatBinaryOp
     case DoubleType => doubleBinaryOp
     case StringType | ClassType("T") => stringBinaryOp
+    case ClassType("Lkotlin_ranges_IntRange") => intBinaryOp
+    case ClassType("Lkotlin_ranges_LongRange") => longBinaryOp
     case _ => builtinBinarOp
   }
 

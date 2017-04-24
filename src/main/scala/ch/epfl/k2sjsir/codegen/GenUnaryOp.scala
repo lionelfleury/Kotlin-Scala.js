@@ -14,16 +14,14 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
     val from = sf.getDispatchReceiverParameter.getType.toJsType
     val to = sf.getReturnType.toJsType
     val converted = convertToOp(from, to)
-    if(isUnaryToBinary(sf.getName.toString)) convertUnaryToBinary(sf.getName.toString, sf.getReturnType.toJsType)
-    else
-      converted.fold(GenExpr(d.getDispatchReceiver, p).tree)(UnaryOp(_, GenExpr(d.getDispatchReceiver, p).tree))
+    if (isUnaryToBinary(sf.getName.toString)) convertUnaryToBinary(sf.getName.toString, sf.getReturnType.toJsType)
+    else converted.fold(GenExpr(d.getDispatchReceiver, p).tree)(UnaryOp(_, GenExpr(d.getDispatchReceiver, p).tree))
   }
 
-
-  private def convertUnaryToBinary(name: String, tpe: Type) : Tree = (name, tpe) match {
+  private def convertUnaryToBinary(name: String, tpe: Type): Tree = (name, tpe) match {
     case ("unaryMinus", IntType) =>
       BinaryOp(GenBinaryOp.getBinaryOp("minus", tpe), IntLiteral(0), GenExpr(d.getDispatchReceiver, p).tree)
-    case _ => Debugger()
+    case _ => notImplemented
   }
 }
 

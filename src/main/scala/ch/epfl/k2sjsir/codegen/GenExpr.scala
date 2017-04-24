@@ -18,7 +18,7 @@ case class GenExpr(d: IrExpression, p: Positioner) extends Gen[IrExpression] {
       LoadModule(ctpe)
     case t: IrTypeOperatorCall => GenTypeOp(t, p).tree
     case c: IrCallableReference => GenClosure(c, p).tree
-    case r: IrReturn => Return(GenExpr(r.getValue, p).tree)
+    case r: IrReturn => GenExpr(r.getValue, p).tree
     case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case s: IrStringConcatenation => GenStringConcat(s, p).tree
     case _ => notImplemented

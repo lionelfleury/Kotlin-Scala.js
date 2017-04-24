@@ -21,8 +21,7 @@ class ClassLowering {
     classes.clear()
   }
 
-  private def traverse(decls: Seq[IrDeclaration],
-                       acc: Seq[IrDeclaration]): Seq[IrDeclaration] = decls match {
+  private def traverse(decls: Seq[IrDeclaration], acc: Seq[IrDeclaration]): Seq[IrDeclaration] = decls match {
     case (c: IrClass) +: t =>
       val ds = traverse(c.getDeclarations.asScala, Seq())
       addRemove(c, ds)

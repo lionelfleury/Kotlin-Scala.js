@@ -30,7 +30,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case t: IrTry => GenTryCatchFinally(t, p).tree
     case t: IrThrow => Throw(GenExpr(t.getValue, p).tree)
     case g: IrGetValue => GenGetValue(g, p).tree
-    case ic: IrCompositeImpl => Undefined() // @TODO: figure why there is always a CompositeImpl with empty body
+    case _: IrCompositeImpl => Undefined() //TODO: figure why there is always a CompositeImpl with empty body
     case ic: IrCallableReference => GenClosure(ic, p).tree
     case _ => notImplemented
   }

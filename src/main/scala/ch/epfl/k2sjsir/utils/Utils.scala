@@ -1,14 +1,8 @@
 package ch.epfl.k2sjsir.utils
 
 import ch.epfl.k2sjsir.utils.NameEncoder._
-import org.jetbrains.kotlin.builtins.functions.FunctionClassDescriptor
 import org.jetbrains.kotlin.descriptors._
-import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
-import org.jetbrains.kotlin.ir.expressions.{IrCall, IrCallableReference, IrExpression}
-import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
-import org.jetbrains.kotlin.resolve.source.PsiSourceFile
 import org.jetbrains.kotlin.types.{KotlinType, TypeUtils}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
@@ -44,7 +38,6 @@ object Utils {
     def toJsParamDef(implicit pos: Position): ParamDef = ParamDef(d.toJsIdent, tpe, mutable = false, rest = false)
 
     def toJsInternal: String = toInternal(tpe)
-
   }
 
   def isVarArg(d: ParameterDescriptor): Boolean = d match {
@@ -68,9 +61,14 @@ object Utils {
     def toJsInternal: String = toInternal(t.toJsType)
   }
 
-  def getName(tpe: KotlinType): String =  {
-    if(TypeUtils.isTypeParameter(tpe)) "kotlin.Any"
-    else getFqName(tpe.getConstructor.getDeclarationDescriptor).asString()
+  def getName(tpe: KotlinType): String = {
+    val desc = tpe.getConstructor.getDeclarationDescriptor
+    if (TypeUtils.isTypeParameter(tpe)) {
+      val tps = desc.asInstanceOf[TypeParameterDescriptor].getUpperBounds
+      if (tps.isEmpty) "kotlin.Any"
+      else getFqName(tps.get(0).getConstructor.getDeclarationDescriptor).asString()
+    }
+    else getFqName(desc).asString()
   }
 
   private def getType(tpe: KotlinType, isVararg: Boolean = false): Type = {
@@ -80,11 +78,11 @@ object Utils {
   private def getRefType(tpe: KotlinType): ReferenceType = {
     val name = getName(tpe)
     if (name == "kotlin.Array" || arrayTypes.contains(name)) getArrayType(tpe)
-    else if(name.startsWith("kotlin.Function")) getFunctionType(name)
+    else if (name.startsWith("kotlin.Function")) getFunctionType(name)
     else ClassType(toInternal(types.getOrElse(name, getClassType(tpe))))
   }
 
-  private def getFunctionType(name: String) : ReferenceType = {
+  private def getFunctionType(name: String): ReferenceType = {
     val suffix = name.replace("kotlin.Function", "")
     ClassType(s"F$suffix")
   }
@@ -142,13 +140,6 @@ object Utils {
     case NothingType => Definitions.RuntimeNothingClass
     case NullType => Definitions.RuntimeNullClass
     case _ => throw new Error(s"Unknown Scala.js type: $t")
-  }
-
-  def fromInternal(t: String): Type = t match {
-    case "O" => AnyType
-    case "T" => StringType
-    case "I" => IntType
-    case _ => throw new Error(s"Not implemented")
   }
 
   val isValueType = Set[Types.Type](IntType, LongType, DoubleType, BooleanType, FloatType)
