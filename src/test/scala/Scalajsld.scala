@@ -86,6 +86,9 @@ object Scalajsld {
         .text("Location of Scala.js standard library. This is set by the " +
           "runner script and automatically prepended to the classpath. " +
           "Use -n to not include it.")
+      opt[Unit]('c', "checkIR")
+        .action { (_, c) => c.copy(checkIR = true) }
+        .text("Check IR before optimizing")
 
       override def showUsageOnError = true
     }

@@ -50,7 +50,7 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
   private def assertExecResult(expected: String, srcFile: String, outFile: String = "out.js", mainClass: String = "Test") = {
     new K2SJSIRCompiler()
       .exec(System.err, Array(s"$ROOT_SOURCE/$srcFile", "-d", ROOT_OUT, "-kotlin-home", KOTLIN_HOME):_*)
-    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, ROOT_LIB_OUT, "-o", s"$ROOT_OUT/$outFile"))
+    Scalajsld.run(Array("--stdlib", s"$ROOT_LIB/scalajs-library_2.12-0.6.15.jar", ROOT_OUT, ROOT_LIB_OUT, "-o", s"$ROOT_OUT/$outFile", "-c"))
     val success = (s"echo $mainClass().main()" #>> new File(s"$ROOT_OUT/$outFile")).!
     if(success == 0) {
       val result = s"node $ROOT_OUT/$outFile".!!
@@ -247,6 +247,13 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
       """.stripMargin, "TestHighOrderFunction.kt")
   }
 
+  test("TestLambdaTopLevel.kt") {
+    assertExecResult(
+      """
+        |11
+      """.stripMargin, "TestLambdaTopLevel.kt")
+  }
+
   test("TestTypeCast.kt") {
     assertExecResult(
       """
@@ -268,5 +275,10 @@ class BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
     }
     assertExecResult(result, "TestArrays.kt")
   }
+
+  test("TestVarIncrease.kt") {
+    assertExecResult("30", "TestVarIncrease.kt")
+  }
+
 
 }
