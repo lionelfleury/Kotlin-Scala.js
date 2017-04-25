@@ -22,7 +22,7 @@ class SJSIRLower(val context: JvmBackendContext) {
     runOnFilePostfix(new EnumClassLowering(context), irFile)
     //    runOnFilePostfix(new ObjectClassLowering(context), irFile)
     //    runOnFilePostfix(new InitializersLowering(context), irFile)
-    runOnFilePostfix(new SingletonReferencesLowering(context), irFile)
+    //runOnFilePostfix(new SingletonReferencesLowering(context), irFile)
     new SyntheticAccessorLowering(context.getState).lower(irFile)
     runOnFilePostfix(new BridgeLowering(context.getState), irFile)
     // ********************************************************

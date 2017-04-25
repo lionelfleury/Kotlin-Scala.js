@@ -20,6 +20,7 @@ import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
@@ -108,7 +109,7 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
 
   private def isFunction = {
     val rec = d.getDispatchReceiver
-    rec.isInstanceOf[IrCallableReference] ||
-      DescriptorUtils.getClassDescriptorForType(rec.getType).isInstanceOf[FunctionClassDescriptor]
+    Try(rec.isInstanceOf[IrCallableReference] ||
+      DescriptorUtils.getClassDescriptorForType(rec.getType).isInstanceOf[FunctionClassDescriptor]).fold(_ => false, x => x)
   }
 }
