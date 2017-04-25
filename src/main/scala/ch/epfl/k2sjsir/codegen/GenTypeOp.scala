@@ -15,9 +15,10 @@ case class GenTypeOp(d: IrTypeOperatorCall, p: Positioner) extends Gen[IrTypeOpe
       case CAST | IMPLICIT_CAST | SAFE_CAST | IMPLICIT_NOTNULL =>
         if (isValueType(d.getTypeOperand.toJsType)) Unbox(exp, d.getTypeOperand.toJsInternal.head)
         else AsInstanceOf(exp, tpe)
-      case INSTANCEOF =>
-        IsInstanceOf(exp, tpe)
-      case _ => notImplemented
+      case INSTANCEOF => IsInstanceOf(exp, tpe)
+      case IMPLICIT_COERCION_TO_UNIT => Block(exp, Undefined())
+      case _ =>
+        notImplemented
     }
   }
 

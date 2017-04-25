@@ -21,7 +21,10 @@ case class GenUnaryOp(d: IrCall, p: Positioner) extends Gen[IrCall] {
   private def convertUnaryToBinary(name: String, tpe: Type): Tree = (name, tpe) match {
     case ("unaryMinus", IntType) =>
       BinaryOp(GenBinaryOp.getBinaryOp("minus", tpe), IntLiteral(0), GenExpr(d.getDispatchReceiver, p).tree)
-    case _ => notImplemented
+    case ("unaryMinus", LongType) =>
+      BinaryOp(GenBinaryOp.getBinaryOp("minus", tpe), LongLiteral(0), GenExpr(d.getDispatchReceiver, p).tree)
+    case _ =>
+      notImplemented
   }
 }
 

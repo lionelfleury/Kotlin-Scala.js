@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.ir.declarations._
 import org.jetbrains.kotlin.ir.expressions._
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types.NoType
 
 case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
 
@@ -19,7 +20,10 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
       } else Skip()
     case b: IrBlock => GenBlock(b, p).tree
     case f: IrFunction => GenFun(f, p).tree
-    case r: IrReturn => Return(GenExpr(r.getValue, p).tree)
+    case r: IrReturn =>
+      val expr = GenExpr(r.getValue, p).tree
+      if(expr.tpe == NoType) Block(expr, Undefined())
+      else Return(expr)
     case s: IrSetField => GenSetField(s, p).tree
     case i: IrWhen => GenWhen(i, p).tree
     case v: IrVariable => GenVar(v, p).tree
@@ -32,6 +36,7 @@ case class GenStat(d: IrStatement, p: Positioner) extends Gen[IrStatement] {
     case g: IrGetValue => GenGetValue(g, p).tree
     case _: IrCompositeImpl => Undefined() //TODO: figure why there is always a CompositeImpl with empty body
     case ic: IrCallableReference => GenClosure(ic, p).tree
+    case is: IrSetVariable => GenSetVariable(is, p).tree
     case _ => notImplemented
   }
 
