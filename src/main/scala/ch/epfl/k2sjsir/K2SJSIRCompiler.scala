@@ -23,8 +23,8 @@ import java.{lang => jl, util => ju}
 import com.google.common.base.Joiner
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.util.Function
 import com.intellij.util.containers.ContainerUtil
+import com.intellij.util.{Function, SmartList}
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import org.jetbrains.kotlin.cli.common.CLICompiler.doMain
 import org.jetbrains.kotlin.cli.common.ExitCode.{COMPILATION_ERROR, OK}
@@ -33,21 +33,22 @@ import org.jetbrains.kotlin.cli.common.arguments.K2JsArgumentConstants
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation.NO_LOCATION
 import org.jetbrains.kotlin.cli.common.messages._
 import org.jetbrains.kotlin.cli.common.{CLICompiler, CLIConfigurationKeys, ExitCode}
-import org.jetbrains.kotlin.cli.js.K2JSCompiler
 import org.jetbrains.kotlin.cli.jvm.compiler.{EnvironmentConfigFiles, KotlinCoreEnvironment}
 import org.jetbrains.kotlin.config._
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
 import org.jetbrains.kotlin.js.analyzer.JsAnalysisResult
-import org.jetbrains.kotlin.js.config.{JSConfigurationKeys, JsConfig, LibrarySourcesConfig}
+import org.jetbrains.kotlin.js.config.{EcmaVersion, JSConfigurationKeys, JsConfig, LibrarySourcesConfig}
 import org.jetbrains.kotlin.js.facade.{MainCallParameters, TranslationResult}
 import org.jetbrains.kotlin.progress.ProgressIndicatorAndCompilationCanceledStatus
 import org.jetbrains.kotlin.psi.KtFile
-import org.jetbrains.kotlin.utils.{ExceptionUtilsKt, KotlinPathsFromHomeDir, PathUtil}
+import org.jetbrains.kotlin.serialization.js.ModuleKind
+import org.jetbrains.kotlin.utils.{ExceptionUtilsKt, KotlinPaths, KotlinPathsFromHomeDir, PathUtil}
 
+import scala.collection.JavaConverters._
 
 object K2SJSIRCompiler {
 
-  def main(args: Array[String]): Unit = doMain(new K2JSCompiler(), args.toArray)
+  def main(args: Array[String]): Unit = doMain(new K2SJSIRCompiler, args)
 
   private def reportCompiledSourcesList(messageCollector: MessageCollector, sourceFiles: ju.List[KtFile]) = {
     val fileNames = ContainerUtil.map(sourceFiles, new Function[KtFile, String]() {
@@ -92,15 +93,28 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
       return COMPILATION_ERROR
     }
     ContentRootsKt.addKotlinSourceRoots(configuration, arguments.freeArgs)
+    val paths: KotlinPaths =
+      if (arguments.kotlinHome != null) new KotlinPathsFromHomeDir(new File(arguments.kotlinHome))
+      else PathUtil.getKotlinPathsForCompiler
+    messageCollector.report(CompilerMessageSeverity.LOGGING, "Using Kotlin home directory " + paths.getHomePath, CompilerMessageLocation.NO_LOCATION)
+
+    //FIXME: create maybe a js file from Kotlin
+    val outputFile = new File(arguments.destination)
+    configuration.put(CommonConfigurationKeys.MODULE_NAME, FileUtil.getNameWithoutExtension(outputFile))
+
+    val libraries = new SmartList[String]
+    if (!arguments.noStdlib)
+      libraries.add(0, paths.getJsStdLibJarPath.getAbsolutePath)
+
+//    if (arguments.libraries != null)
+//      ContainerUtil.addAllNotNull(libraries, arguments.libraries.split(File.pathSeparator).toList.asJavaCollection)
+
+    configuration.put(JSConfigurationKeys.LIBRARIES, libraries)
     val environmentForJS = KotlinCoreEnvironment.createForProduction(rootDisposable, configuration, EnvironmentConfigFiles.JS_CONFIG_FILES)
     val project = environmentForJS.getProject
     val sourcesFiles = environmentForJS.getSourceFiles
     environmentForJS.getConfiguration.put[jl.Boolean](CLIConfigurationKeys.ALLOW_KOTLIN_PACKAGE, arguments.allowKotlinPackage)
     if (!checkKotlinPackageUsage(environmentForJS, sourcesFiles)) return ExitCode.COMPILATION_ERROR
-    val paths =
-      if (arguments.kotlinHome != null) new KotlinPathsFromHomeDir(new File(arguments.kotlinHome))
-      else PathUtil.getKotlinPathsForCompiler
-    messageCollector.report(CompilerMessageSeverity.LOGGING, "Using Kotlin home directory " + paths.getHomePath, CompilerMessageLocation.NO_LOCATION)
     if (arguments.destination == null) {
       messageCollector.report(CompilerMessageSeverity.ERROR, "Specify output directory via -d", CompilerMessageLocation.NO_LOCATION)
       return ExitCode.COMPILATION_ERROR
@@ -139,7 +153,7 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
       case e: Exception => throw ExceptionUtilsKt.rethrow(e)
     }
     ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
-    new AnalyzerWithCompilerReport.Companion().reportDiagnostics(translationResult.getDiagnostics, messageCollector)
+//    (new AnalyzerWithCompilerReport.Companion).reportDiagnostics(translationResult.getDiagnostics, messageCollector)
     if (!translationResult.isInstanceOf[TranslationResult.Success]) return ExitCode.COMPILATION_ERROR
     ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
     OK
@@ -147,6 +161,8 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
 
   override def setupPlatformSpecificArgumentsAndServices(configuration: CompilerConfiguration, arguments: K2SJSIRCompilerArguments, services: Services): Unit = {
     configuration.put[jl.Boolean](JSConfigurationKeys.SOURCE_MAP, true)
+    configuration.put(JSConfigurationKeys.TARGET, EcmaVersion.defaultVersion)
+    configuration.put(JSConfigurationKeys.MODULE_KIND, ModuleKind.PLAIN)
   }
 
 }

@@ -14,7 +14,7 @@ class K2SJSIRCompilerArguments extends CommonCompilerArguments {
 
   @Argument(value = "classpath", alias = "cp", description = "Paths where to find user class files")
   @ValueDescription("<path>")
-  var classpath = null
+  var classpath: String = _
 
 //  @GradleOption(classOf[DefaultValues.BooleanFalseDefault])
 //  @Argument(value = "include-runtime", description = "Include Kotlin runtime in to resulting .jar")
@@ -31,7 +31,7 @@ class K2SJSIRCompilerArguments extends CommonCompilerArguments {
 
   @GradleOption(classOf[DefaultValues.BooleanTrueDefault])
   @Argument(value = "no-stdlib", description = "Don't include Kotlin runtime into classpath")
-  var noStdlib = false
+  var noStdlib: Boolean = false
 
 //  @GradleOption(classOf[DefaultValues.BooleanTrueDefault])
 //  @Argument(value = "no-reflect", description = "Don't include Kotlin reflection implementation into classpath")
@@ -101,16 +101,16 @@ class K2SJSIRCompilerArguments extends CommonCompilerArguments {
   /* Added from K2JSCompilerArguments */
   @Argument(value = "libraries", description = "Paths to Kotlin libraries with .meta.js and .kjsm files, separated by system file separator")
   @ValueDescription("<path>")
-  var libraries = null
+  var libraries: String = _
 
   @GradleOption(classOf[DefaultValues.JsMain])
   @Argument(value = "main", description = "Whether a main function should be called")
   @ValueDescription("{" + CALL + "," + NO_CALL + "}")
-  var main = null
+  var main: String = _
 
   // Paths to output directories for friend modules.
-  var friendPaths = null
+  var friendPaths: Array[String] = _
 
-  override def executableScriptFileName = "kotlinc-jvm"
+  override def executableScriptFileName = ""
 
 }

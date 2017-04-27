@@ -15,7 +15,7 @@ import org.jetbrains.kotlin.js.translate.utils.ExpandIsCallsKt.expandIsCalls
 import org.jetbrains.kotlin.progress.ProgressIndicatorAndCompilationCanceledStatus
 import org.jetbrains.kotlin.psi.KtFile
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 final class K2SJSIRTranslator(val config: JsConfig) {
   @throws[TranslationException]
@@ -47,7 +47,7 @@ final class K2SJSIRTranslator(val config: JsConfig) {
     ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
     val importedModules = new util.ArrayList[String]
 
-    for (module <- context.getImportedModules) {
+    for (module <- context.getImportedModules.asScala) {
       importedModules.add(module.getExternalName)
     }
     new TranslationResult.Success(config, files, program, diagnostics, importedModules, moduleDescriptor, bindingTrace.getBindingContext)
