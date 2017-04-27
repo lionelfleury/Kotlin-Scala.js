@@ -19,7 +19,9 @@ import scala.collection.JavaConverters._
 
 final class K2SJSIRTranslator(val config: JsConfig) {
   @throws[TranslationException]
-  def translate(files: util.List[KtFile], mainCallParameters: MainCallParameters): TranslationResult = translate(files, mainCallParameters, null)
+  def translate(files: util.List[KtFile], mainCallParameters: MainCallParameters): TranslationResult =
+    translate(files, mainCallParameters, null)
+
   @throws[TranslationException]
   def translate(files: util.List[KtFile], mainCallParameters: MainCallParameters, ar: JsAnalysisResult): TranslationResult = {
     var analysisResult = ar

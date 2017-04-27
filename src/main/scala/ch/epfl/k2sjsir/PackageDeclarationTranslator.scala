@@ -2,6 +2,7 @@ package ch.epfl.k2sjsir
 
 import java.{util => ju}
 
+import ch.epfl.k2sjsir.translate.GenClass
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationRuntimeException
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.declaration.FileDeclarationVisitor
@@ -29,7 +30,7 @@ final class PackageDeclarationTranslator private(
         for (declaration <- file.getDeclarations) {
           if (!AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration)))
             declaration match {
-              case c: KtClassOrObject => println(c)
+              case d: KtClassOrObject => GenClass(d, context).tree
             }
         }
       } catch {

@@ -1,12 +1,14 @@
 package ch.epfl.k2sjsir.translate
 
 import org.jetbrains.kotlin.diagnostics.DiagnosticUtils
+import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.psi.KtElement
 import org.scalajs.core.ir.Position
 import org.scalajs.core.ir.Trees.{Debugger, Tree}
 
 trait Gen[T <: KtElement] {
   def d: T
+  def c: TranslationContext
   implicit def pos: Position = {
     val lc = DiagnosticUtils.getLineAndColumnInPsiFile(d.getContainingFile, d.getTextRange)
     val file = d.getContainingFile.getName
