@@ -3,12 +3,16 @@ package ch.epfl.k2sjsir
 import java.{util => ju}
 
 import ch.epfl.k2sjsir.translate.GenClass
+import com.intellij.openapi.util.io.FileUtil
+import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationRuntimeException
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.declaration.FileDeclarationVisitor
 import org.jetbrains.kotlin.js.translate.general.AbstractTranslator
+import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.js.translate.utils.{AnnotationsUtils, BindingUtils}
 import org.jetbrains.kotlin.psi.{KtClassOrObject, KtFile}
+import org.scalajs.core.ir.Trees.ClassDef
 
 import scala.collection.JavaConversions._
 
@@ -30,7 +34,12 @@ final class PackageDeclarationTranslator private(
         for (declaration <- file.getDeclarations) {
           if (!AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration)))
             declaration match {
-              case d: KtClassOrObject => GenClass(d, context).tree
+              case d: KtClassOrObject =>
+                val tree = GenClass(d)(context).tree
+                val cd = getClassDescriptor(context.bindingContext(), d)
+                val output = context.getConfig.getConfiguration.get(CommonConfigurationKeys.MODULE_NAME)
+                SJSIRCodegen.genIRFile(output, cd, tree)
+
             }
         }
       } catch {

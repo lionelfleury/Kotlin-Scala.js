@@ -8,7 +8,7 @@ import org.scalajs.core.ir.Trees.{Debugger, Tree}
 
 trait Gen[T <: KtElement] {
   def d: T
-  def c: TranslationContext
+  implicit def c: TranslationContext
   implicit def pos: Position = {
     val lc = DiagnosticUtils.getLineAndColumnInPsiFile(d.getContainingFile, d.getTextRange)
     val file = d.getContainingFile.getName

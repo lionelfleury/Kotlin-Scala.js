@@ -99,8 +99,7 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
     messageCollector.report(CompilerMessageSeverity.LOGGING, "Using Kotlin home directory " + paths.getHomePath, CompilerMessageLocation.NO_LOCATION)
 
     //FIXME: create maybe a js file from Kotlin
-    val outputFile = new File(arguments.destination)
-    configuration.put(CommonConfigurationKeys.MODULE_NAME, FileUtil.getNameWithoutExtension(outputFile))
+    configuration.put(CommonConfigurationKeys.MODULE_NAME, arguments.destination)
 
     val libraries = new SmartList[String]
     if (!arguments.noStdlib)
