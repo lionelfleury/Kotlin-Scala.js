@@ -8,26 +8,32 @@ import org.scalajs.core.ir.Trees._
 
 case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends Gen[KtExpression] {
 
-  override def tree: Tree = d match {
-    case ce: KtCallExpression => GenCall(ce).tree
-    case ks: KtStringTemplateExpression =>
-      val string = ks.getEntries.foldLeft("")((acc, expr) => {
-        acc + (expr match {
-          case sl: KtLiteralStringTemplateEntry => sl.getText
-          case st: KtStringTemplateEntry => ""
-          case _ => ""
+  override def tree: Tree =  {
+    d match {
+      case ce: KtCallExpression => GenCall(ce).tree
+      case ks: KtStringTemplateExpression =>
+        val string = ks.getEntries.foldLeft("")((acc, expr) => {
+          acc + (expr match {
+            case sl: KtLiteralStringTemplateEntry => sl.getText
+            case st: KtStringTemplateEntry => ""
+            case _ => ""
+          })
         })
-      })
-      StringLiteral(string)
-    case kp: KtProperty =>
-      kp.getDelegateExpressionOrInitializer match {
-        case k: KtConstantExpression =>
-          val expr = GenConst(k).tree
-          val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
-          VarDef(desc.toJsIdent, c.bindingContext().getType(k).toJsType, mutable = false, expr)
-        case _ => notImplemented
-      }
-    case _ => notImplemented
+        StringLiteral(string)
+      case kp: KtProperty =>
+        kp.getDelegateExpressionOrInitializer match {
+          case k: KtConstantExpression =>
+            val tpe = c.bindingContext().getType(k).toJsType
+            val expr = GenConst(k).tree
+            val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
+            VarDef(desc.toJsIdent, tpe, mutable = false, expr)
+          case _ => notImplemented
+        }
+      case kn: KtNameReferenceExpression =>
+        val tpe = c.bindingContext().getType(kn).toJsType
+        VarRef(Ident(kn.getReferencedNameAsName.toString))(tpe)
+      case _ => notImplemented
+    }
   }
 
 
