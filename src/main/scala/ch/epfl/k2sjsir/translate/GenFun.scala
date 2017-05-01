@@ -21,4 +21,5 @@ case class GenFun(d: KtNamedFunction)(implicit val c: TranslationContext) extend
     val static = DescriptorUtils.isStaticDeclaration(desc)
     MethodDef(static, idt, args.toList, desc.getReturnType.toJsType, body)(opt, None)
   }
+
 }

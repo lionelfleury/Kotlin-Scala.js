@@ -30,9 +30,9 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
           Apply(rec, method, args.toList)(tpe)
         }
         else notImplemented
-        /*else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
-        else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-        else genApply(sf, args.toList)*/
+      /*else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
+      else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
+      else genApply(sf, args.toList)*/
     }
   }
 
@@ -43,4 +43,5 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
   private def genArgs(): Seq[Tree] = {
     resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
   }
+
 }

@@ -39,7 +39,7 @@ final class PackageDeclarationTranslator private(
                 val cd = getClassDescriptor(context.bindingContext(), d)
                 val output = context.getConfig.getConfiguration.get(CommonConfigurationKeys.MODULE_NAME)
                 SJSIRCodegen.genIRFile(output, cd, tree)
-
+              case _ => sys.error(s"Not implemented yet: $getClass")
             }
         }
       } catch {
