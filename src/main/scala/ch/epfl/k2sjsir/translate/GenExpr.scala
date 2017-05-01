@@ -21,17 +21,13 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         })
         StringLiteral(string)
       case kp: KtProperty =>
-        kp.getDelegateExpressionOrInitializer match {
-          case k: KtConstantExpression =>
-            val tpe = c.bindingContext().getType(k).toJsType
-            val expr = GenConst(k).tree
-            val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
-            VarDef(desc.toJsIdent, tpe, mutable = false, expr)
-          case _ => notImplemented
-        }
+        val expr = GenExpr(kp.getDelegateExpressionOrInitializer).tree
+        val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
+        VarDef(desc.toJsIdent, expr.tpe, mutable = false, expr)
       case kn: KtNameReferenceExpression =>
         val tpe = c.bindingContext().getType(kn).toJsType
         VarRef(Ident(kn.getReferencedNameAsName.toString))(tpe)
+      case k: KtConstantExpression => GenConst(k).tree
       case _ => notImplemented
     }
   }
