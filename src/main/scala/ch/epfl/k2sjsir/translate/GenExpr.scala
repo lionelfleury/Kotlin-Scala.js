@@ -23,7 +23,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case kp: KtProperty =>
         val expr = GenExpr(kp.getDelegateExpressionOrInitializer).tree
         val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
-        VarDef(desc.toJsIdent, expr.tpe, mutable = false, expr)
+        VarDef(desc.toJsIdent, expr.tpe, mutable = kp.isVar, expr)
       case kn: KtNameReferenceExpression =>
         val tpe = c.bindingContext().getType(kn).toJsType
         VarRef(Ident(kn.getReferencedNameAsName.toString))(tpe)
