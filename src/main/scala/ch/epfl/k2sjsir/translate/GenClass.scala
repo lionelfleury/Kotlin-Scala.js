@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils.getClassDescriptor
-import org.jetbrains.kotlin.psi.KtClassOrObject
+import org.jetbrains.kotlin.psi.{KtClassOrObject, KtNamedFunction, KtProperty}
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt._
 import org.scalajs.core.ir.ClassKind
 import org.scalajs.core.ir.Trees._
@@ -24,7 +24,12 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
     val interfaces = getSuperInterfaces(desc).asScala.map(_.toJsClassIdent)
     val jsNativeLoadSpec = None
     val optimizerHints = OptimizerHints.empty
-    val defs = for (d <- d.getDeclarations.asScala) yield GenDeclaration(d).tree
+
+    val defs : List[Tree] = d.getDeclarations.asScala.collect {
+      case p : KtProperty => GenProperty(p).withGetterAndSetter
+      case decl => Seq(GenDeclaration(decl).tree)
+    }.flatten.toList
+
     val hasMain = defs.exists {
       case MethodDef(_, Ident("main__V", _), _, _, _) => true
       case _ => false

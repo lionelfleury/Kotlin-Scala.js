@@ -1,5 +1,6 @@
 package ch.epfl.k2sjsir.utils
 
+import ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -59,6 +60,10 @@ object Utils {
     def toJsArrayType: ArrayType = getArrayType(t)
 
     def toJsInternal: String = toInternal(t.toJsType)
+  }
+
+  implicit class PropertyAccessor(d: PropertyDescriptor)(implicit pos: Position) {
+    def getterIdent() : Ident = NameEncoder.encodeMethodIdent(d)
   }
 
   def getName(tpe: KotlinType): String = {

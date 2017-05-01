@@ -1,32 +1,52 @@
 package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.PropertyGetterDescriptor
+import org.jetbrains.kotlin.descriptors.{PropertyGetterDescriptor, PropertySetterDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
-import org.jetbrains.kotlin.js.translate.utils.{BindingUtils, JsDescriptorUtils}
+import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi.KtProperty
-import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
+import org.jetbrains.kotlin.resolve.DescriptorUtils
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.scalajs.core.ir.Trees._
-import org.jetbrains.kotlin.js.translate.utils.TranslationUtils._
-import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
+import org.scalajs.core.ir.Types.{AnyType, NoType}
 
 case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extends Gen[KtProperty] {
 
-  override def tree: Tree = {
-    val pd = BindingUtils.getPropertyDescriptor(c.bindingContext(), d)
-    val idt = pd.toJsIdent
-    val g  = Option(pd.getGetter).map(x => getter(x))
+  val desc = BindingUtils.getPropertyDescriptor(c.bindingContext(), d)
 
-    val s = None //Option(pd.getSetter).map(setter)
-    val static = DescriptorUtils.isStaticDeclaration(pd)
-    PropertyDef(static, idt, g, s)
+  override def tree: Tree = {
+    val idt = desc.toJsIdent
+    val static = DescriptorUtils.isStaticDeclaration(desc)
+    FieldDef(static, idt, desc.getType.toJsType, desc.isVar)
+  }
+
+  def withGetterAndSetter: Seq[Tree] = {
+    val t = List(tree)
+    val g  = Option(desc.getGetter).map(get => getter(get))
+    val s =  Option(desc.getSetter).map(set => setter(set))
+    t ++ g.toList ++ s.toList
   }
 
   private def getter(f: PropertyGetterDescriptor): Tree = {
-    val b = GenExpr(d.getDelegateExpressionOrInitializer).tree
-    val a = f.getCorrespondingProperty
-    //backingFieldReference(c, f)
-    Block(VarRef(Ident("b"))(b.tpe))
+   // val b = GenExpr(d.getDelegateExpressionOrInitializer).tree
+    val property = f.getCorrespondingProperty
+    val rtpe = property.getReturnType.toJsType
+    val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
+
+    val body = Some(Select(This()(tpe), property.toJsIdent)(rtpe))
+    MethodDef(static = false, property.toJsMethodIdent, List(), rtpe, body)(OptimizerHints.empty, None)
+  }
+
+  private def setter(f: PropertySetterDescriptor): Tree = {
+    //val b = GenExpr(d.getDelegateExpressionOrInitializer).tree
+    val property = f.getCorrespondingProperty
+
+    val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
+    val rtpe = property.getReturnType.toJsType
+
+    val params = List(ParamDef(Ident("set"), rtpe, mutable = false, rest = false))
+    val body = Some(Assign(Select(This()(tpe), property.toJsIdent)(rtpe), VarRef(Ident("set"))(rtpe)))
+    MethodDef(static = false, property.toJsMethodIdent, params, rtpe, body)(OptimizerHints.empty, None)
   }
 
 

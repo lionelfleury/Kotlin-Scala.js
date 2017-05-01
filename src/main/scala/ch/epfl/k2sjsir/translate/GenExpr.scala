@@ -1,10 +1,15 @@
 package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.descriptors.{MemberDescriptor, PropertyDescriptor}
+import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
+import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
 import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types.AnyType
 
 case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends Gen[KtExpression] {
 
@@ -26,7 +31,15 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         VarDef(desc.toJsIdent, expr.tpe, mutable = false, expr)
       case kn: KtNameReferenceExpression =>
         val tpe = c.bindingContext().getType(kn).toJsType
-        VarRef(Ident(kn.getReferencedNameAsName.toString))(tpe)
+        BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
+          case m: PropertyDescriptor =>
+            val recvType = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType).toJsClassType
+            Apply(This()(recvType), m.getterIdent(), List())(tpe)
+          case l: LocalVariableDescriptor =>
+            val ident = Ident(kn.getReferencedNameAsName.toString)
+            VarRef(ident)(tpe)
+          case _ => notImplemented
+        }
       case k: KtConstantExpression => GenConst(k).tree
       case _ => notImplemented
     }
