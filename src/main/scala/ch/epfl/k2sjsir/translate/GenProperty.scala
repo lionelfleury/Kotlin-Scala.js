@@ -34,7 +34,7 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
     val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
 
     val body = Some(Select(This()(tpe), property.toJsIdent)(rtpe))
-    MethodDef(static = false, property.toJsMethodIdent, List(), rtpe, body)(OptimizerHints.empty, None)
+    MethodDef(static = false, f.toJsMethodIdent, List(), rtpe, body)(OptimizerHints.empty, None)
   }
 
   private def setter(f: PropertySetterDescriptor): Tree = {
@@ -46,7 +46,7 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
 
     val params = List(ParamDef(Ident("set"), rtpe, mutable = false, rest = false))
     val body = Some(Assign(Select(This()(tpe), property.toJsIdent)(rtpe), VarRef(Ident("set"))(rtpe)))
-    MethodDef(static = false, property.toJsMethodIdent, params, rtpe, body)(OptimizerHints.empty, None)
+    MethodDef(static = false, f.toJsMethodIdent, params, rtpe, body)(OptimizerHints.empty, None)
   }
 
 

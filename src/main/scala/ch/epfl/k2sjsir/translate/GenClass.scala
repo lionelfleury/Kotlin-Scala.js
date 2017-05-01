@@ -4,8 +4,8 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
 import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
-import org.jetbrains.kotlin.js.translate.utils.BindingUtils.getClassDescriptor
-import org.jetbrains.kotlin.psi.{KtClassOrObject, KtNamedFunction, KtProperty}
+import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
+import org.jetbrains.kotlin.psi.{KtClassOrObject, KtProperty}
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt._
 import org.scalajs.core.ir.ClassKind
 import org.scalajs.core.ir.Trees._
