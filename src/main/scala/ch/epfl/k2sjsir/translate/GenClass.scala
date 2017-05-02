@@ -16,14 +16,15 @@ import scala.collection.immutable.{List, Nil}
 
 case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) extends Gen[KtClassOrObject] {
 
+  private val desc = getClassDescriptor(c.bindingContext(), d)
+  private val optimizerHints = OptimizerHints.empty
+
   override def tree: ClassDef = {
-    val desc = getClassDescriptor(c.bindingContext(), d)
     val idt = desc.toJsClassIdent
     val kind = if (isModule(desc)) ClassKind.ModuleClass else ClassKind.Class
     val superClass = getSuperClassOrAny(desc).toJsClassIdent
     val interfaces = getSuperInterfaces(desc).asScala.map(_.toJsClassIdent)
     val jsNativeLoadSpec = None
-    val optimizerHints = OptimizerHints.empty
 
     val defs : List[Tree] = d.getDeclarations.asScala.collect {
       case p : KtProperty => GenProperty(p).withGetterAndSetter
@@ -34,7 +35,8 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       case MethodDef(_, Ident("main__V", _), _, _, _) => true
       case _ => false
     }
-    val allDefs = defs.toList ++ (if (hasMain) manualExports(desc) else Nil)
+    val constructor = genConstructor
+    val allDefs = defs.toList ++ (if (hasMain) manualExports(desc) else Nil) :+ constructor
     ClassDef(idt, kind, Some(superClass), interfaces.toList, jsNativeLoadSpec, allDefs)(optimizerHints)
   }
 
@@ -49,4 +51,13 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
   private def isModule(c: ClassDescriptor): Boolean = c.getKind == OBJECT
 
+  private def genConstructor : Tree = {
+    val propsInit = d.getDeclarations.asScala.collect {
+      case p: KtProperty =>
+        val expr = GenExpr(p.getDelegateExpressionOrInitializer).tree
+        Assign(Select(This()(desc.toJsClassType), Ident(p.getName))(expr.tpe), expr)
+
+    }.toList
+    MethodDef(false, Ident("init___"), List(), NoType, Some(Block(propsInit)))(optimizerHints, None)
+  }
 }

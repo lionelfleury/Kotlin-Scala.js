@@ -28,7 +28,6 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
   }
 
   private def getter(f: PropertyGetterDescriptor): Tree = {
-   // val b = GenExpr(d.getDelegateExpressionOrInitializer).tree
     val property = f.getCorrespondingProperty
     val rtpe = property.getReturnType.toJsType
     val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
