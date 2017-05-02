@@ -7,9 +7,8 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
-import org.jetbrains.kotlin.types.TypeUtils
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ArrayType, ClassType}
+import org.scalajs.core.ir.Types.ClassType
 
 import scala.collection.JavaConverters._
 
