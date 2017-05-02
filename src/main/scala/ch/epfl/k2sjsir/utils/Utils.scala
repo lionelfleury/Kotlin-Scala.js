@@ -1,6 +1,5 @@
 package ch.epfl.k2sjsir.utils
 
-import ch.epfl.k2sjsir.utils
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
@@ -63,7 +62,7 @@ object Utils {
   }
 
   implicit class PropertyAccessor(d: PropertyDescriptor)(implicit pos: Position) {
-    def getterIdent() : Ident = NameEncoder.encodeMethodIdent(d)
+    def getterIdent(): Ident = NameEncoder.encodeMethodIdent(d)
   }
 
   def getName(tpe: KotlinType): String = {
@@ -128,7 +127,8 @@ object Utils {
     "kotlin.Double" -> DoubleType,
     "kotlin.Null" -> NullType,
     "kotlin.String" -> ClassType("T"),
-    "kotlin.Throwable" -> AnyType
+    "kotlin.Throwable" -> AnyType,
+    "kotlin.Comparable" -> AnyType
   )
 
   private def toInternal(t: Type): String = t match {
