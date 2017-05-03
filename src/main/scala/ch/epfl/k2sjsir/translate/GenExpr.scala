@@ -1,8 +1,8 @@
 package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.PropertyDescriptor
-import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
+import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor}
+import org.jetbrains.kotlin.descriptors.impl.{LocalVariableDescriptor, ValueParameterDescriptorImpl}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
@@ -16,14 +16,13 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
     d match {
       case ce: KtCallExpression => GenCall(ce).tree
       case ks: KtStringTemplateExpression =>
-        val string = ks.getEntries.foldLeft("")((acc, expr) => {
-          acc + (expr match {
-            case sl: KtLiteralStringTemplateEntry => sl.getText
-            case st: KtStringTemplateEntry => ""
-            case _ => ""
+        ks.getEntries.foldLeft(StringLiteral(""): Tree)((acc, expr) => {
+          BinaryOp(BinaryOp.String_+, acc, expr match {
+            case sl: KtLiteralStringTemplateEntry => StringLiteral(sl.getText)
+            case st: KtStringTemplateEntry => GenExpr(st.getExpression).tree
+            case _ => notImplemented
           })
         })
-        StringLiteral(string)
       case kp: KtProperty =>
         val expr = GenExpr(kp.getDelegateExpressionOrInitializer).tree
         val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
@@ -34,10 +33,11 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case m: PropertyDescriptor =>
             val recvType = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType).toJsClassType
             Apply(This()(recvType), m.getterIdent(), List())(tpe)
-          case l: LocalVariableDescriptor =>
+          case _: LocalVariableDescriptor | _: ValueParameterDescriptor=>
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
-          case _ => notImplemented
+          case _ =>
+            notImplemented
         }
       case k: KtConstantExpression => GenConst(k).tree
       case k: KtArrayAccessExpression => GenArrayAccess(k).tree
