@@ -13,7 +13,8 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
     val right = GenExpr(d.getRight).tree
     val op = PsiUtils.getOperationToken(d)
     if (AssignmentTranslator.isAssignmentOperator(op)) Assign(left, right)
-    else notImplemented
+    else
+      notImplemented
   }
 
 }

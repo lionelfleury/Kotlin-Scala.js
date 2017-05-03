@@ -43,7 +43,8 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case k: KtArrayAccessExpression => GenArrayAccess(k).tree
       case k: KtBinaryExpression => GenBinary(k).tree
       case k: KtForExpression => GenFor(k).tree
-      case _ => notImplemented
+      case _ =>
+        notImplemented
     }
   }
 
