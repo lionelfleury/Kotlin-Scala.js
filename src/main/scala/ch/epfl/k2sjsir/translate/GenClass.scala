@@ -5,7 +5,8 @@ import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
 import org.jetbrains.kotlin.descriptors.{ClassConstructorDescriptor, ClassDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
-import org.jetbrains.kotlin.psi.{KtClassInitializer, KtClassOrObject, KtProperty}
+import org.jetbrains.kotlin.psi._
+import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt._
 import org.scalajs.core.ir.ClassKind
 import org.scalajs.core.ir.Trees._
@@ -28,7 +29,7 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
     val defs : List[Tree] = d.getDeclarations.asScala.collect {
       case p : KtProperty => GenProperty(p).withGetterAndSetter
-      case i: KtClassInitializer => List() // Handle in constructor
+      case _: KtClassInitializer | _: KtSecondaryConstructor => List() // Handle in constructor
       case decl => Seq(GenDeclaration(decl).tree)
     }.flatten.toList
 
@@ -36,8 +37,8 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       case MethodDef(_, Ident("main__V", _), _, _, _) => true
       case _ => false
     }
-    val constructor = genConstructor
-    val allDefs = defs.toList ++ (if (hasMain) manualExports(desc) else Nil) :+ constructor
+    val constructors = genConstructors
+    val allDefs = defs.toList ++ (if (hasMain) manualExports(desc) else Nil) ++ constructors
     ClassDef(idt, kind, Some(superClass.toJsClassIdent), interfaces.map(_.toJsClassIdent).toList, jsNativeLoadSpec, allDefs)(optimizerHints)
   }
 
@@ -52,7 +53,32 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
   private def isModule(c: ClassDescriptor): Boolean = c.getKind == OBJECT
 
-  private def genConstructor : Tree = {
+  private def genConstructors : Seq[Tree] = {
+    val constructors = d.getSecondaryConstructors.asScala.map(genSecondaryConstructor).toList
+    genPrimaryConstructor :: constructors
+  }
+
+  private def genSecondaryConstructor(k: KtSecondaryConstructor) : Tree = {
+      val callSuper = {
+        val delegationCall = CallUtilKt.getResolvedCall(k.getDelegationCall, c.bindingContext())
+        val callDesc = delegationCall.getResultingDescriptor
+        val args = delegationCall.getValueArgumentsByIndex.asScala
+          .map(x => GenExpr(x.getArguments.get(0).getArgumentExpression).tree).toList
+        ApplyStatically(This()(desc.toJsClassType), desc.toJsClassType, callDesc.toJsMethodIdent, args)(NoType)
+      }
+
+      val constrDesc = getDescriptorForElement(c.bindingContext(), k).asInstanceOf[ClassConstructorDescriptor]
+
+      val body = Block(callSuper :: GenBody(k.getBodyExpression).treeOption.toList)
+      val args = constrDesc.getValueParameters.asScala.map(_.toJsParamDef).toList
+      MethodDef(static = false, constrDesc.toJsMethodIdent, args, NoType, Some(body))(optimizerHints, None)
+  }
+
+  private def genPrimaryConstructor : Tree = {
+    /**
+      * Declarations (for properties) must be in the primary constructors
+      * Secondary constructors will call primary one
+      */
     val declsInit = d.getDeclarations.asScala.collect {
       case p: KtProperty =>
         val expr = GenExpr(p.getDelegateExpressionOrInitializer).tree
@@ -62,12 +88,12 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
     val superCall = Option(getSuperCall(c.bindingContext(), d)) match {
       case Some(call) =>
-        val cDesc =  call.getResultingDescriptor.asInstanceOf[ClassConstructorDescriptor]
+        val name =  call.getResultingDescriptor.asInstanceOf[ClassConstructorDescriptor].toJsMethodIdent
         val params = call.getValueArgumentsByIndex.asScala
-            .map(x => GenExpr(x.getArguments.get(0).getArgumentExpression).tree) //TODO: why list of ValueArgument
+          .map(x => GenExpr(x.getArguments.get(0).getArgumentExpression).tree) //TODO: why list of ValueArgument
         val tpe = superClass.toJsClassType
-        ApplyStatically(This()(tpe), tpe, cDesc.toJsMethodIdent, params.toList)(NoType)
-      case None =>
+        ApplyStatically(This()(tpe), tpe, name, params.toList)(NoType)
+      case None => // We have no superclass, hence we need to call init on Object
         val o = ClassType("O")
         ApplyStatically(This()(o), o, Ident("init___"), List())(NoType)
     }
