@@ -1,9 +1,10 @@
 package ch.epfl.k2sjsir.translate
 
-import ch.epfl.k2sjsir.codegen.GenUnaryOp.{apply => _}
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassConstructorDescriptor, SimpleFunctionDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
@@ -15,7 +16,7 @@ import scala.collection.JavaConverters._
 case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) extends Gen[KtCallExpression] {
 
   private val resolved = CallUtilKt.getResolvedCall(d, c.bindingContext())
-  private val desc = resolved.getCandidateDescriptor
+  private val desc = resolved.getResultingDescriptor
 
   override def tree: Tree = {
     val name = desc.getName.asString()
@@ -32,9 +33,13 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
         else if (GenArray.isArrayOps(desc)) GenArray(d, args).tree
         else
           notImplemented
+      case cc: ClassConstructorDescriptor =>
+        New(cc.getContainingDeclaration.toJsClassType, desc.toJsMethodIdent, args)
+      case sf: SimpleFunctionDescriptor => notImplemented
       /*else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
       else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
       else genApply(sf, args.toList)*/
+      case _ => notImplemented
     }
   }
 

@@ -8,7 +8,11 @@ import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types.NoType
+
+import scala.collection.JavaConverters._
 
 case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends Gen[KtExpression] {
 
@@ -43,6 +47,18 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case k: KtArrayAccessExpression => GenArrayAccess(k).tree
       case k: KtBinaryExpression => GenBinary(k).tree
       case k: KtForExpression => GenFor(k).tree
+      case k: KtDotQualifiedExpression =>
+        val receiver = GenExpr(k.getReceiverExpression).tree
+        k.getSelectorExpression match {
+          case call: KtCallExpression =>
+            val resolved = CallUtilKt.getResolvedCall(call, c.bindingContext())
+            val desc = resolved.getResultingDescriptor
+            val tpe = desc.getReturnType.toJsType
+            val args =
+              resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
+            Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+          case _ => notImplemented
+        }
       case _ =>
         notImplemented
     }

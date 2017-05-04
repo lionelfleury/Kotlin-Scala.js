@@ -7,10 +7,13 @@ import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.scalajs.core.ir.Position
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{AnyType, NoType}
 
 case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extends Gen[KtProperty] {
+
+  import GenProperty._
 
   val desc = BindingUtils.getPropertyDescriptor(c.bindingContext(), d)
 
@@ -27,7 +30,10 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
     t ++ g.toList ++ s.toList
   }
 
-  private def getter(f: PropertyGetterDescriptor): Tree = {
+}
+
+object GenProperty {
+  private[translate] def getter(f: PropertyGetterDescriptor)(implicit pos: Position): Tree = {
     val property = f.getCorrespondingProperty
     val rtpe = property.getReturnType.toJsType
     val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
@@ -36,8 +42,7 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
     MethodDef(static = false, f.toJsMethodIdent, List(), rtpe, body)(OptimizerHints.empty, None)
   }
 
-  private def setter(f: PropertySetterDescriptor): Tree = {
-    //val b = GenExpr(d.getDelegateExpressionOrInitializer).tree
+  private[translate] def setter(f: PropertySetterDescriptor)(implicit pos: Position): Tree = {
     val property = f.getCorrespondingProperty
 
     val tpe = getClassDescriptorForType(property.getDispatchReceiverParameter.getType).toJsClassType
@@ -47,6 +52,5 @@ case class GenProperty(d: KtProperty)(implicit val c: TranslationContext) extend
     val body = Some(Assign(Select(This()(tpe), property.toJsIdent)(rtpe), VarRef(Ident("set"))(rtpe)))
     MethodDef(static = false, f.toJsMethodIdent, params, rtpe, body)(OptimizerHints.empty, None)
   }
-
 
 }

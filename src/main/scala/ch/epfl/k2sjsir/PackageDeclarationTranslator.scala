@@ -2,6 +2,7 @@ package ch.epfl.k2sjsir
 
 import java.{util => ju}
 
+import ch.epfl.k2sjsir.lower.{ClassLowering, SJSIRLower}
 import ch.epfl.k2sjsir.translate.GenClass
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
@@ -11,7 +12,7 @@ import org.jetbrains.kotlin.js.translate.declaration.FileDeclarationVisitor
 import org.jetbrains.kotlin.js.translate.general.AbstractTranslator
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.js.translate.utils.{AnnotationsUtils, BindingUtils}
-import org.jetbrains.kotlin.psi.{KtClassOrObject, KtFile}
+import org.jetbrains.kotlin.psi.{KtClass, KtClassOrObject, KtFile}
 import org.scalajs.core.ir.Trees.ClassDef
 
 import scala.collection.JavaConversions._
@@ -27,11 +28,10 @@ final class PackageDeclarationTranslator private(
   val files: Iterable[KtFile],
   override val context: TranslationContext
 ) extends AbstractTranslator(context) {
-
   private def translate(): Unit = {
     for (file <- files) {
       try {
-        for (declaration <- file.getDeclarations) {
+        for (declaration <- new SJSIRLower().lower(file)) {
           if (!AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration)))
             declaration match {
               case d: KtClassOrObject =>

@@ -2,7 +2,8 @@ package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassKind.OBJECT
-import org.jetbrains.kotlin.descriptors.{ClassConstructorDescriptor, ClassDescriptor}
+import org.jetbrains.kotlin.descriptors.{ClassConstructorDescriptor, ClassDescriptor, PropertyDescriptor}
+import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getPrimaryConstructorParameters
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.psi._
@@ -29,16 +30,38 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
     val defs : List[Tree] = d.getDeclarations.asScala.collect {
       case p : KtProperty => GenProperty(p).withGetterAndSetter
-      case _: KtClassInitializer | _: KtSecondaryConstructor => List() // Handle in constructor
+      case _: KtClassInitializer | _: KtSecondaryConstructor | _: KtClassOrObject =>
+        /**
+          * This is a special case, all those element are either used in the constructor (for property init) or
+          * by the lowering at the top level (nested classes for instance)
+          * Nested classes are handle with lowering, but they remain as declaration in the top class
+          */
+        List()
       case decl => Seq(GenDeclaration(decl).tree)
     }.flatten.toList
+
+    /**
+      * By default constructor parameters are local to constructor, if they are marked as val we need to create a
+      * property to export them to the rest of the class
+      */
+    val paramsInit = getPrimaryConstructorParameters(d)
+      .asScala
+      .map(getPropertyDescriptorForConstructorParameter(c.bindingContext(), _))
+      .filter(_ != null)
+      .flatMap(p => {
+        val name =  p.toJsIdent
+        val tpe = p.getType.toJsType
+        FieldDef(static = false, name, tpe, mutable = p.getSetter != null)  ::
+          Option(p.getGetter).map(get => GenProperty.getter(get)).toList ++
+          Option(p.getSetter).map(set => GenProperty.setter(set)).toList
+      }).toList
 
     val hasMain = defs.exists {
       case MethodDef(_, Ident("main__V", _), _, _, _) => true
       case _ => false
     }
     val constructors = genConstructors
-    val allDefs = defs.toList ++ (if (hasMain) manualExports(desc) else Nil) ++ constructors
+    val allDefs = paramsInit ++ defs.toList ++ (if (hasMain) manualExports(desc) else Nil) ++ constructors
     ClassDef(idt, kind, Some(superClass.toJsClassIdent), interfaces.map(_.toJsClassIdent).toList, jsNativeLoadSpec, allDefs)(optimizerHints)
   }
 
@@ -79,6 +102,21 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       * Declarations (for properties) must be in the primary constructors
       * Secondary constructors will call primary one
       */
+
+    /**
+      * If primary constructor params are marked as 'val', we have to create a class field to "export" them
+      * out of the constructor scope, this can only be done in primary constructors
+      */
+    val paramsInit = getPrimaryConstructorParameters(d)
+      .asScala
+      .map(getPropertyDescriptorForConstructorParameter(c.bindingContext(), _))
+      .filter(_ != null)
+      .map(p => {
+        val name =  p.toJsIdent
+        val tpe = p.getType.toJsType
+        Assign(Select(This()(desc.toJsClassType), name)(tpe), VarRef(name)(tpe))
+      }).toList
+
     val declsInit = d.getDeclarations.asScala.collect {
       case p: KtProperty =>
         val expr = GenExpr(p.getDelegateExpressionOrInitializer).tree
@@ -100,8 +138,9 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
     val primary = desc.getUnsubstitutedPrimaryConstructor
     val args = primary.getValueParameters.asScala.map(_.toJsParamDef).toList
+    primary.getValueParameters.asScala.foreach(x => println(x.getName.toString))
 
-    val stats = Block(superCall :: declsInit)
+    val stats = Block(superCall :: paramsInit ++ declsInit)
     MethodDef(static = false, primary.toJsMethodIdent, args, NoType, Some(stats))(optimizerHints, None)
   }
 }
