@@ -9,9 +9,9 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.{KtBinaryExpression, KtForExpression}
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.types.KotlinType
+import org.scalajs.core.ir.Trees
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.IntType
-import org.scalajs.core.ir.{Trees, Types}
 
 case class GenFor(d: KtForExpression)(implicit val c: TranslationContext) extends Gen[KtForExpression] {
 
