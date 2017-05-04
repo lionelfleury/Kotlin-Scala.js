@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir.translate
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.operation.AssignmentTranslator
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils
-import org.jetbrains.kotlin.psi.{KtBinaryExpression, KtOperationReferenceExpression}
+import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.scalajs.core.ir.Trees.{Assign, Tree}
 
 case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) extends Gen[KtBinaryExpression] {
