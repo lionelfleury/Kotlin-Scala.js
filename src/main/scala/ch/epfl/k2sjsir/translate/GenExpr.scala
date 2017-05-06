@@ -1,8 +1,8 @@
 package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
+import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor}
-import org.jetbrains.kotlin.descriptors.impl.{LocalVariableDescriptor, ValueParameterDescriptorImpl}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
@@ -10,7 +10,6 @@ import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.NoType
 
 import scala.collection.JavaConverters._
 
@@ -37,7 +36,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case m: PropertyDescriptor =>
             val recvType = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType).toJsClassType
             Apply(This()(recvType), m.getterIdent(), List())(tpe)
-          case _: LocalVariableDescriptor | _: ValueParameterDescriptor=>
+          case _: LocalVariableDescriptor | _: ValueParameterDescriptor =>
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
           case _ =>
@@ -59,6 +58,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
             Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
           case _ => notImplemented
         }
+      case k: KtUnaryExpression => GenUnary(k).tree
       case _ =>
         notImplemented
     }

@@ -24,12 +24,12 @@ case class GenFor(d: KtForExpression)(implicit val c: TranslationContext) extend
     if (KotlinBuiltIns.isArray(rangeType) || KotlinBuiltIns.isPrimitiveArray(rangeType)) {
       val range = GenExpr(d.getLoopRange).tree
       val v: Value = i => value(ArraySelect(range, i)(tpe))
-      genFor(IntLiteral(0), ArrayLength(range), IntLiteral(1), v)
+      genFor(BinaryOp.Num_<, IntLiteral(0), ArrayLength(range), IntLiteral(1), v)
     } else if (isForOverRangeLiteral(rangeType)) {
       val range = d.getLoopRange.asInstanceOf[KtBinaryExpression]
-      val left = GenExpr(range.getLeft).tree
-      val right = GenExpr(range.getRight).tree
-      genFor(left, right, IntLiteral(1), value)
+      val start = GenExpr(range.getLeft).tree
+      val end = GenExpr(range.getRight).tree
+      genFor(BinaryOp.Num_<=, start, end, IntLiteral(1), value)
     } else if (isForOverRange(rangeType)) {
       notImplemented
     } else notImplemented
@@ -49,14 +49,11 @@ case class GenFor(d: KtForExpression)(implicit val c: TranslationContext) extend
 
   type Value = (VarRef) => Tree
 
-  private def genFor(start: Tree, end: Tree, step: Tree, value: Value): Tree = {
+  private def genFor(condition: BinaryOp.Code, start: Tree, end: Tree, step: Tree, value: Value): Tree = {
     val i = VarDef(Ident("tmp$"), IntType, mutable = true, start)
-    val cond = BinaryOp(BinaryOp.Num_<, i.ref, end)
+    val cond = BinaryOp(condition, i.ref, end)
     val iplus = Assign(i.ref, BinaryOp(BinaryOp.Int_+, i.ref, step))
-    val body = GenBody(d.getBody).tree match {
-      case b: Block => Block(value(i.ref) +: b.stats :+ iplus)
-      case b: Tree => Block(List(value(i.ref), b, iplus))
-    }
+    val body = Block(List(value(i.ref), GenBody(d.getBody).tree, iplus))
     Block(List(i, While(cond, body, None)))
   }
 
