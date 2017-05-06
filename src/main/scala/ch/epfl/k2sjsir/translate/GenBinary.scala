@@ -8,9 +8,8 @@ import org.jetbrains.kotlin.js.translate.utils.BindingUtils.getCallableDescripto
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getOperationToken
 import org.jetbrains.kotlin.lexer.{KtSingleValueToken, KtToken, KtTokens}
 import org.jetbrains.kotlin.psi.KtBinaryExpression
-import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
-import org.scalajs.core.ir.{Position, Trees, Types}
+import org.scalajs.core.ir.Position
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 
@@ -55,7 +54,14 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
         case k: KtSingleValueToken => getBinaryOp(k.toString, tpe)
         case _ => notImplemented; -1
       }
-      BinaryOp(binOp, lhs, rhs)
+      val (clhs, crhs) = if(isLongOp(binOp, lhs.tpe, rhs.tpe)) {
+        (intToLong(lhs), if (isLongSpecial(binOp)) longToInt(rhs) else intToLong(rhs))
+      } else {
+        val lsrc = convertArg(binOp, lhs, lhs.tpe, tpe)
+        val rsrc = convertArg(binOp, rhs, rhs.tpe, tpe)
+        (lsrc, rsrc)
+      }
+      BinaryOp(binOp, clhs, crhs)
     }
   }
 
@@ -89,6 +95,22 @@ object GenBinary {
 
   private def isLongSpecial(op: BinaryOp.Code): Boolean =
     op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
+
+  private def intToLong(t: Tree) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
+
+  private def longToInt(t: Tree) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
+
+  /* Convert arg to the correct type for it to be us by the binary op */
+  private def convertArg(op: BinaryOp.Code, tree: Tree, t: Type, returnType: Type) = {
+    val notLong = {
+      if (!isLongType(t)) tree
+      else if (isLongSpecial(op)) UnaryOp(UnaryOp.LongToInt, tree)
+      else UnaryOp(UnaryOp.LongToDouble, tree)
+    }
+    if (!isFloatType(returnType)) notLong
+    else if (isFloatType(t)) notLong
+    else UnaryOp(UnaryOp.DoubleToFloat, notLong)
+  }
 
   private val numBinaryOp = Map(
     "LT" -> BinaryOp.Num_<,
@@ -138,7 +160,7 @@ object GenBinary {
     "MINUS" -> BinaryOp.Double_-,
     "MUL" -> BinaryOp.Double_*,
     "DIV" -> BinaryOp.Double_/,
-    "PERCE" -> BinaryOp.Double_%,
+    "PERC" -> BinaryOp.Double_%,
     "inc" -> BinaryOp.Double_+,
     "dec" -> BinaryOp.Double_-
   )
@@ -156,8 +178,8 @@ object GenBinary {
   private val booleanBinaryOp = Map(
     "EQEQ" -> BinaryOp.Boolean_==,
     "EXCLEQ" -> BinaryOp.Boolean_!=,
-    "OROR" -> BinaryOp.Boolean_|,
-    "ANDAND" -> BinaryOp.Boolean_&
+    "or" -> BinaryOp.Boolean_|,
+    "and" -> BinaryOp.Boolean_&
   )
 
   private val stringBinaryOp = Map(
