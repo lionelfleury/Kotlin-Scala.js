@@ -13,13 +13,20 @@ case class GenUnary(d: KtUnaryExpression)(implicit val c: TranslationContext) ex
 
   override def tree: Trees.Tree = {
     val lhs = GenExpr(d.getBaseExpression).tree
-    val binOp = getBinaryOp(d.getOperationToken, lhs)
-    d match {
-      case _: KtPrefixExpression =>
-        Block(Assign(lhs, binOp), lhs)
-      case _: KtPostfixExpression =>
-        val v = VarDef(Ident("tmp$1"), lhs.tpe, mutable = false, lhs)
-        Block(v, Assign(lhs, binOp), v.ref)
+    val op = d.getOperationToken
+    op match {
+      case KtTokens.EXCL => UnaryOp(UnaryOp.Boolean_!, lhs)
+      case KtTokens.MINUS => getUnaryOp(op, lhs)
+      case KtTokens.PLUSPLUS | KtTokens.MINUSMINUS =>
+        val binOp = getBinaryOp(op, lhs)
+        d match {
+          case _: KtPrefixExpression =>
+            Block(Assign(lhs, binOp), lhs)
+          case _: KtPostfixExpression =>
+            val v = VarDef(Ident("tmp$1"), lhs.tpe, mutable = false, lhs)
+            Block(v, Assign(lhs, binOp), v.ref)
+          case _ => notImplemented
+        }
       case _ => notImplemented
     }
   }
@@ -28,23 +35,33 @@ case class GenUnary(d: KtUnaryExpression)(implicit val c: TranslationContext) ex
 
 object GenUnary {
 
+  private def getUnaryOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
+    val unOp = op match {
+      case KtTokens.MINUS => "MINUS"
+      case o => sys.error(s"Not found UnaryOp: $o")
+    }
+    BinaryOp(GenBinary.getBinaryOp(unOp, lhs.tpe), getLiteral(0, lhs.tpe), lhs)
+  }
+
   private def getBinaryOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
     val binOp = op match {
       case KtTokens.PLUSPLUS => "PLUS"
       case KtTokens.MINUSMINUS => "MINUS"
-      case _ => sys.error("Not found UnaryOp!")
+      case o => sys.error(s"Not found UnaryOp: $o")
     }
-    val lit = lhs.tpe match {
-      case IntType => IntLiteral(1)
-      case LongType => LongLiteral(1L)
-      case DoubleType => DoubleLiteral(1d)
-      case FloatType => FloatLiteral(1f)
-    }
-    BinaryOp(GenBinary.getBinaryOp(binOp, lhs.tpe), lhs, lit)
+    BinaryOp(GenBinary.getBinaryOp(binOp, lhs.tpe), lhs, getLiteral(1, lhs.tpe))
+  }
+
+  private def getLiteral(v: Int, tpe: Type)(implicit pos: Position): Tree = tpe match {
+    case IntType => IntLiteral(v.toInt)
+    case LongType => LongLiteral(v.toLong)
+    case DoubleType => DoubleLiteral(v.toDouble)
+    case FloatType => FloatLiteral(v.toFloat)
+    case _ => Debugger()
   }
 
   /* Useful for explicit type conversion (toInt, toDouble, ...) */
-  def convertToOp(from: Type, to: Type) = (from, to) match {
+  def convertToOp(from: Type, to: Type): Option[UnaryOp.Code] = (from, to) match {
     case (IntType, LongType) => Some(UnaryOp.IntToLong)
     case (LongType, IntType) => Some(UnaryOp.LongToInt)
     case (LongType, DoubleType) => Some(UnaryOp.LongToDouble)
