@@ -8,8 +8,9 @@ import org.jetbrains.kotlin.js.translate.utils.BindingUtils.getCallableDescripto
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getOperationToken
 import org.jetbrains.kotlin.lexer.{KtSingleValueToken, KtToken, KtTokens}
 import org.jetbrains.kotlin.psi.KtBinaryExpression
+import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.expressions.OperatorConventions
-import org.scalajs.core.ir.Position
+import org.scalajs.core.ir.{Position, Trees, Types}
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types._
 
@@ -21,7 +22,7 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
     val lhs = GenExpr(d.getLeft).tree
     val rhs = GenExpr(d.getRight).tree
     val op = getOperationToken(d)
-    val tpe = desc.getReturnType.toJsType
+    val tpe = if (desc != null) desc.getReturnType.toJsType else lhs.tpe
     if (op == KtTokens.ELVIS)
       translateElvis(lhs, rhs)
     else if (AssignmentTranslator.isAssignmentOperator(op)) op match {

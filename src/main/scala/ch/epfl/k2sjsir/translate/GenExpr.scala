@@ -53,9 +53,14 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
             val resolved = CallUtilKt.getResolvedCall(call, c.bindingContext())
             val desc = resolved.getResultingDescriptor
             val tpe = desc.getReturnType.toJsType
-            val args =
-              resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
-            Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+            if (GenUnary.isUnaryOp(desc.getName.asString())) {
+              val op = GenUnary.convertToOp(receiver.tpe, tpe)
+              op.fold(notImplemented)(UnaryOp(_, receiver))
+            } else {
+              val args =
+                resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
+              Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+            }
           case _ => notImplemented
         }
       case k: KtUnaryExpression => GenUnary(k).tree

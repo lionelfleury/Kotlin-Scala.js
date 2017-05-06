@@ -39,7 +39,8 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
       /*else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
       else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
       else genApply(sf, args.toList)*/
-      case _ => notImplemented
+      case _ =>
+        notImplemented
     }
   }
 
