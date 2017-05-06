@@ -59,8 +59,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case _ => notImplemented
         }
       case k: KtUnaryExpression => GenUnary(k).tree
-      case _ =>
-        notImplemented
+      case _ => notImplemented
     }
   }
 
