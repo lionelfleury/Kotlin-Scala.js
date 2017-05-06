@@ -16,9 +16,9 @@ case class GenUnary(d: KtUnaryExpression)(implicit val c: TranslationContext) ex
     val op = d.getOperationToken
     op match {
       case KtTokens.EXCL => UnaryOp(UnaryOp.Boolean_!, lhs)
-      case KtTokens.MINUS => getUnaryOp(op, lhs)
+      case KtTokens.MINUS => getMinusOp(op, lhs)
       case KtTokens.PLUSPLUS | KtTokens.MINUSMINUS =>
-        val binOp = getBinaryOp(op, lhs)
+        val binOp = getIncDecOp(op, lhs)
         d match {
           case _: KtPrefixExpression =>
             Block(Assign(lhs, binOp), lhs)
@@ -35,7 +35,7 @@ case class GenUnary(d: KtUnaryExpression)(implicit val c: TranslationContext) ex
 
 object GenUnary {
 
-  private def getUnaryOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
+  private def getMinusOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
     val unOp = op match {
       case KtTokens.MINUS => "MINUS"
       case o => sys.error(s"Not found UnaryOp: $o")
@@ -43,7 +43,7 @@ object GenUnary {
     BinaryOp(GenBinary.getBinaryOp(unOp, lhs.tpe), getLiteral(0, lhs.tpe), lhs)
   }
 
-  private def getBinaryOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
+  private def getIncDecOp(op: IElementType, lhs: Tree)(implicit pos: Position) = {
     val binOp = op match {
       case KtTokens.PLUSPLUS => "PLUS"
       case KtTokens.MINUSMINUS => "MINUS"

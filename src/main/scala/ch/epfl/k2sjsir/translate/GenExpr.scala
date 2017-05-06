@@ -52,6 +52,8 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case call: KtCallExpression =>
             val resolved = CallUtilKt.getResolvedCall(call, c.bindingContext())
             val desc = resolved.getResultingDescriptor
+            val ext = desc.getDispatchReceiverParameter //TODO: Handle dispatch receiver
+            val extType = ext.getValue.getType
             val tpe = desc.getReturnType.toJsType
             if (GenUnary.isUnaryOp(desc.getName.asString())) {
               val op = GenUnary.convertToOp(receiver.tpe, tpe)
