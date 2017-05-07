@@ -96,12 +96,12 @@ object GenBinary {
   private def isLongSpecial(op: BinaryOp.Code): Boolean =
     op == BinaryOp.Long_<< || op == BinaryOp.Long_>> || op == BinaryOp.Long_>>>
 
-  private def intToLong(t: Tree) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
+  private def intToLong(t: Tree)(implicit p: Position) = if (isLongType(t.tpe)) t else UnaryOp(UnaryOp.IntToLong, t)
 
-  private def longToInt(t: Tree) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
+  private def longToInt(t: Tree)(implicit p: Position) = if (isIntType(t.tpe)) t else UnaryOp(UnaryOp.LongToInt, t)
 
   /* Convert arg to the correct type for it to be us by the binary op */
-  private def convertArg(op: BinaryOp.Code, tree: Tree, t: Type, returnType: Type) = {
+  private def convertArg(op: BinaryOp.Code, tree: Tree, t: Type, returnType: Type)(implicit p: Position) = {
     val notLong = {
       if (!isLongType(t)) tree
       else if (isLongSpecial(op)) UnaryOp(UnaryOp.LongToInt, tree)
