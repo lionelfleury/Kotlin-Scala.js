@@ -7,6 +7,7 @@ import org.jetbrains.kotlin.js.translate.utils.PsiUtils.getPrimaryConstructorPar
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.psi._
+import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt._
 import org.scalajs.core.ir.ClassKind

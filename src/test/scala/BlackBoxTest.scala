@@ -22,7 +22,7 @@ trait BlackBoxTest extends FunSuite with BeforeAndAfter with BeforeAndAfterAll {
   }
 
   after {
-    cleanOutput(new File(ROOT_OUT))
+    //cleanOutput(new File(ROOT_OUT))
   }
 
   protected def assertIrResult(expected: String, srcFile: String, mainClass: String = "Test$") = {

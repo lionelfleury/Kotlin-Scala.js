@@ -6,7 +6,8 @@ import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescr
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
-import org.jetbrains.kotlin.resolve.BindingContext
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
+import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.scalajs.core.ir.Trees._
@@ -34,11 +35,15 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val tpe = c.bindingContext().getType(kn).toJsType
         BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
           case m: PropertyDescriptor =>
-            val recvType = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType).toJsClassType
-            Apply(This()(recvType), m.getterIdent(), List())(tpe)
+            val recv = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType)
+            val isObj = recv.isCompanionObject || DescriptorUtils.isObject(recv)
+            if(isObj) Apply(LoadModule(recv.toJsClassType), m.getterIdent(), List())(tpe)
+            else if(DescriptorUtils.isLocal(m)) VarRef(m.toJsIdent)(recv.toJsClassType)
+            else This()(recv.toJsClassType)
           case _: LocalVariableDescriptor | _: ValueParameterDescriptor =>
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
+          case lc: LazyClassDescriptor => LoadModule(lc.toJsClassType)
           case _ =>
             notImplemented
         }
@@ -63,7 +68,14 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
                 resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
               Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
             }
-          case _ => notImplemented
+          case kn: KtNameReferenceExpression =>
+            val tpe = c.bindingContext().getType(kn).toJsType
+            BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
+              case m: PropertyDescriptor => Apply(receiver, m.getterIdent(), List())(tpe)
+              case _ => notImplemented
+            }
+          case _ =>
+            notImplemented
         }
       case k: KtUnaryExpression => GenUnary(k).tree
       case k: KtTryExpression =>
@@ -79,6 +91,11 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val tc = catches.foldLeft(content) { case (b, (p, h)) => TryCatch(b, p.ident, h)(b.tpe) }
         if (fnl.nonEmpty) TryFinally(tc, fnl.get) else tc
       case k: KtThrowExpression => Throw(GenExpr(k.getThrownExpression).tree)
+      case k: KtIfExpression =>
+        val cond = GenExpr(k.getCondition).tree
+        val thenB = GenExpr(k.getThen).tree
+        val elseB = Option(k.getElse).map(x => GenExpr(x).tree)
+        If(cond, thenB, elseB.getOrElse(Skip()))(thenB.tpe)
       case _ => notImplemented
     }
   }

@@ -99,6 +99,15 @@ class BlackBoxSimpleTests extends BlackBoxTest {
     assertExecResult(result, "TestEqualities.kt")
   }
 
+  test("TestIf.kt") {
+    assertExecResult(
+      """
+        |1
+        |1
+        |1
+      """.stripMargin, "TestIf.kt")
+  }
+
   test("TestNullable.kt") {
     assertExecResult(
       """7
