@@ -25,14 +25,8 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
 
     if (op == KtTokens.ELVIS)
       translateElvis(lhs, rhs)
-    else if (AssignmentTranslator.isAssignmentOperator(op)) op match {
-      case KtTokens.PLUSEQ | KtTokens.MINUSEQ | KtTokens.MULTEQ | KtTokens.DIVEQ | KtTokens.PERCEQ =>
-        val code = op.toString.replaceAll("[T]?EQ", "")
-        val binOp = getBinaryOp(code, tpe)
-        Assign(lhs, BinaryOp(binOp, lhs, rhs))
-      case KtTokens.EQ => GenAssign(d).tree
-      case _ => notImplemented
-    } else if (isNotOverloadable(op)) {
+    else if (AssignmentTranslator.isAssignmentOperator(op)) GenAssign(d).tree
+    else if (isNotOverloadable(op)) {
       val binOp = getBinaryOp(op.toString, lhs.tpe)
       BinaryOp(binOp, lhs, rhs)
     } else if (isCompareToCall(op, desc)) {

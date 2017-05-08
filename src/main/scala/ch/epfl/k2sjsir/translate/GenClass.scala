@@ -139,7 +139,6 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
     val primary = desc.getUnsubstitutedPrimaryConstructor
     val args = primary.getValueParameters.asScala.map(_.toJsParamDef).toList
-    primary.getValueParameters.asScala.foreach(x => println(x.getName.toString))
 
     val stats = Block(superCall :: paramsInit ++ declsInit)
     MethodDef(static = false, primary.toJsMethodIdent, args, NoType, Some(stats))(optimizerHints, None)

@@ -204,7 +204,14 @@ class BlackBoxSimpleTests extends BlackBoxTest {
   }
 
   test("TestVarIncrease.kt") {
-    assertExecResult("30", "TestVarIncrease.kt")
+    assertExecResult(
+      """
+        |30
+        |16
+        |60
+        |60
+        |6
+      """.stripMargin, "TestVarIncrease.kt")
   }
 
 
