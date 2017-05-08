@@ -31,14 +31,12 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
           Apply(rec, method, args)(tpe)
         }
         else if (GenArray.isArrayOps(desc)) GenArray(d, args).tree
-        else
-          notImplemented
+        else notImplemented
       case cc: ClassConstructorDescriptor =>
-        New(cc.getContainingDeclaration.toJsClassType, desc.toJsMethodIdent, args)
+        val ctpe = if(cc.getContainingDeclaration.getName.toString == "Exception") ClassType("jl_Exception")
+        else cc.getContainingDeclaration.toJsClassType
+        New(ctpe, desc.toJsMethodIdent, args)
       case sf: SimpleFunctionDescriptor => notImplemented
-      /*else if (isBinaryOp(name)) GenBinaryOp(d, p).tree
-      else if (isUnaryOp(name)) GenUnaryOp(d, p).tree
-      else genApply(sf, args.toList)*/
       case _ =>
         notImplemented
     }
