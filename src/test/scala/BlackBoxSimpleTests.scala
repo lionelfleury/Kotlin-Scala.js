@@ -60,7 +60,6 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       println(e + f)
     }
     assertExecResult(scalaResult, "TestBinaryOps.kt")
-
   }
 
   test("TestMultipleConstructors.kt") {

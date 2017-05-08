@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
-import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor}
+import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor, VariableDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
@@ -66,6 +66,19 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case _ => notImplemented
         }
       case k: KtUnaryExpression => GenUnary(k).tree
+      case k: KtTryExpression =>
+        val content = GenBody(k.getTryBlock).tree
+        val catches = k.getCatchClauses.asScala.map(ctch => ({
+          val d = ctch.getCatchParameter
+          val ptpe = BindingUtils.getDescriptorForElement(c.bindingContext(), d).asInstanceOf[VariableDescriptor]
+          val tpe = ptpe.getType.toJsType
+          VarRef(Ident(d.getName))(tpe)
+        }, GenBody(ctch.getCatchBody).tree))
+        val fnl = Option(k.getFinallyBlock).map(x => GenBody(x.getFinalExpression).tree)
+
+        val tc = catches.foldLeft(content) { case (b, (p, h)) => TryCatch(b, p.ident, h)(b.tpe) }
+        if (fnl.nonEmpty) TryFinally(tc, fnl.get) else tc
+      case k: KtThrowExpression => Throw(GenExpr(k.getThrownExpression).tree)
       case _ => notImplemented
     }
   }
