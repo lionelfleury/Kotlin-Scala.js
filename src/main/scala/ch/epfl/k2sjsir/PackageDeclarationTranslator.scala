@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir
 import java.{util => ju}
 
 import ch.epfl.k2sjsir.lower.{ClassLowering, SJSIRLower}
-import ch.epfl.k2sjsir.translate.GenClass
+import ch.epfl.k2sjsir.translate.{GenClass, GenFun}
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationRuntimeException
@@ -12,10 +12,11 @@ import org.jetbrains.kotlin.js.translate.declaration.FileDeclarationVisitor
 import org.jetbrains.kotlin.js.translate.general.AbstractTranslator
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.js.translate.utils.{AnnotationsUtils, BindingUtils}
-import org.jetbrains.kotlin.psi.{KtClass, KtClassOrObject, KtFile}
+import org.jetbrains.kotlin.psi._
 import org.scalajs.core.ir.Trees.ClassDef
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 
 object PackageDeclarationTranslator {
@@ -31,7 +32,9 @@ final class PackageDeclarationTranslator private(
   private def translate(): Unit = {
     for (file <- files) {
       try {
-        for (declaration <- new SJSIRLower().lower(file)) {
+        val topLevel = new mutable.MutableList[KtNamedFunction]()
+        val declarations = new SJSIRLower().lower(file)
+        for (declaration <- declarations) {
           if (!AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration)))
             declaration match {
               case d: KtClassOrObject =>
@@ -39,9 +42,11 @@ final class PackageDeclarationTranslator private(
                 val cd = getClassDescriptor(context.bindingContext(), d)
                 val output = context.getConfig.getConfiguration.get(CommonConfigurationKeys.MODULE_NAME)
                 SJSIRCodegen.genIRFile(output, cd, tree)
+              case f: KtNamedFunction => topLevel += f
               case _ => sys.error(s"Not implemented yet: $getClass")
             }
         }
+        topLevel.toList.map(x => GenFun(x)(context).tree)
       } catch {
         case e: TranslationRuntimeException => throw e
         case e: RuntimeException => throw new TranslationRuntimeException(file, e)

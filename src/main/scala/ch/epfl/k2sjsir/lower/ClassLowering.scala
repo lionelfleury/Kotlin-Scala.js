@@ -9,7 +9,7 @@ class ClassLowering {
   def lower(f: KtFile): List[KtDeclaration] = {
     f.getDeclarations.asScala.flatMap {
       case c: KtClassOrObject => lower(c)
-      case _ => sys.error("Should be IrClass!")
+      case x => List(x)
     }.toList
   }
 

@@ -1,16 +1,20 @@
 package ch.epfl.k2sjsir.translate
 
+import ch.epfl.k2sjsir.utils.NameEncoder._
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor, VariableDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
+import org.jetbrains.kotlin.js.translate.reference.AccessTranslationUtils
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
+import org.jetbrains.kotlin.resolve.scopes.receivers.{ExtensionReceiver, ImplicitClassReceiver}
 import org.scalajs.core.ir.Trees._
+import org.scalajs.core.ir.Types.{ClassType, NoType}
 
 import scala.collection.JavaConverters._
 
@@ -39,7 +43,17 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
             val isObj = recv.isCompanionObject || DescriptorUtils.isObject(recv)
             if(isObj) Apply(LoadModule(recv.toJsClassType), m.getterIdent(), List())(tpe)
             else if(DescriptorUtils.isLocal(m)) VarRef(m.toJsIdent)(recv.toJsClassType)
-            else This()(recv.toJsClassType)
+            //else if()
+            else {
+              val a = CallUtilKt.getResolvedCallWithAssert(d, c.bindingContext())
+              a.getDispatchReceiver match {
+                case x: ExtensionReceiver =>
+                  Apply(VarRef(Ident("$this"))(x.getType.toJsType), m.getterIdent(), List())(tpe)
+                case _: ImplicitClassReceiver =>
+                  Apply(This()(recv.toJsClassType), m.getterIdent(), List())(tpe)
+                case _ => notImplemented
+              }
+            }
           case _: LocalVariableDescriptor | _: ValueParameterDescriptor =>
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
@@ -57,16 +71,22 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case call: KtCallExpression =>
             val resolved = CallUtilKt.getResolvedCall(call, c.bindingContext())
             val desc = resolved.getResultingDescriptor
-            val ext = desc.getDispatchReceiverParameter //TODO: Handle dispatch receiver
-            val extType = ext.getValue.getType
+            val args =
+              resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
             val tpe = desc.getReturnType.toJsType
-            if (GenUnary.isUnaryOp(desc.getName.asString())) {
-              val op = GenUnary.convertToOp(receiver.tpe, tpe)
-              op.fold(notImplemented)(UnaryOp(_, receiver))
+
+            if(DescriptorUtils.isExtension(desc)  ) {
+              val ext = desc.getDispatchReceiverParameter //TODO: Handle dispatch receiver
+              val className = getFqName(ext.getContainingDeclaration).asString()
+              val c = ClassType(encodeClassName(className, "$"))
+              Apply(This()(c), desc.toJsMethodIdent, (receiver +: args).toList)(tpe)
             } else {
-              val args =
-                resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
-              Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+              if (GenUnary.isUnaryOp(desc.getName.asString())) {
+                val op = GenUnary.convertToOp(receiver.tpe, tpe)
+                op.fold(notImplemented)(UnaryOp(_, receiver))
+              } else {
+                  Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+              }
             }
           case kn: KtNameReferenceExpression =>
             val tpe = c.bindingContext().getType(kn).toJsType
@@ -96,6 +116,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val thenB = GenExpr(k.getThen).tree
         val elseB = Option(k.getElse).map(x => GenExpr(x).tree)
         If(cond, thenB, elseB.getOrElse(Skip()))(thenB.tpe)
+      case k: KtReturnExpression => GenExpr(k.getReturnedExpression).tree
       case _ => notImplemented
     }
   }

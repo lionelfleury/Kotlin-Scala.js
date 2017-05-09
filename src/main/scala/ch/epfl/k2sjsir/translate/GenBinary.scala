@@ -19,8 +19,8 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
   override def tree: Tree = {
     val desc = getCallableDescriptorForOperationExpression(c.bindingContext(), d)
     val op = getOperationToken(d)
-    lazy val lhs = GenExpr(d.getLeft).tree
-    lazy val rhs = GenExpr(d.getRight).tree
+    val lhs = GenExpr(d.getLeft).tree
+    val rhs = GenExpr(d.getRight).tree
     val tpe = if (desc != null) desc.getReturnType.toJsType else lhs.tpe
 
     if (op == KtTokens.ELVIS)
