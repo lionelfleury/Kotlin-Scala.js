@@ -1,13 +1,14 @@
 package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.Utils._
+import kotlin.reflect.jvm.internal.impl.resolve.scopes.receivers.ImplicitClassReceiver
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassConstructorDescriptor, SimpleFunctionDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
-import org.jetbrains.kotlin.resolve.scopes.receivers.ReceiverValue
+import org.jetbrains.kotlin.resolve.scopes.receivers.{ExpressionReceiver, ExtensionReceiver, ReceiverValue}
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ClassType, NoType}
@@ -38,16 +39,29 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
         else cc.getContainingDeclaration.toJsClassType
         New(ctpe, desc.toJsMethodIdent, args)
       case sf: SimpleFunctionDescriptor =>
+        val dr = desc.getDispatchReceiverParameter
         if(DescriptorUtils.isExtension(desc)) {
-          val dr = desc.getDispatchReceiverParameter
           Apply(
             This()(ClassType(getFqName(dr.getContainingDeclaration).asString())),
             desc.toJsMethodIdent,
-            List(
-              VarRef(dr.toJsIdent)(dr.getType.toJsType)
-            ))(rtpe)
-        } else
+            VarRef(dr.toJsIdent)(dr.getType.toJsType) :: args
+          )(rtpe)
+        } else {
+          val a = resolved.getDispatchReceiver
+          a match {
+            case i: ImplicitClassReceiver => notImplemented
+            case e: ExtensionReceiver =>
+              e.getDeclarationDescriptor
+            case e: ExpressionReceiver => GenExpr(e.getExpression).tree
+            case _ => notImplemented
+          }
+          /*Apply(
+            ,
+            desc.toJsMethodIdent,
+            args
+          )*/
           notImplemented
+        }
       case _ =>
         notImplemented
     }
