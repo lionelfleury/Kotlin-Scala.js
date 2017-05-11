@@ -59,14 +59,22 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
   }
 
   def genExtensionCall(receiver: Tree) = {
-    val ext = desc.getDispatchReceiverParameter //TODO: Handle dispatch receiver
-    val cnt = ext.getContainingDeclaration
-    val className = getFqName(cnt).asString()
-    val suffix =
-      if(DescriptorUtils.isObject(cnt) || DescriptorUtils.isCompanionObject(cnt)) "$"
-      else ""
-    val c = ClassType(encodeClassName(className, suffix))
-    Apply(This()(c), desc.toJsMethodIdent, receiver :: args)(rtpe)
+    val ext = desc.getDispatchReceiverParameter
+    if (null != ext) {
+      val cnt = ext.getContainingDeclaration
+
+      val className = getFqName(cnt).asString()
+      val suffix =
+        if (DescriptorUtils.isObject(cnt) || DescriptorUtils.isCompanionObject(cnt)) "$"
+        else ""
+      val c = ClassType(encodeClassName(className, suffix))
+      Apply(This()(c), desc.toJsMethodIdent, receiver :: args)(rtpe)
+    } else {
+      val o = desc.getExtensionReceiverParameter
+      val cnt = o.getContainingDeclaration
+      notImplemented
+
+    }
   }
 
 }

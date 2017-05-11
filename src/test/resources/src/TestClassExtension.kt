@@ -1,12 +1,6 @@
-/*fun String.count(): Int {
-    return length
-}
-
-fun String.manyCount(other: String): Int {
-    return count() + other.count()
-}*/
-
-
+/**
+ * Example taken from kotlin website (https://kotlinlang.org/docs/reference/extensions.html)
+ */
 class D {
     fun bar() { println("D.bar") }
 }
@@ -15,12 +9,12 @@ class C {
     fun baz() { println("C.baz") }
 
     fun D.foo() {
-        bar()   // calls D.bar
-        baz()   // calls C.baz
+        bar()
+        baz()
     }
 
     fun caller(d: D) {
-        d.foo()   // call the extension function
+        d.foo()
     }
 }
 
@@ -35,18 +29,14 @@ object Test {
     }
 
     fun main() {
-        val a : String = "Toto"
-        val other: String = "Titito"
+        val content = "Toto"
+        val otherContent = "Titito"
 
-        /*val c = a.count2()
-        println(c)*/
-        /*val d = a.manyCount(other)*/
-        //val e = a.manyCount2(other, other)
+        val doubleLength = content.count2()
+        println(doubleLength)
+        val mixLengths = content.manyCount2(otherContent, otherContent)
 
-        //println(b)
-        //println(c)
-        /*println(d)*/
-        //println(e)
+        println(mixLengths)
 
         val c = C()
         val d = D()
@@ -54,7 +44,5 @@ object Test {
         c.caller(d)
 
     }
-
-
 
 }

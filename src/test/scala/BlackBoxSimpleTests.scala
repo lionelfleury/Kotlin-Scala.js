@@ -128,11 +128,19 @@ class BlackBoxSimpleTests extends BlackBoxTest {
   test("TestClassExtension.kt") {
     assertExecResult(
       """
-        |4
         |8
-        |8
-        |16
+        |32
+        |D.bar
+        |C.baz
       """.stripMargin, "TestClassExtension.kt")
+  }
+
+  test("TestTopClassExtension.kt") {
+    assertExecResult(
+      """
+        |4
+        |10
+      """.stripMargin, "TestTopClassExtension.kt")
   }
 
   test("TestStringConcat.kt") {
