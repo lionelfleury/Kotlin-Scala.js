@@ -43,12 +43,12 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
             val isObj = recv.isCompanionObject || DescriptorUtils.isObject(recv)
             if(isObj) Apply(LoadModule(recv.toJsClassType), m.getterIdent(), List())(tpe)
             else if(DescriptorUtils.isLocal(m)) VarRef(m.toJsIdent)(recv.toJsClassType)
-            //else if()
             else {
               val a = CallUtilKt.getResolvedCallWithAssert(d, c.bindingContext())
               a.getDispatchReceiver match {
                 case x: ExtensionReceiver =>
-                  Apply(VarRef(Ident("$this"))(x.getType.toJsType), m.getterIdent(), List())(tpe)
+                  val ref = VarRef(x.getDeclarationDescriptor.getDispatchReceiverParameter.toJsIdent)(x.getType.toJsType)
+                  Apply(ref, m.getterIdent(), List())(tpe)
                 case _: ImplicitClassReceiver =>
                   Apply(This()(recv.toJsClassType), m.getterIdent(), List())(tpe)
                 case _ => notImplemented
@@ -75,19 +75,12 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
             val tpe = desc.getReturnType.toJsType
 
-            if(DescriptorUtils.isExtension(desc)  ) {
-              val ext = desc.getDispatchReceiverParameter //TODO: Handle dispatch receiver
-              val className = getFqName(ext.getContainingDeclaration).asString()
-              val c = ClassType(encodeClassName(className, "$"))
-              Apply(This()(c), desc.toJsMethodIdent, (receiver +: args).toList)(tpe)
-            } else {
-              if (GenUnary.isUnaryOp(desc.getName.asString())) {
-                val op = GenUnary.convertToOp(receiver.tpe, tpe)
-                op.fold(notImplemented)(UnaryOp(_, receiver))
-              } else {
-                  Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
-              }
+            if (GenUnary.isUnaryOp(desc.getName.asString())) {
+              val op = GenUnary.convertToOp(receiver.tpe, tpe)
+              op.fold(notImplemented)(UnaryOp(_, receiver))
             }
+            else if(DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
+            else Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
           case kn: KtNameReferenceExpression =>
             val tpe = c.bindingContext().getType(kn).toJsType
             BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
