@@ -112,7 +112,8 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val thenB = GenExpr(k.getThen).tree
         val elseB = Option(k.getElse).map(x => GenExpr(x).tree)
         If(cond, thenB, elseB.getOrElse(Skip()))(thenB.tpe)
-      case k: KtReturnExpression => GenExpr(k.getReturnedExpression).tree
+      case k: KtReturnExpression => Return(GenExpr(k.getReturnedExpression).tree)
+      case k: KtWhenExpression => GenWhen(k).tree
       case _ => notImplemented
     }
   }
