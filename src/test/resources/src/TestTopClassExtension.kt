@@ -2,9 +2,9 @@
     return length
 }*/
 
+fun String.count() = length
 fun String.manyCount(other: String): Int {
-    //return count() + other.count()
-    return 1
+    return count() + other.count()
 }
 
 object Test {
@@ -14,10 +14,8 @@ object Test {
         val content = "Toto"
         val otherContent = "Titito"
 
-/*        val length = content.count()
-        val sumLength = content.manyCount(otherContent)
 
-        println(conesttent)
-        println(otherContent)*/
+        val sumLength = content.manyCount(otherContent)
+        println(sumLength)
     }
 }

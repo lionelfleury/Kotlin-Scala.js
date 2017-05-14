@@ -1,8 +1,10 @@
 package ch.epfl.k2sjsir.translate
 
+import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassConstructorDescriptor, SimpleFunctionDescriptor}
+import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.resolve.DescriptorUtils
@@ -38,7 +40,7 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
         else cc.getContainingDeclaration.toJsClassType
         New(ctpe, desc.toJsMethodIdent, args)
       case sf: SimpleFunctionDescriptor =>
-        val dr = desc.getDispatchReceiverParameter
+        val dr = Option(desc.getDispatchReceiverParameter).getOrElse(desc.getExtensionReceiverParameter)
         if(DescriptorUtils.isExtension(desc)) genExtensionCall(VarRef(dr.toJsIdent)(dr.getType.toJsType))
         else {
           val receiver = resolved.getDispatchReceiver match {
@@ -72,8 +74,10 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
     } else {
       val o = desc.getExtensionReceiverParameter
       val cnt = o.getContainingDeclaration
-      notImplemented
+      val name = JvmFileClassUtil.getFileClassInfoNoResolve(d.getContainingKtFile).getFileClassFqName.asString()
+      val encodedName = NameEncoder.encodeClassName(name, "")
 
+      ApplyStatic(ClassType(encodedName), desc.toJsMethodIdent, receiver :: args)(rtpe)
     }
   }
 

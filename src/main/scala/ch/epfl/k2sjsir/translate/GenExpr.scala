@@ -47,7 +47,10 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               val a = CallUtilKt.getResolvedCallWithAssert(d, c.bindingContext())
               a.getDispatchReceiver match {
                 case x: ExtensionReceiver =>
-                  val ref = VarRef(x.getDeclarationDescriptor.getDispatchReceiverParameter.toJsIdent)(x.getType.toJsType)
+                  val receiver =
+                    Option(x.getDeclarationDescriptor.getDispatchReceiverParameter)
+                      .getOrElse(x.getDeclarationDescriptor.getExtensionReceiverParameter)
+                  val ref = VarRef(receiver.toJsIdent)(x.getType.toJsType)
                   Apply(ref, m.getterIdent(), List())(tpe)
                 case _: ImplicitClassReceiver =>
                   Apply(This()(recv.toJsClassType), m.getterIdent(), List())(tpe)

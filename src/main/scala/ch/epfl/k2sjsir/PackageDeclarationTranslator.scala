@@ -7,6 +7,7 @@ import ch.epfl.k2sjsir.translate.{GenClass, GenFun}
 import ch.epfl.k2sjsir.utils.NameEncoder
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
+import org.jetbrains.kotlin.diagnostics.DiagnosticUtils
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.js.facade.exceptions.TranslationRuntimeException
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
@@ -15,7 +16,8 @@ import org.jetbrains.kotlin.js.translate.general.AbstractTranslator
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.js.translate.utils.{AnnotationsUtils, BindingUtils}
 import org.jetbrains.kotlin.psi._
-import org.scalajs.core.ir.Trees.ClassDef
+import org.scalajs.core.ir.{ClassKind, Position}
+import org.scalajs.core.ir.Trees.{ClassDef, Ident, OptimizerHints}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -32,6 +34,8 @@ final class PackageDeclarationTranslator private(
                                                   override val context: TranslationContext
                                                 ) extends AbstractTranslator(context) {
   private def translate(): Unit = {
+    val output = context.getConfig.getConfiguration.get(CommonConfigurationKeys.MODULE_NAME)
+
     for (file <- files) {
       try {
         val topLevel = new mutable.MutableList[KtNamedFunction]()
@@ -42,8 +46,7 @@ final class PackageDeclarationTranslator private(
               case d: KtClassOrObject =>
                 val tree = GenClass(d)(context).tree
                 val cd = getClassDescriptor(context.bindingContext(), d)
-                val output = context.getConfig.getConfiguration.get(CommonConfigurationKeys.MODULE_NAME)
-                SJSIRCodegen.genIRFile(output, cd, tree)
+                 SJSIRCodegen.genIRFile(output, cd, tree)
               case f: KtNamedFunction =>
                 topLevel += f
               case _ => sys.error(s"Not implemented yet: $getClass")
@@ -52,9 +55,12 @@ final class PackageDeclarationTranslator private(
         }
         if (topLevel.nonEmpty) {
           val defs = topLevel.toList.map(x => GenFun(x)(context).tree)
+          val pos = Position(Position.SourceFile(file.getName), 0, 0)
+
           val name = JvmFileClassUtil.getFileClassInfoNoResolve(file).getFileClassFqName.asString()
           val encodedName = NameEncoder.encodeClassName(name, "")
-
+          val cls = ClassDef(Ident(encodedName)(pos), ClassKind.Class, None, List(), None, defs)(OptimizerHints.empty)(pos)
+          SJSIRCodegen.genIRFile(output, name, cls)
         }
       } catch {
         case e: TranslationRuntimeException => throw e

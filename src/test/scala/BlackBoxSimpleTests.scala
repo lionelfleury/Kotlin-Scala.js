@@ -138,7 +138,6 @@ class BlackBoxSimpleTests extends BlackBoxTest {
   test("TestTopClassExtension.kt") {
     assertExecResult(
       """
-        |4
         |10
       """.stripMargin, "TestTopClassExtension.kt")
   }
