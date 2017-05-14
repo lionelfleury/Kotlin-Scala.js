@@ -108,15 +108,15 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestIf.kt")
   }
 
-  test("TestNullable.kt") {
-    assertExecResult(
-      """7
-        |7
-        |null
-        |7
-        |-1
-        |NonNullnull""".stripMargin, "TestNullable.kt")
-  }
+//  test("TestNullable.kt") {
+//    assertExecResult(
+//      """7
+//        |7
+//        |null
+//        |7
+//        |-1
+//        |NonNullnull""".stripMargin, "TestNullable.kt")
+//  }
 
 
   test("TestTryCatch.kt") {
@@ -146,9 +146,9 @@ class BlackBoxSimpleTests extends BlackBoxTest {
     assertExecResult("5 Hello World", "TestStringConcat.kt")
   }
 
-  test("TestAnonClass.kt") {
-    assertExecResult("Hello World", "TestAnonClass.kt")
-  }
+//  test("TestAnonClass.kt") {
+//    assertExecResult("Hello World", "TestAnonClass.kt")
+//  }
 
 
   test("TestGenParentConstructor.kt") {
@@ -167,48 +167,48 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestAssignationOrder.kt")
   }
 
-  test("TestHighFunction.kt") {
-    assertExecResult(
-      """
-        |12
-        |5
-        |10
-        |11
-        |true
-        |4
-        |21
-        |1
-      """.stripMargin, "TestHighOrderFunction.kt")
-  }
+//  test("TestHighFunction.kt") {
+//    assertExecResult(
+//      """
+//        |12
+//        |5
+//        |10
+//        |11
+//        |true
+//        |4
+//        |21
+//        |1
+//      """.stripMargin, "TestHighOrderFunction.kt")
+//  }
 
-  test("TestLambdaTopLevel.kt") {
-    assertExecResult(
-      """
-        |11
-      """.stripMargin, "TestLambdaTopLevel.kt")
-  }
+//  test("TestLambdaTopLevel.kt") {
+//    assertExecResult(
+//      """
+//        |11
+//      """.stripMargin, "TestLambdaTopLevel.kt")
+//  }
 
-  test("TestTypeCast.kt") {
-    assertExecResult(
-      """
-        |15
-        |12.5
-      """.stripMargin, "TestTypeCast.kt")
-  }
+//  test("TestTypeCast.kt") {
+//    assertExecResult(
+//      """
+//        |15
+//        |12.5
+//      """.stripMargin, "TestTypeCast.kt")
+//  }
 
-  test("TestArrays.kt") {
-    val result = consoleToString {
-      val a = Seq(1, 2, 3, 12.5)
-      printlnJSFormat(a(0))
-      printlnJSFormat(a(3))
-      printlnJSFormat(a.size)
-      a.foreach(printlnJSFormat)
-
-      val b = Seq(12, 42)
-      b.foreach(println)
-    }
-    assertExecResult(result, "TestArrays.kt")
-  }
+//  test("TestArrays.kt") {
+//    val result = consoleToString {
+//      val a = Seq(1, 2, 3, 12.5)
+//      printlnJSFormat(a(0))
+//      printlnJSFormat(a(3))
+//      printlnJSFormat(a.size)
+//      a.foreach(printlnJSFormat)
+//
+//      val b = Seq(12, 42)
+//      b.foreach(println)
+//    }
+//    assertExecResult(result, "TestArrays.kt")
+//  }
 
   test("TestVarIncrease.kt") {
     assertExecResult(

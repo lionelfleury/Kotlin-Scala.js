@@ -23,8 +23,7 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
     val rhs = GenExpr(d.getRight).tree
     val tpe = if (desc != null) desc.getReturnType.toJsType else lhs.tpe
 
-    if (op == KtTokens.ELVIS)
-      translateElvis(lhs, rhs)
+    if (op == KtTokens.ELVIS) translateElvis(lhs, rhs)
     else if (AssignmentTranslator.isAssignmentOperator(op)) GenAssign(d).tree
     else if (isNotOverloadable(op)) {
       val binOp = getBinaryOp(op.toString, lhs.tpe)

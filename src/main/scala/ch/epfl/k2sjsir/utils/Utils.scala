@@ -126,7 +126,7 @@ object Utils {
     "kotlin.Long" -> LongType,
     "kotlin.Double" -> DoubleType,
     "kotlin.Null" -> NullType,
-    "kotlin.String" -> ClassType("T"),
+    "kotlin.String" -> StringType,
     "kotlin.Throwable" -> AnyType,
     "kotlin.Comparable" -> AnyType
   )

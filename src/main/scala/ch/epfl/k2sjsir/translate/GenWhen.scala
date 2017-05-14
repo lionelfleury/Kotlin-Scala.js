@@ -44,7 +44,7 @@ case class GenWhen(d: KtWhenExpression)(implicit val c: TranslationContext) exte
       val cond = genConditions(sub)(h.getConditions.toList)
       val exp = GenExpr(h.getExpression).tree
       If(cond, exp, genWhenEntry(sub)(t))(exp.tpe)
-    case _ => notImplemented
+    case _ => Undefined()
   }
 
   private def isNegated(condition: KtWhenCondition) = condition match {
