@@ -61,6 +61,10 @@ object Utils {
     def toJsInternal: String = toInternal(t.toJsType)
   }
 
+  implicit class PropertyAccessor(d: PropertyDescriptor)(implicit pos: Position) {
+    def getterIdent(): Ident = NameEncoder.encodeMethodIdent(d)
+  }
+
   def getName(tpe: KotlinType): String = {
     val desc = tpe.getConstructor.getDeclarationDescriptor
     if (TypeUtils.isTypeParameter(tpe)) {
@@ -122,8 +126,9 @@ object Utils {
     "kotlin.Long" -> LongType,
     "kotlin.Double" -> DoubleType,
     "kotlin.Null" -> NullType,
-    "kotlin.String" -> ClassType("T"),
-    "kotlin.Throwable" -> AnyType
+    "kotlin.String" -> StringType,
+    "kotlin.Throwable" -> AnyType,
+    "kotlin.Comparable" -> AnyType
   )
 
   private def toInternal(t: Type): String = t match {

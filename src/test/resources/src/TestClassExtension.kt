@@ -1,9 +1,21 @@
-fun String.count(): Int {
-    return length
+/**
+ * Example taken from kotlin website (https://kotlinlang.org/docs/reference/extensions.html)
+ */
+class D {
+    fun bar() { println("D.bar") }
 }
 
-fun String.manyCount(other: String): Int {
-    return count() + other.count()
+class C {
+    fun baz() { println("C.baz") }
+
+    fun D.foo() {
+        bar()
+        baz()
+    }
+
+    fun caller(d: D) {
+        d.foo()
+    }
 }
 
 object Test {
@@ -12,22 +24,25 @@ object Test {
         return length * 2
     }
 
-    fun String.manyCount2(other: String): Int {
-        return count2() + other.count2()
+    fun String.manyCount2(other: String, other1: String): Int {
+        return count2() + other.count2() + other1.count2()
     }
 
     fun main() {
-        val a : String = "Toto"
-        val other: String = "Titi"
+        val content = "Toto"
+        val otherContent = "Titito"
 
-        val b = a.count()
-        val c = a.count2()
-        val d = a.manyCount(other)
-        val e = a.manyCount2(other)
+        val doubleLength = content.count2()
+        println(doubleLength)
+        val mixLengths = content.manyCount2(otherContent, otherContent)
 
-        println(b)
-        println(c)
-        println(d)
-        println(e)
+        println(mixLengths)
+
+        val c = C()
+        val d = D()
+
+        c.caller(d)
+
     }
+
 }

@@ -72,10 +72,18 @@ case class GenCall(d: IrCall, p: Positioner) extends Gen[IrCall] {
     if (isArrayOps(d)) GenArrayOps(d, p, args).tree
     else if (static) {
       val n = desc.getContainingDeclaration match {
-        case _: BuiltInsPackageFragment | _: LazyJavaPackageFragment =>
-          getClassDescriptorForType(desc.getReturnType).toJsClassName
+        case d: LazyJavaPackageFragment =>
+          val namw = d.getSource.getContainingFile
+          NameEncoder.encodeWithSourceFile(desc)
+        case _: BuiltInsPackageFragment  =>
+          val name = DescriptorUtils.getContainingClass(desc)
+
+          val name2 = DescriptorUtils.getContainingSourceFile(desc)
+          NameEncoder.encodeWithSourceFile(desc)
+//          getClassDescriptorForType(desc.getReturnType).toJsClassName
         case c: ClassDescriptor => c.toJsClassName
-        case p: LazyPackageDescriptor => NameEncoder.encodeWithSourceFile(desc)
+        case p: LazyPackageDescriptor =>
+          NameEncoder.encodeWithSourceFile(desc)
         case e => throw new Error(s"Not implemented yet: $e")
       }
       if (n.endsWith("Kt")) {

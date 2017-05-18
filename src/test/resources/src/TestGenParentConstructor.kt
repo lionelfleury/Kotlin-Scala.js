@@ -4,9 +4,9 @@ object Test {
         fun display() { println("$a $b") }
     }
 
-    class Down(a: Int) : Up(a, 1) {
-
+    class Down(c: Int) : Up(c, 1) {
     }
+
     fun main() {
         val a = Down(5)
         a.display()
