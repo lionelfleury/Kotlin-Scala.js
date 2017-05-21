@@ -137,6 +137,10 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
           case _ => notImplemented
         }
       case l: KtLambdaExpression => genLambda(l)
+      case w: KtWhileExpression =>
+        val body = GenBody(w.getBody).tree
+        val cond = GenExpr(w.getCondition).tree
+        While(cond, body)
       case _ => notImplemented
     }
   }
@@ -151,6 +155,18 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         Some(Assign(ArraySelect(receiver, args.head)(args(1).tpe), args(1)))
       case "size" =>
         Some(ArrayLength(receiver))
+      case "iterator" =>
+        /*val resolved = CallUtilKt.getResolvedCall(d, c.bindingContext())
+        val desc = resolved.getResultingDescriptor
+        val ctpe = desc.getReturnType.toJsClassType
+        val (s, tpe) =
+          if (ctpe.className == "Lkotlin_collections_Iterator") ("", "AO")
+          else ("s", resolved.getDispatchReceiver.getType.toJsInternal)
+        val clazz = ClassType(s"Lkotlin_jvm_internal_ArrayIterator${s}Kt")
+        val method = Ident(s"iterator__AO__${ctpe.className}")
+        println(clazz + " " + method + " " + ctpe)
+        Some(ApplyStatic(clazz, method, List(receiver))(ctpe))*/
+        notImplemented
       case _ => None
     }
   }
