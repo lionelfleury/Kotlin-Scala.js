@@ -4,7 +4,7 @@ import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
 import org.jetbrains.kotlin.descriptors.{ClassDescriptor, DeclarationDescriptor, PropertyDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
-import org.jetbrains.kotlin.js.translate.reference.{AccessTranslationUtils, BackingFieldAccessTranslator, VariableAccessTranslator}
+import org.jetbrains.kotlin.js.translate.reference.{AccessTranslationUtils, ArrayAccessTranslator, BackingFieldAccessTranslator, VariableAccessTranslator}
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils._
 import org.jetbrains.kotlin.js.translate.utils.PsiUtils._
 import org.jetbrains.kotlin.lexer.KtTokens
@@ -58,8 +58,10 @@ case class GenAssign(d: KtBinaryExpression)(implicit val c: TranslationContext) 
                 case KtTokens.EQ =>
                   Assign(VarRef(l.toJsIdent)(l.getType.toJsType), right)
               }
-
           }
+        case a: ArrayAccessTranslator =>
+          if(d.getOperationToken == KtTokens.EQ) Assign(GenExpr(left).tree, right)
+          else ArraySelect(GenExpr(left).tree, right)(tpe)
       }
     }
   }
