@@ -49,7 +49,8 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
             case e: ExpressionReceiver => GenExpr(e.getExpression).tree
             case _ => notImplemented
           }
-          Apply(receiver, desc.toJsMethodIdent, args)(rtpe)
+          val name = if(desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
+          Apply(receiver, name, args)(rtpe)
         }
       case _ =>
         notImplemented
@@ -60,7 +61,7 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
     resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
   }
 
-  def genExtensionCall(receiver: Tree) = {
+  def genExtensionCall(receiver: Tree) : Tree = {
     val ext = desc.getDispatchReceiverParameter
     if (null != ext) {
       val cnt = ext.getContainingDeclaration

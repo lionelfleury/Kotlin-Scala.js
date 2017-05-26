@@ -1,20 +1,20 @@
 package ch.epfl.k2sjsir.translate
 
-import ch.epfl.k2sjsir.utils.NameEncoder._
+import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
-import org.jetbrains.kotlin.descriptors.{PropertyDescriptor, ValueParameterDescriptor, VariableDescriptor}
+import org.jetbrains.kotlin.descriptors.{FunctionDescriptor, PropertyDescriptor, ValueParameterDescriptor, VariableDescriptor}
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
-import org.jetbrains.kotlin.js.translate.reference.AccessTranslationUtils
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
-import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
-import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
+import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.{ExtensionReceiver, ImplicitClassReceiver}
+import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
+import org.scalajs.core.ir.Trees
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ClassType, NoType}
+import org.scalajs.core.ir.Types.{ArrayType, ClassType, Type}
 
 import scala.collection.JavaConverters._
 
@@ -36,9 +36,9 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val desc = c.bindingContext().get(BindingContext.VARIABLE, kp)
         VarDef(desc.toJsIdent, expr.tpe, kp.isVar, expr)
       case kn: KtNameReferenceExpression =>
-        val tpe = c.bindingContext().getType(kn).toJsType
         BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
           case m: PropertyDescriptor =>
+            val tpe = c.bindingContext().getType(kn).toJsType
             val recv = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType)
             val isObj = recv.isCompanionObject || DescriptorUtils.isObject(recv)
             if(isObj) Apply(LoadModule(recv.toJsClassType), m.getterIdent(), List())(tpe)
@@ -57,7 +57,12 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
                 case _ => notImplemented
               }
             }
-          case _: LocalVariableDescriptor | _: ValueParameterDescriptor =>
+          case lv: LocalVariableDescriptor =>
+            val tpe = lv.getType.toJsType
+            val ident = Ident(kn.getReferencedNameAsName.toString)
+            VarRef(ident)(tpe)
+          case vd: ValueParameterDescriptor =>
+            val tpe = vd.getType.toJsType
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
           case lc: LazyClassDescriptor => LoadModule(lc.toJsClassType)
@@ -70,25 +75,36 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case k: KtForExpression => GenFor(k).tree
       case k: KtDotQualifiedExpression =>
         val receiver = GenExpr(k.getReceiverExpression).tree
+        val isArray = receiver.tpe.isInstanceOf[ArrayType]
         k.getSelectorExpression match {
           case call: KtCallExpression =>
             val resolved = CallUtilKt.getResolvedCall(call, c.bindingContext())
             val desc = resolved.getResultingDescriptor
             val args =
-              resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree)
+              resolved.getCall.getValueArguments.asScala.map(x => GenExpr(x.getArgumentExpression).tree).toList
             val tpe = desc.getReturnType.toJsType
-            if (GenUnary.isUnaryOp(desc.getName.asString())) {
-              val op = GenUnary.convertToOp(receiver.tpe, tpe)
-              op.fold(notImplemented)(UnaryOp(_, receiver))
-            }
-            else if(DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
-            else Apply(receiver, desc.toJsMethodIdent, args.toList)(tpe)
+
+            val ao = if(isArray) arrayOps(receiver, tpe, desc.getName.asString(), args) else None
+            ao.getOrElse({
+              if (GenUnary.isUnaryOp(desc.getName.asString())) {
+                val op = GenUnary.convertToOp(receiver.tpe, tpe)
+                op.fold(notImplemented)(UnaryOp(_, receiver))
+              }
+              else if (DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
+              else {
+                val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
+                Apply(receiver, name, args.toList)(tpe)
+              }
+            })
           case kn: KtNameReferenceExpression =>
             val tpe = c.bindingContext().getType(kn).toJsType
-            BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
-              case m: PropertyDescriptor => Apply(receiver, m.getterIdent(), List())(tpe)
-              case _ => notImplemented
-            }
+            val ao = if(isArray) arrayOps(receiver, tpe, kn.getReferencedName, List()) else None
+            ao.getOrElse({
+              BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
+                case m: PropertyDescriptor => Apply(receiver, m.getterIdent(), List())(tpe)
+                case _ => notImplemented
+              }
+            })
           case _ =>
             notImplemented
         }
@@ -114,8 +130,66 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case k: KtReturnExpression => Return(GenExpr(k.getReturnedExpression).tree)
       case k: KtWhenExpression => GenWhen(k).tree
       case k: KtSafeQualifiedExpression => notImplemented
+      case kp: KtParenthesizedExpression => GenExpr(kp.getExpression).tree
+      case kc: KtCallableReferenceExpression =>
+        CallUtilKt.getResolvedCall(kc.getCallableReference, c.bindingContext()).getResultingDescriptor match {
+          case f: FunctionDescriptor => genClosure(f)
+          case _ => notImplemented
+        }
+      case l: KtLambdaExpression => genLambda(l)
+      case w: KtWhileExpression =>
+        val body = GenBody(w.getBody).tree
+        val cond = GenExpr(w.getCondition).tree
+        While(cond, body)
       case _ => notImplemented
     }
+  }
+
+  private def arrayOps(receiver: Tree, tpe: Type, method: String, args: List[Tree]) : Option[Tree] = {
+    method match {
+      case "get" =>
+        require(args.size == 1)
+        Some(ArraySelect(receiver, args.head)(tpe))
+      case "set" =>
+        require(args.size == 2)
+        Some(Assign(ArraySelect(receiver, args.head)(args(1).tpe), args(1)))
+      case "size" =>
+        Some(ArrayLength(receiver))
+      case _ => None
+    }
+  }
+
+  private def genLambda(l: KtLambdaExpression) : Tree = {
+    val body = GenBody(l.getBodyExpression).treeOption
+    val desc = BindingUtils.getFunctionDescriptor(c.bindingContext(), l.getFunctionLiteral)
+    genClosure(desc, body)
+  }
+
+  private def genClosure(desc: FunctionDescriptor, body: Option[Tree] = None) : Tree = {
+    val containingClass = Option(DescriptorUtils.getContainingClass(desc))
+    val ct = containingClass.fold(ClassType(NameEncoder.encodeWithSourceFile(desc)))(cc => cc.toJsClassType)
+
+    val b : Tree = body.getOrElse({
+      val static = DescriptorUtils.isStaticDeclaration(desc)
+      val methodName = desc.toJsMethodIdent
+      val parameters = desc.getValueParameters.asScala.map(x => VarRef(Ident(x.getName.toString))(x.getType.toJsClassType)).toList
+
+      if (static) ApplyStatic(ct, methodName, parameters)(desc.getReturnType.toJsType)
+      else Apply(VarRef(Ident("$this"))(ct), methodName, parameters)(desc.getReturnType.toJsClassType)
+    })
+
+
+    val closureParams = desc.getValueParameters.asScala.map(_.toJsParamDef).toList
+    val closure = containingClass match {
+      case Some(cc) =>
+        val captureParams = List(ParamDef(Ident("$this"), ct, mutable = false, rest = false))
+        val captureValues = List[Trees.Tree](This()(ct))
+        val closureParams = desc.getValueParameters.asScala.map(_.toJsParamDef).toList
+        Closure(captureParams, closureParams, b, captureValues)
+      case None => Closure(List(), closureParams, b, List())
+    }
+
+    New(ClassType(s"sjsr_AnonFunction${closureParams.size}"), Ident(s"init___sjs_js_Function${closureParams.size}"), List(closure))
   }
 
   def treeOption: Option[Tree] = if (d == null) None else Some(tree)

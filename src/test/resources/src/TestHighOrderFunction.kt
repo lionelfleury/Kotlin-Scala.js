@@ -5,9 +5,9 @@ fun IntArray.dummy(predicate: (kotlin.Int) -> kotlin.Boolean): IntArray {
 
 object Test {
 
-    fun addFive(body: () -> Int ) = body() + 5
+    fun addFive(body: () -> Double ) = body() + 5
 
-    fun five() = 5
+    fun five() = 5.5
     fun double(x : Int) = x * 2
 
     fun isOdd(x: Int) = x % 2 != 0
@@ -23,7 +23,7 @@ object Test {
 
         // Test invoke on function reference
         println(addFive(Test::five))
-        println(addFive {  -> 6 })
+        println(addFive {  -> 6.0 })
 
         val numbers = intArrayOf(1, 2, 3)
         val result = numbers.dummy(Test::isOdd)

@@ -167,19 +167,19 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestAssignationOrder.kt")
   }
 
-//  test("TestHighFunction.kt") {
-//    assertExecResult(
-//      """
-//        |12
-//        |5
-//        |10
-//        |11
-//        |true
-//        |4
-//        |21
-//        |1
-//      """.stripMargin, "TestHighOrderFunction.kt")
-//  }
+  test("TestHighFunction.kt") {
+    assertExecResult(
+      """
+        |12
+        |5.5
+        |10.5
+        |11
+        |true
+        |4
+        |21
+        |1
+      """.stripMargin, "TestHighOrderFunction.kt")
+  }
 
 //  test("TestLambdaTopLevel.kt") {
 //    assertExecResult(
@@ -196,19 +196,28 @@ class BlackBoxSimpleTests extends BlackBoxTest {
 //      """.stripMargin, "TestTypeCast.kt")
 //  }
 
-//  test("TestArrays.kt") {
-//    val result = consoleToString {
-//      val a = Seq(1, 2, 3, 12.5)
-//      printlnJSFormat(a(0))
-//      printlnJSFormat(a(3))
-//      printlnJSFormat(a.size)
-//      a.foreach(printlnJSFormat)
-//
-//      val b = Seq(12, 42)
-//      b.foreach(println)
-//    }
-//    assertExecResult(result, "TestArrays.kt")
-//  }
+  test("TestArraysBase.kt") {
+    val result = consoleToString {
+      val a = Seq(1, 2, 3, 12.5)
+      printlnJSFormat(a(0))
+      printlnJSFormat(a(3))
+      printlnJSFormat(a.size)
+
+      println(3)
+    }
+    assertExecResult(result, "TestArraysBase.kt")
+  }
+
+  /*test("TestArrayIterator.kt") {
+    val result = consoleToString {
+      val a = Seq(3, 2, 3, 12.5)
+      a.foreach(printlnJSFormat)
+
+      val b = Seq(12, 42)
+      b.foreach(println)
+    }
+    assertExecResult(result, "TestArrayIterator.kt")
+  }*/
 
   test("TestVarIncrease.kt") {
     assertExecResult(

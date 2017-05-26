@@ -34,7 +34,7 @@ class BlackBoxAdvancedTests extends BlackBoxTest {
 //    assertExecResult(result, "TestRanges.kt")
 //  }
 
-//  test("TestArrays.kt") {
+//  test("TestArraysBase.kt") {
 //    val result = consoleToString {
 //      val a = Seq(1, 2, 3, 12.5)
 //      printlnJSFormat(a(0))
@@ -45,7 +45,7 @@ class BlackBoxAdvancedTests extends BlackBoxTest {
 //      val b = Seq(12, 42)
 //      b.foreach(println)
 //    }
-//    assertExecResult(result, "TestArrays.kt")
+//    assertExecResult(result, "TestArraysBase.kt")
 //  }
 
 
