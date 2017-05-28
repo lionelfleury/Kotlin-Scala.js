@@ -230,5 +230,9 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestVarIncrease.kt")
   }
 
+  test("TestDynamic.kt") {
+    assertExecResult("2", "TestDynamic.kt")
+  }
+
 
 }

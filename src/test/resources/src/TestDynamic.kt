@@ -1,5 +1,17 @@
-package src
+/*class D {
+    fun bar() { println("D.bar") }
+}*/
 
-/**
- * Created by ex0ns on 5/26/17.
- */
+external class Math {
+    companion object {
+        fun sqrt(i: Double): Double
+    }
+}
+
+object Test {
+
+    fun main() {
+        println(Math.sqrt(4.0))
+    }
+
+}
