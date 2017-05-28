@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir
 import java.{util => ju}
 
 import ch.epfl.k2sjsir.lower.{ClassLowering, SJSIRLower}
-import ch.epfl.k2sjsir.translate.{GenClass, GenFun}
+import ch.epfl.k2sjsir.translate.{GenClass, GenExternalClass, GenFun}
 import ch.epfl.k2sjsir.utils.NameEncoder
 import com.intellij.openapi.util.io.FileUtil
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
@@ -41,17 +41,20 @@ final class PackageDeclarationTranslator private(
         val topLevel = new mutable.MutableList[KtNamedFunction]()
         val declarations = new SJSIRLower().lower(file)
         for (declaration <- declarations) {
-          if (!AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration))) {
+            val predefinedObject = AnnotationsUtils.isPredefinedObject(BindingUtils.getDescriptorForElement(bindingContext, declaration))
             declaration match {
-              case d: KtClassOrObject =>
+              case d: KtClassOrObject if !predefinedObject=>
                 val tree = GenClass(d)(context).tree
                 val cd = getClassDescriptor(context.bindingContext(), d)
-                 SJSIRCodegen.genIRFile(output, cd, tree)
+                SJSIRCodegen.genIRFile(output, cd, tree)
+              case d: KtClassOrObject =>
+                val tree = GenExternalClass(d)(context).tree
+                val cd = getClassDescriptor(context.bindingContext(), d)
+                SJSIRCodegen.genIRFile(output, cd, tree)
               case f: KtNamedFunction =>
                 topLevel += f
               case _ => sys.error(s"Not implemented yet: $getClass")
             }
-          }
         }
         if (topLevel.nonEmpty) {
           val defs = topLevel.toList.map(x => GenFun(x)(context).tree)
