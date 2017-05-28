@@ -2,11 +2,8 @@ package ch.epfl.k2sjsir
 
 import java.io.{File, FileOutputStream}
 
-import ch.epfl.k2sjsir.codegen.{GenClass, Positioner}
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.{InfoSerializers, Infos, InvalidIRException, Serializers}
 

@@ -3,7 +3,7 @@ package ch.epfl.k2sjsir.translate
 import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
 import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
-import org.jetbrains.kotlin.descriptors.{FunctionDescriptor, PropertyDescriptor, ValueParameterDescriptor, VariableDescriptor}
+import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
 import org.jetbrains.kotlin.psi._
@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.{ExtensionReceiver, ImplicitClassReceiver}
 import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
+import org.jetbrains.kotlin.types.DynamicTypesKt
 import org.scalajs.core.ir.Trees
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ArrayType, ClassType, Type}
@@ -65,7 +66,15 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
             val tpe = vd.getType.toJsType
             val ident = Ident(kn.getReferencedNameAsName.toString)
             VarRef(ident)(tpe)
-          case lc: LazyClassDescriptor => LoadModule(lc.toJsClassType)
+          case lc: LazyClassDescriptor =>
+            val external = if(lc.isCompanionObject) {
+              lc.getContainingDeclaration match {
+                case x: ClassDescriptor => x.isExternal
+                case _ => lc.isExternal
+              }
+            } else lc.isExternal
+            if(external) LoadJSModule(lc.toJsClassType)
+            else LoadModule(lc.toJsClassType)
           case _ =>
             notImplemented
         }
@@ -92,8 +101,13 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               }
               else if (DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
               else {
-                val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
-                Apply(receiver, name, args.toList)(tpe)
+                receiver match {
+                  case _: LoadJSModule | _: JSNew =>
+                    JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
+                  case _ =>
+                    val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
+                    Apply(receiver, name, args.toList)(tpe)
+                }
               }
             })
           case kn: KtNameReferenceExpression =>
