@@ -1,8 +1,6 @@
-object Test {
-    fun main() {
-        val a = 5
-        val b = "Hello"
+fun main(args: Array<String>) {
+    val a = 5
+    val b = "Hello"
 
-        println("$a $b World")
-    }
+    println("$a $b World")
 }

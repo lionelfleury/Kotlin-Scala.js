@@ -3,10 +3,7 @@ external class Math {
         fun sqrt(i: Double): Double
     }
 }
-object Test {
 
-    fun main() {
-        println(Math.sqrt(4.0))
-    }
-
+fun main(args: Array<String>) {
+    println(Math.sqrt(4.0))
 }

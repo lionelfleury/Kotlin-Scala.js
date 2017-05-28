@@ -62,17 +62,8 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       case _ => false
     }
     val constructors = genConstructors
-    val allDefs = paramsInit ++ defs.toList ++ (if (hasMain) manualExports(desc) else Nil) ++ constructors
+    val allDefs = paramsInit ++ defs.toList ++ constructors
     ClassDef(idt, kind, Some(superClass.toJsClassIdent), interfaces.map(_.toJsClassIdent).toList, jsNativeLoadSpec, allDefs)(optimizerHints)
-  }
-
-  private def manualExports(cd: ClassDescriptor): List[Tree] = {
-    val receiver = This()(cd.toJsClassType)
-    val body = Block(Apply(receiver, Ident("main__V", Some("main")), Nil)(NoType), Undefined())
-    val main = MethodDef(static = false, StringLiteral("main"), Nil, AnyType, Some(body))(OptimizerHints.empty, None)
-    val name = cd.getName.asString()
-    val mod = if (isModule(cd)) ModuleExportDef(name) else Skip()
-    List(main, mod)
   }
 
   private def isModule(c: ClassDescriptor): Boolean = c.getKind == OBJECT

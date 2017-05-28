@@ -1,12 +1,10 @@
-object Test {
-    fun main() {
-       val a = arrayOf(1, 2, 3, 12.5)
-        println(a.get(0))
-        println(a.get(3))
-        println(a.size)
+fun main(args: Array<String>) {
+    val a = arrayOf(1, 2, 3, 12.5)
+    println(a.get(0))
+    println(a.get(3))
+    println(a.size)
 
-        a[0] = 3
+    a[0] = 3
 
-        println(a[0])
-    }
+    println(a[0])
 }

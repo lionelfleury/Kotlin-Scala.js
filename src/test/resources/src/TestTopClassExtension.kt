@@ -19,3 +19,7 @@ object Test {
         println(sumLength)
     }
 }
+
+fun main(args: Array<String>) {
+    Test.main()
+}

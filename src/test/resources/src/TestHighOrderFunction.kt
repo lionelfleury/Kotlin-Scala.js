@@ -34,3 +34,7 @@ object Test {
         println(a { x, y -> y - x })
     }
 }
+
+fun main(args: Array<String>) {
+    Test.main()
+}
