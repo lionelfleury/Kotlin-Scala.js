@@ -1,13 +1,8 @@
-/*class D {
-    fun bar() { println("D.bar") }
-}*/
-
 external class Math {
     companion object {
         fun sqrt(i: Double): Double
     }
 }
-
 object Test {
 
     fun main() {

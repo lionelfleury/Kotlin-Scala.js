@@ -101,11 +101,12 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               }
               else if (DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
               else {
-                if(receiver.isInstanceOf[LoadJSModule] || receiver.isInstanceOf[LoadJSConstructor]) {
-                  JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
-                } else {
-                  val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
-                  Apply(receiver, name, args.toList)(tpe)
+                receiver match {
+                  case _: LoadJSModule | _: JSNew =>
+                    JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
+                  case _ =>
+                    val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
+                    Apply(receiver, name, args.toList)(tpe)
                 }
               }
             })

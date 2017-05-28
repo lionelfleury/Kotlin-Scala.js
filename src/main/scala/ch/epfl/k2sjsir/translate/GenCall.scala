@@ -38,7 +38,8 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
       case cc: ClassConstructorDescriptor =>
         val ctpe = if(cc.getContainingDeclaration.getName.toString == "Exception") ClassType("jl_Exception")
         else cc.getContainingDeclaration.toJsClassType
-        New(ctpe, desc.toJsMethodIdent, args)
+        if(!cc.getContainingDeclaration.isExternal) New(ctpe, desc.toJsMethodIdent, args)
+        else JSNew(LoadJSConstructor(ctpe), args)
       case sf: SimpleFunctionDescriptor =>
         val dr = Option(desc.getDispatchReceiverParameter).getOrElse(desc.getExtensionReceiverParameter)
         if(DescriptorUtils.isExtension(desc)) genExtensionCall(VarRef(dr.toJsIdent)(dr.getType.toJsType))
