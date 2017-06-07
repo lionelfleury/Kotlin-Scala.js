@@ -70,7 +70,7 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
 
   private def genConstructors : Seq[Tree] = {
     val constructors = d.getSecondaryConstructors.asScala.map(genSecondaryConstructor).toList
-    genPrimaryConstructor :: constructors
+    genPrimaryConstructor.toList ++ constructors
   }
 
   private def genSecondaryConstructor(k: KtSecondaryConstructor) : Tree = {
@@ -89,7 +89,7 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       MethodDef(static = false, constrDesc.toJsMethodIdent, args, NoType, Some(body))(optimizerHints, None)
   }
 
-  private def genPrimaryConstructor : Tree = {
+  private def genPrimaryConstructor : Option[Tree] = {
     /**
       * Declarations (for properties) must be in the primary constructors
       * Secondary constructors will call primary one
@@ -129,9 +129,11 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
     }
 
     val primary = desc.getUnsubstitutedPrimaryConstructor
-    val args = primary.getValueParameters.asScala.map(_.toJsParamDef).toList
+    if(primary != null) {
+      val args = primary.getValueParameters.asScala.map(_.toJsParamDef).toList
 
-    val stats = Block(superCall :: paramsInit ++ declsInit)
-    MethodDef(static = false, primary.toJsMethodIdent, args, NoType, Some(stats))(optimizerHints, None)
+      val stats = Block(superCall :: paramsInit ++ declsInit)
+      Some(MethodDef(static = false, primary.toJsMethodIdent, args, NoType, Some(stats))(optimizerHints, None))
+    } else None
   }
 }

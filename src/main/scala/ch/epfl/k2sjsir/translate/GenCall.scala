@@ -3,17 +3,17 @@ package ch.epfl.k2sjsir.translate
 import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.NameEncoder._
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.{CallableDescriptor, ClassConstructorDescriptor, SimpleFunctionDescriptor}
+import org.jetbrains.kotlin.descriptors.{ClassConstructorDescriptor, SimpleFunctionDescriptor}
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
-import org.jetbrains.kotlin.resolve.scopes.receivers.{ExpressionReceiver, ExtensionReceiver, ImplicitClassReceiver, ReceiverValue}
+import org.jetbrains.kotlin.resolve.scopes.receivers.{ExpressionReceiver, ExtensionReceiver, ImplicitClassReceiver}
 import org.jetbrains.kotlin.serialization.deserialization.descriptors.DeserializedSimpleFunctionDescriptor
 import org.scalajs.core.ir.Trees._
-import org.scalajs.core.ir.Types.{ClassType, NoType}
+import org.scalajs.core.ir.Types.ClassType
 
 import scala.collection.JavaConverters._
 
@@ -44,6 +44,9 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
       case sf: SimpleFunctionDescriptor =>
         val dr = Option(desc.getDispatchReceiverParameter).getOrElse(desc.getExtensionReceiverParameter)
         if(DescriptorUtils.isExtension(desc)) genExtensionCall(VarRef(dr.toJsIdent)(dr.getType.toJsType))
+        else if(isTopLevelFunction(sf)) {
+          ApplyStatic(ClassType(NameEncoder.encodeWithSourceFile(sf)), desc.toJsMethodIdent, args)(desc.getReturnType.toJsType)
+        }
         else {
           val receiver = resolved.getDispatchReceiver match {
             case i: ImplicitClassReceiver => This()(i.getClassDescriptor.toJsClassType)
@@ -84,5 +87,8 @@ case class GenCall(d: KtCallExpression)(implicit val c: TranslationContext) exte
       ApplyStatic(ClassType(encodedName), desc.toJsMethodIdent, receiver :: args)(rtpe)
     }
   }
+
+  private def isTopLevelFunction(sf: SimpleFunctionDescriptor) =
+    sf.getExtensionReceiverParameter == null && sf.getContainingDeclaration.getName.asString() == "<root>"
 
 }

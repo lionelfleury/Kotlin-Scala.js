@@ -108,15 +108,15 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestIf.kt", mainClass = "TestIfKt")
   }
 
-//  test("TestNullable.kt") {
-//    assertExecResult(
-//      """7
-//        |7
-//        |null
-//        |7
-//        |-1
-//        |NonNullnull""".stripMargin, "TestNullable.kt")
-//  }
+  //  test("TestNullable.kt") {
+  //    assertExecResult(
+  //      """7
+  //        |7
+  //        |null
+  //        |7
+  //        |-1
+  //        |NonNullnull""".stripMargin, "TestNullable.kt")
+  //  }
 
 
   test("TestTryCatch.kt") {
@@ -146,9 +146,9 @@ class BlackBoxSimpleTests extends BlackBoxTest {
     assertExecResult("5 Hello World", "TestStringConcat.kt", mainClass = "TestStringConcatKt")
   }
 
-//  test("TestAnonClass.kt") {
-//    assertExecResult("Hello World", "TestAnonClass.kt")
-//  }
+  test("TestAnonClass.kt") {
+      assertExecResult("Hello World", "TestAnonClass.kt", mainClass = "TestAnonClassKt")
+  }
 
 
   test("TestGenParentConstructor.kt") {
@@ -181,20 +181,20 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestHighOrderFunction.kt", mainClass = "TestHighOrderFunctionKt")
   }
 
-//  test("TestLambdaTopLevel.kt") {
-//    assertExecResult(
-//      """
-//        |11
-//      """.stripMargin, "TestLambdaTopLevel.kt")
-//  }
+    test("TestLambdaTopLevel.kt") {
+      assertExecResult(
+        """
+          |11
+        """.stripMargin, "TestLambdaTopLevel.kt", mainClass = "TestLambdaTopLevelKt")
+  }
 
-//  test("TestTypeCast.kt") {
-//    assertExecResult(
-//      """
-//        |15
-//        |12.5
-//      """.stripMargin, "TestTypeCast.kt")
-//  }
+  //  test("TestTypeCast.kt") {
+  //    assertExecResult(
+  //      """
+  //        |15
+  //        |12.5
+  //      """.stripMargin, "TestTypeCast.kt")
+  //  }
 
   test("TestArraysBase.kt") {
     val result = consoleToString {
@@ -230,9 +230,19 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestVarIncrease.kt", mainClass = "TestVarIncreaseKt")
   }
 
+
+
   test("TestDynamic.kt") {
     assertExecResult("2", "TestDynamic.kt", mainClass = "TestDynamicKt")
   }
 
+  test("TestTopLevelCalls.kt") {
+    assertExecResult(
+      """
+        |Hello World
+        |Hello Kotlin
+      """.stripMargin, "TestTopLevelCalls.kt", mainClass = "TestTopLevelCallsKt")
+  }
 
 }
+
