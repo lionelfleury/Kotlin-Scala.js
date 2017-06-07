@@ -2,7 +2,7 @@ package ch.epfl.k2sjsir.translate
 
 import ch.epfl.k2sjsir.utils.NameEncoder
 import ch.epfl.k2sjsir.utils.Utils._
-import org.jetbrains.kotlin.descriptors.impl.LocalVariableDescriptor
+import org.jetbrains.kotlin.descriptors.impl.{LocalVariableDescriptor, PropertyDescriptorImpl}
 import org.jetbrains.kotlin.descriptors._
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils
@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.psi._
 import org.jetbrains.kotlin.resolve.DescriptorUtils._
 import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
-import org.jetbrains.kotlin.resolve.scopes.receivers.{ExtensionReceiver, ImplicitClassReceiver}
+import org.jetbrains.kotlin.resolve.scopes.receivers.{ExpressionReceiver, ExtensionReceiver, ImplicitClassReceiver}
 import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
 import org.jetbrains.kotlin.types.DynamicTypesKt
 import org.scalajs.core.ir.Trees
@@ -39,7 +39,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
       case kn: KtNameReferenceExpression =>
         BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
           case m: PropertyDescriptor =>
-            val tpe = c.bindingContext().getType(kn).toJsType
+            val tpe = m.getType.toJsType
             val recv = getClassDescriptorForType(m.getDispatchReceiverParameter.getValue.getType)
             val isObj = recv.isCompanionObject || DescriptorUtils.isObject(recv)
             if(isObj) Apply(LoadModule(recv.toJsClassType), m.getterIdent(), List())(tpe)
@@ -55,7 +55,9 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
                   Apply(ref, m.getterIdent(), List())(tpe)
                 case _: ImplicitClassReceiver =>
                   Apply(This()(recv.toJsClassType), m.getterIdent(), List())(tpe)
-                case _ => notImplemented
+                case x: ExpressionReceiver => Apply(This()(recv.toJsClassType), m.getterIdent(), List())(tpe)
+                case _ =>
+                  notImplemented
               }
             }
           case lv: LocalVariableDescriptor =>

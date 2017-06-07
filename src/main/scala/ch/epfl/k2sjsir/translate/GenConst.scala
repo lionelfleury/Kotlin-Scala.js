@@ -12,8 +12,10 @@ case class GenConst(d: KtConstantExpression)(implicit val c: TranslationContext)
     val exp = getConstant(d, c.bindingContext())
     val value = exp.getValue(tpe)
     value match {
-      case _: Int | _: Short | _: Byte | _: Char =>
-        IntLiteral(value.asInstanceOf[Int])
+      case x : Char => IntLiteral(x.toInt)
+      case x : Short => IntLiteral(x.toInt)
+      case x : Byte => IntLiteral(x.toInt)
+      case x : Int => IntLiteral(x)
       case l: Long => LongLiteral(l)
       case f: Float => FloatLiteral(f)
       case d: Double => DoubleLiteral(d)

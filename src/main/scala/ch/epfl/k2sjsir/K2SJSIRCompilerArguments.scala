@@ -16,6 +16,11 @@ class K2SJSIRCompilerArguments extends CommonCompilerArguments {
   @ValueDescription("<path>")
   var classpath: String = _
 
+  @GradleOption(classOf[DefaultValues.StringNullDefault])
+  @Argument(value = "output", description = "Output file path")
+  @ValueDescription("<path>")
+  var outputFile : String = _
+
 //  @GradleOption(classOf[DefaultValues.BooleanFalseDefault])
 //  @Argument(value = "include-runtime", description = "Include Kotlin runtime in to resulting .jar")
 //  var includeRuntime = false
@@ -105,7 +110,7 @@ class K2SJSIRCompilerArguments extends CommonCompilerArguments {
 
   @GradleOption(classOf[DefaultValues.JsMain])
   @Argument(value = "main", description = "Whether a main function should be called")
-  @ValueDescription("{" + CALL + "," + NO_CALL + "}")
+  @ValueDescription("{call,noCall}")
   var main: String = _
 
   // Paths to output directories for friend modules.

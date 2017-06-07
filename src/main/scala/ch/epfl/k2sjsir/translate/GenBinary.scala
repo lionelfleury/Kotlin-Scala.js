@@ -108,9 +108,9 @@ object GenBinary {
 
   private val numBinaryOp = Map(
     "LT" -> BinaryOp.Num_<,
-    "LTE" -> BinaryOp.Num_<=,
+    "LTEQ" -> BinaryOp.Num_<,
     "EQEQ" -> BinaryOp.Num_==,
-    "GTE" -> BinaryOp.Num_>=,
+    "GTEQ" -> BinaryOp.Num_>=,
     "GT" -> BinaryOp.Num_>,
     "EXCLEQ" -> BinaryOp.Num_!=
   )
@@ -173,7 +173,9 @@ object GenBinary {
     "EQEQ" -> BinaryOp.Boolean_==,
     "EXCLEQ" -> BinaryOp.Boolean_!=,
     "or" -> BinaryOp.Boolean_|,
-    "and" -> BinaryOp.Boolean_&
+    "and" -> BinaryOp.Boolean_&,
+    "ANDAND" -> BinaryOp.Boolean_&,
+    "OROR" -> BinaryOp.Boolean_|
   )
 
   private val stringBinaryOp = Map(
