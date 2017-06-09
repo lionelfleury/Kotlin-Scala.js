@@ -44,8 +44,6 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.serialization.js.ModuleKind
 import org.jetbrains.kotlin.utils.{ExceptionUtilsKt, KotlinPaths, KotlinPathsFromHomeDir, PathUtil}
 
-import scala.collection.JavaConverters._
-
 object K2SJSIRCompiler {
 
   def main(args: Array[String]): Unit = doMain(new K2SJSIRCompiler, args)
@@ -66,6 +64,7 @@ object K2SJSIRCompiler {
     val analyzerWithCompilerReport = new AnalyzerWithCompilerReport(messageCollector)
     analyzerWithCompilerReport.analyzeAndReport(sources, new AnalyzerWithCompilerReport.Analyzer() {
       override def analyze: AnalysisResult = TopDownAnalyzerFacadeForJS.analyzeFiles(sources, config)
+
       override def reportEnvironmentErrors(): Unit = {}
     })
     analyzerWithCompilerReport
@@ -82,10 +81,10 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
   override protected def createArguments = new K2SJSIRCompilerArguments()
 
   override protected def doExecute(
-    arguments: K2SJSIRCompilerArguments,
-    configuration: CompilerConfiguration,
-    rootDisposable: Disposable
-  ): ExitCode = {
+                                    arguments: K2SJSIRCompilerArguments,
+                                    configuration: CompilerConfiguration,
+                                    rootDisposable: Disposable
+                                  ): ExitCode = {
     val messageCollector = configuration.getNotNull(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY)
     if (arguments.freeArgs.isEmpty) {
       if (arguments.version) return OK
@@ -105,8 +104,8 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
     if (!arguments.noStdlib)
       libraries.add(0, paths.getJsStdLibJarPath.getAbsolutePath)
 
-//    if (arguments.libraries != null)
-//      ContainerUtil.addAllNotNull(libraries, arguments.libraries.split(File.pathSeparator).toList.asJavaCollection)
+    if (arguments.libraries != null)
+      ContainerUtil.addAllNotNull(libraries, arguments.libraries.split(File.pathSeparator).toList: _*)
 
     configuration.put(JSConfigurationKeys.LIBRARIES, libraries)
     val environmentForJS = KotlinCoreEnvironment.createForProduction(rootDisposable, configuration, EnvironmentConfigFiles.JS_CONFIG_FILES)
@@ -133,6 +132,7 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
     if (config.checkLibFilesAndReportErrors(new JsConfig.Reporter() {
       override def error(message: String): Unit =
         messageCollector.report(CompilerMessageSeverity.ERROR, message, CompilerMessageLocation.NO_LOCATION)
+
       override def warning(message: String): Unit =
         messageCollector.report(CompilerMessageSeverity.STRONG_WARNING, message, CompilerMessageLocation.NO_LOCATION)
     })) return COMPILATION_ERROR
@@ -146,13 +146,13 @@ class K2SJSIRCompiler extends CLICompiler[K2SJSIRCompilerArguments] {
     val mainCallParameters = K2SJSIRCompiler.createMainCallParameters(arguments.main)
     var translationResult: TranslationResult = null
     val translator = new K2SJSIRTranslator(config)
-    try {  //noinspection unchecked
+    try { //noinspection unchecked
       translationResult = translator.translate(sourcesFiles, mainCallParameters, jsAnalysisResult)
     } catch {
       case e: Exception => throw ExceptionUtilsKt.rethrow(e)
     }
     ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
-//    (new AnalyzerWithCompilerReport.Companion).reportDiagnostics(translationResult.getDiagnostics, messageCollector)
+    //    (new AnalyzerWithCompilerReport.Companion).reportDiagnostics(translationResult.getDiagnostics, messageCollector)
     if (!translationResult.isInstanceOf[TranslationResult.Success]) return ExitCode.COMPILATION_ERROR
     ProgressIndicatorAndCompilationCanceledStatus.checkCanceled()
     OK
