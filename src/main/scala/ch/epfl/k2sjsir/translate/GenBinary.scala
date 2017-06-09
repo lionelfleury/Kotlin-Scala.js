@@ -24,6 +24,8 @@ case class GenBinary(d: KtBinaryExpression)(implicit val c: TranslationContext) 
     val tpe = if (desc != null) desc.getReturnType.toJsType else lhs.tpe
 
     if (op == KtTokens.ELVIS) translateElvis(lhs, rhs)
+    else if(op == KtTokens.ANDAND) If(lhs, rhs, BooleanLiteral(false))(BooleanType)
+    else if(op == KtTokens.OROR) If(lhs, BooleanLiteral(true), rhs)(BooleanType)
     else if (AssignmentTranslator.isAssignmentOperator(op)) GenAssign(d).tree
     else if (isNotOverloadable(op)) {
       val binOp = getBinaryOp(op.toString, lhs.tpe)
@@ -108,7 +110,7 @@ object GenBinary {
 
   private val numBinaryOp = Map(
     "LT" -> BinaryOp.Num_<,
-    "LTEQ" -> BinaryOp.Num_<,
+    "LTEQ" -> BinaryOp.Num_<=,
     "EQEQ" -> BinaryOp.Num_==,
     "GTEQ" -> BinaryOp.Num_>=,
     "GT" -> BinaryOp.Num_>,
@@ -173,9 +175,7 @@ object GenBinary {
     "EQEQ" -> BinaryOp.Boolean_==,
     "EXCLEQ" -> BinaryOp.Boolean_!=,
     "or" -> BinaryOp.Boolean_|,
-    "and" -> BinaryOp.Boolean_&,
-    "ANDAND" -> BinaryOp.Boolean_&,
-    "OROR" -> BinaryOp.Boolean_|
+    "and" -> BinaryOp.Boolean_&
   )
 
   private val stringBinaryOp = Map(
