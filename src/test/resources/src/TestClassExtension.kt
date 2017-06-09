@@ -42,7 +42,10 @@ object Test {
         val d = D()
 
         c.caller(d)
-
     }
 
+}
+
+fun main(args: Array<String>) {
+    Test.main()
 }

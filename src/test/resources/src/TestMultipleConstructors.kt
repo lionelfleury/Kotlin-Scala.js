@@ -26,3 +26,7 @@ object Test : Toto(5, 7.0) {
     }
 
 }
+
+fun main(args: Array<String>) {
+    Test.main()
+}

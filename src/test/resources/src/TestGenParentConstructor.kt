@@ -12,3 +12,7 @@ object Test {
         a.display()
     }
 }
+
+fun main(args: Array<String>) {
+    Test.main()
+}

@@ -26,3 +26,7 @@ object Test {
         println(a.b)
     }
 }
+
+fun main(args: Array<String>) {
+    Test.main()
+}
