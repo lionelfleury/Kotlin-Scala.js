@@ -45,6 +45,8 @@ case class GenAssign(d: KtBinaryExpression)(implicit val c: TranslationContext) 
                   val binOp = GenBinary.getBinaryOp(code, tpe)
                   val args = BinaryOp(binOp, Apply(receiver, p.getGetter.toJsMethodIdent, List())(tpe), right)
                   Apply(receiver, p.getSetter.toJsMethodIdent, List(args))(NoType)
+                case KtTokens.EQ if receiver.isJSReceiver =>
+                  Assign(JSBracketSelect(receiver, StringLiteral(p.getName.asString())), right)
                 case KtTokens.EQ =>
                   Apply(receiver, p.getSetter.toJsMethodIdent, List(right))(NoType)
               }

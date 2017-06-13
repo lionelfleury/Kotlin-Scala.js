@@ -1,5 +1,5 @@
 external class Math {
-    companion object {}
+    companion object
 }
 
 fun main(args: Array<String>) {

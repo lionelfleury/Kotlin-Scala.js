@@ -104,18 +104,16 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               else if (DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
               else {
                 receiver match {
-                  case _: LoadJSModule | _: JSNew  =>
-                    JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
-                  case _ if DynamicTypesKt.isDynamic(desc.getReturnType) =>
+                  case _ if DynamicTypesKt.isDynamic(desc.getReturnType) || receiver.isJSReceiver =>
                     JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
                   case _ =>
                     val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent
-                    Apply(receiver, name, args.toList)(tpe)
+                    Apply(receiver, name, args)(tpe)
                 }
               }
             })
           case kn: KtNameReferenceExpression =>
-            if(DynamicTypesKt.isDynamic(c.bindingContext().getType(kn))) {
+            if(DynamicTypesKt.isDynamic(c.bindingContext().getType(kn))|| receiver.isJSReceiver) {
               JSBracketSelect(receiver, StringLiteral(kn.getReferencedName))
             } else {
               val tpe = c.bindingContext().getType(kn).toJsType
