@@ -255,6 +255,5 @@ class BlackBoxSimpleTests extends BlackBoxTest {
       """.stripMargin, "TestAdvancedDynamic.kt", mainClass = "TestAdvancedDynamicKt"
     )
   }
-
 }
 
