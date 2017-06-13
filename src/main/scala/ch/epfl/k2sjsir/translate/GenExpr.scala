@@ -12,7 +12,7 @@ import org.jetbrains.kotlin.resolve.`lazy`.descriptors.LazyClassDescriptor
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.{ExpressionReceiver, ExtensionReceiver, ImplicitClassReceiver}
 import org.jetbrains.kotlin.resolve.{BindingContext, DescriptorUtils}
-import org.jetbrains.kotlin.types.DynamicTypesKt
+import org.jetbrains.kotlin.types.{DynamicType, DynamicTypesKt}
 import org.scalajs.core.ir.Trees
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.{ArrayType, ClassType, Type}
@@ -104,7 +104,9 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               else if (DescriptorUtils.isExtension(desc)) GenCall(call).genExtensionCall(receiver)
               else {
                 receiver match {
-                  case _: LoadJSModule | _: JSNew =>
+                  case _: LoadJSModule | _: JSNew  =>
+                    JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
+                  case _ if DynamicTypesKt.isDynamic(desc.getReturnType) =>
                     JSBracketMethodApply(receiver, StringLiteral(desc.getName.asString()), args)
                   case _ =>
                     val name = if (desc.getName.toString == "invoke") NameEncoder.encodeApply(desc) else desc.toJsMethodIdent

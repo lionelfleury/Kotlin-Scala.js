@@ -5,5 +5,7 @@ external class Math {
 }
 
 fun main(args: Array<String>) {
-    println(Math.sqrt(4.0))
+    val math : dynamic = Math
+    println(math.sqrt(4.0))
+    println(Math.sqrt(16.0))
 }

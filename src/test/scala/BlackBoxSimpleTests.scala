@@ -233,7 +233,11 @@ class BlackBoxSimpleTests extends BlackBoxTest {
 
 
   test("TestDynamic.kt") {
-    assertExecResult("2", "TestDynamic.kt", mainClass = "TestDynamicKt")
+    assertExecResult(
+      """
+        |2
+        |4
+      """.stripMargin, "TestDynamic.kt", mainClass = "TestDynamicKt")
   }
 
   test("TestTopLevelCalls.kt") {
@@ -242,6 +246,14 @@ class BlackBoxSimpleTests extends BlackBoxTest {
         |Hello World
         |Hello Kotlin
       """.stripMargin, "TestTopLevelCalls.kt", mainClass = "TestTopLevelCallsKt")
+  }
+
+  test("TestAdvancedDynamic.kt") {
+    assertExecResult(
+      """
+        |The square root of 16 is 4
+      """.stripMargin, "TestAdvancedDynamic.kt", mainClass = "TestAdvancedDynamicKt"
+    )
   }
 
 }
