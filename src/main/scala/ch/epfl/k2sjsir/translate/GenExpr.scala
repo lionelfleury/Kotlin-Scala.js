@@ -115,14 +115,18 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
               }
             })
           case kn: KtNameReferenceExpression =>
-            val tpe = c.bindingContext().getType(kn).toJsType
-            val ao = if(isArray) arrayOps(receiver, tpe, kn.getReferencedName, List()) else None
-            ao.getOrElse({
-              BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
-                case m: PropertyDescriptor => Apply(receiver, m.getterIdent(), List())(tpe)
-                case _ => notImplemented
-              }
-            })
+            if(DynamicTypesKt.isDynamic(c.bindingContext().getType(kn))) {
+              JSBracketSelect(receiver, StringLiteral(kn.getReferencedName))
+            } else {
+              val tpe = c.bindingContext().getType(kn).toJsType
+              val ao = if (isArray) arrayOps(receiver, tpe, kn.getReferencedName, List()) else None
+              ao.getOrElse({
+                BindingUtils.getDescriptorForReferenceExpression(c.bindingContext(), kn) match {
+                  case m: PropertyDescriptor => Apply(receiver, m.getterIdent(), List())(tpe)
+                  case _ => notImplemented
+                }
+              })
+            }
           case _ =>
             notImplemented
         }
