@@ -1,9 +1,15 @@
 external class Math {
     companion object {
+        var PI : Double
         fun sqrt(i: Double): Double
     }
 }
 
 fun main(args: Array<String>) {
-    println(Math.sqrt(4.0))
+    val math : dynamic = Math
+   println(math.sqrt(4.0))
+    println(Math.sqrt(16.0))
+
+    println(Math.PI)
+    println(math.PI)
 }

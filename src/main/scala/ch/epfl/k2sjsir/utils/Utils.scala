@@ -24,6 +24,13 @@ object Utils {
     def toJsMethodIdent(implicit pos: Position): Ident = encodeMethodIdent(d)
   }
 
+  implicit class TreeWithType(tree: Tree) {
+    def isJSReceiver = tree.isInstanceOf[LoadJSModule] ||
+      tree.isInstanceOf[JSNew] ||
+      tree.isInstanceOf[JSBracketMethodApply] ||
+      tree.isInstanceOf[JSBracketSelect]
+  }
+
   implicit class ClassDescriptorTranslator(d: ClassDescriptor) {
     def toJsClassName: String = encodeClassFullName(d)
 

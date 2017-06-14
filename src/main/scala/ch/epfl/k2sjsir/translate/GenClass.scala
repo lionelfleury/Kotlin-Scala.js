@@ -110,7 +110,7 @@ case class GenClass(d: KtClassOrObject)(implicit val c: TranslationContext) exte
       }).toList
 
     val declsInit = d.getDeclarations.asScala.collect {
-      case p: KtProperty =>
+      case p: KtProperty if p.getDelegateExpressionOrInitializer != null =>
         val expr = GenExpr(p.getDelegateExpressionOrInitializer).tree
         Assign(Select(This()(desc.toJsClassType), Ident(p.getName))(expr.tpe), expr)
       case i: KtClassInitializer => GenBody(i.getBody).tree
