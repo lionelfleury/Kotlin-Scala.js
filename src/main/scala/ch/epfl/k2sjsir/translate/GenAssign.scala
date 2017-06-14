@@ -11,6 +11,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi._
 import org.jetbrains.kotlin.resolve.calls.callUtil.CallUtilKt
 import org.jetbrains.kotlin.resolve.scopes.receivers.{ClassValueReceiver, ExpressionReceiver}
+import org.jetbrains.kotlin.types.DynamicTypesKt
 import org.scalajs.core.ir.Trees._
 import org.scalajs.core.ir.Types.NoType
 
@@ -34,18 +35,22 @@ case class GenAssign(d: KtBinaryExpression)(implicit val c: TranslationContext) 
           val call = CallUtilKt.getResolvedCallWithAssert(left, c.bindingContext())
           call.getResultingDescriptor match {
             case p: PropertyDescriptor =>
-              val receiver = call.getDispatchReceiver match {
-                case cl: ClassValueReceiver => GenExpr(cl.getExpression).tree
-                case e: ExpressionReceiver => GenExpr(e.getExpression).tree
-                case _ => notImplemented
+              val receiverExpr : KtExpression = call.getDispatchReceiver match {
+                case cl: ClassValueReceiver => cl.getExpression
+                case e: ExpressionReceiver => e.getExpression
+                case _ =>
+                  notImplemented
+                  throw new Exception("")
               }
+              val receiver = GenExpr(receiverExpr).tree
+              val rcvType = c.bindingContext().getType(receiverExpr)
               d.getOperationToken match {
                 case KtTokens.PLUSEQ | KtTokens.MINUSEQ | KtTokens.MULTEQ | KtTokens.DIVEQ | KtTokens.PERCEQ =>
                   val code = d.getOperationToken.toString.replaceAll("[T]?EQ", "")
                   val binOp = GenBinary.getBinaryOp(code, tpe)
                   val args = BinaryOp(binOp, Apply(receiver, p.getGetter.toJsMethodIdent, List())(tpe), right)
                   Apply(receiver, p.getSetter.toJsMethodIdent, List(args))(NoType)
-                case KtTokens.EQ if receiver.isJSReceiver =>
+                case KtTokens.EQ if DynamicTypesKt.isDynamic(rcvType) || receiver.isJSReceiver =>
                   Assign(JSBracketSelect(receiver, StringLiteral(p.getName.asString())), right)
                 case KtTokens.EQ =>
                   Apply(receiver, p.getSetter.toJsMethodIdent, List(right))(NoType)
