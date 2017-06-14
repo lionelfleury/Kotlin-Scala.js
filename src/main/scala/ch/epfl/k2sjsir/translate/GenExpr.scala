@@ -169,6 +169,7 @@ case class GenExpr(d: KtExpression)(implicit val c: TranslationContext) extends 
         val body = GenBody(w.getBody).tree
         val cond = GenExpr(w.getCondition).tree
         While(cond, body)
+      case block: KtBlockExpression => GenBody(block).tree
       case _ => notImplemented
     }
   }
