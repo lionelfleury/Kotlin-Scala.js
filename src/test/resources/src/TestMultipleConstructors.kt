@@ -1,5 +1,6 @@
 open class Toto(b: Int) {
 
+    //FIXME: Omitting explicit call to this() (for class with no explicit primary constructor) leads to infinite loop
     constructor(b: Int, c: Int) :  this(b) {
         println(b)
         println(c)
@@ -15,6 +16,8 @@ open class Toto(b: Int) {
     }
 }
 
+class EmptyClass(val a: Int)
+
 object Test : Toto(5, 7.0) {
 
     var b = 6
@@ -27,6 +30,8 @@ object Test : Toto(5, 7.0) {
 
 }
 
-fun main(args: Array<String>) {
-    Test.main()
+object TestMultipleConstructors {
+    fun main(args: Array<String>) {
+        Test.main()
+    }
 }

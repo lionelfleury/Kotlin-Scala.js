@@ -1,4 +1,4 @@
-object Test {
+object LambdaTopLevel {
     fun addFive(body: () -> Int ) = body() + 5
 
     fun main() {
@@ -6,9 +6,11 @@ object Test {
     }
 }
 
-fun topLevel() = println(Test.addFive {  -> 6 })
+fun topLevel() = println(LambdaTopLevel.addFive {  -> 6 })
 
 
-fun main(args: Array<String>) {
-    Test.main()
+object TestLambdaTopLevel {
+    fun main(args: Array<String>) {
+        LambdaTopLevel.main()
+    }
 }

@@ -4,6 +4,9 @@ external class Math {
     }
 }
 
-fun main(args: Array<String>) {
-    println(Math.sqrt(4.0))
+object TestDynamic {
+
+    fun main(args: Array<String>) {
+        println(Math.sqrt(4.0))
+    }
 }

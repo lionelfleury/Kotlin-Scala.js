@@ -1,0 +1,127 @@
+\documentclass[a4paper,12pt]{report}
+
+\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{minted}
+\usepackage[numbers]{natbib}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{csquotes}
+\usepackage{textcomp}
+\usepackage{dirtree}
+\usepackage{subcaption}
+\usepackage{setspace}
+\usepackage{verbatim}
+\usepackage{siunitx}
+\usepackage{float}
+\usepackage{lmodern}
+\usepackage{url}
+\usepackage{color}
+
+\definecolor{lightgray}{gray}{0.94}
+
+\lstset{
+    showstringspaces=false,
+    basicstyle=\ttfamily,
+    keywordstyle=\color{blue},
+    commentstyle=\color[grey]{0.6},
+    stringstyle=\color[RGB]{255,150,75}
+}
+
+
+\lstdefinelanguage{kotlin}{
+  keywords={package, as, typealias, this, super, val, var, fun, for, null, true, false, is, in, 
+throw, return, break, continue, object, if, try, else, while, do, when, yield, typeof, yield, 
+typeof, class, interface, enum, object, override, public, private, get, set, import, abstract, },
+  keywordstyle=\color{NavyBlue}\bfseries,
+  ndkeywords={@Deprecated, Iterable, Int, Integer, Float, Double, String, Runnable, dynamic},
+  ndkeywordstyle=\color{BurntOrange}\bfseries,
+  emph={println, return@, forEach,},
+  emphstyle={\color{OrangeRed}},
+  identifierstyle=\color{black},
+  sensitive=true,
+  commentstyle=\color{gray}\ttfamily,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  stringstyle=\color{ForestGreen}\ttfamily,
+  morestring=[b]",
+  morestring=[s]{"""*}{*"""},
+}
+
+\newcommand{\inlinecode}[2]{\colorbox{lightgray}{\lstinline[language=#1]$#2$}}
+
+\newcommand{\scalainline}[1]{\inlinecode{scala}{#1}}
+\newcommand{\ktinline}[1]{\inlinecode{kotlin}{#1}}
+
+\AtBeginEnvironment{minted}{
+  \renewcommand{\fcolorbox}[4][]{#4}
+}
+
+
+\renewcommand{\bibname}{References} % so that the table of contents updates too
+\usepackage{tocbibind}
+\usepackage[hidelinks]{hyperref}
+
+% Title Page
+
+\begin{document}
+
+\include{title}
+
+%\include{abstract}
+
+\include{acknowledgements}
+
+\tableofcontents
+
+\include{introduction}
+
+\include{features}
+
+\include{gradle_plugin}
+
+\include{benchmarks}
+
+\include{conclusion}
+  
+
+\begin{comment}
+- Upgrade to 1.0.0-M1 (then M2)
+- Is operator
+- This keyword
+- Binary operations
+- Backing field + field keyword
+- getters and setters with body
+- kotlin js function support
+- lambda expressions
+- interfaces
+- enum classes
+
+- gradle plugin (tooling)
+
+\end{comment}
+
+\appendix
+
+\include{utils}
+
+\include{glossary}
+
+\include{kotlin_stdlib}
+
+\begin{comment}
+  - brief explanation of the various utils available
+  - definition of dispatch receiver, extension receiver
+  - kotlin standard library compilation (which files and how)
+\end{comment}
+
+
+\nocite{*}
+\bibliographystyle{apa}
+\bibliography{mybib}{}
+
+\end{document}

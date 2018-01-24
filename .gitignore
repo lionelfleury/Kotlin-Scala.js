@@ -1,6 +1,23 @@
 resources/lib/
 out/
+benchmark_out/
+docs/presentation/_minted-presentation/
 
 project/
 target/
 
+*.aux
+*.log
+*.backup
+*.bbl
+*.blg
+*.brf
+*.kilepr
+*.toc
+*.out
+*.lof
+*.ent
+*.nav
+*.vrb
+*.snm
+.idea

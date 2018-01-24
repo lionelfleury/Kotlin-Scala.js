@@ -5,19 +5,22 @@ import java.util.Collections
 import java.{util => ju}
 
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
-import org.jetbrains.kotlin.descriptors.ModuleDescriptor
+import org.jetbrains.kotlin.descriptors.{DeclarationDescriptor, ModuleDescriptor}
 import org.jetbrains.kotlin.idea.MainFunctionDetector
 import org.jetbrains.kotlin.js.backend.ast._
+import org.jetbrains.kotlin.js.backend.ast.metadata.MetadataProperties
 import org.jetbrains.kotlin.js.config.{JSConfigurationKeys, JsConfig}
 import org.jetbrains.kotlin.js.facade.MainCallParameters
 import org.jetbrains.kotlin.js.facade.exceptions.{TranslationException, TranslationRuntimeException, UnsupportedFeatureException}
+import org.jetbrains.kotlin.js.sourceMap.SourceFilePathResolver
 import org.jetbrains.kotlin.js.translate.callTranslator.CallTranslator
 import org.jetbrains.kotlin.js.translate.context.{Namer, StaticContext, TranslationContext}
 import org.jetbrains.kotlin.js.translate.expression.{ExpressionVisitor, PatternTranslator}
+import org.jetbrains.kotlin.js.translate.general.{AstGenerationResult, Merger}
 import org.jetbrains.kotlin.js.translate.general.ModuleWrapperTranslation.wrapIfNecessary
-import org.jetbrains.kotlin.js.translate.test.{JSRhinoUnitTester, JSTestGenerator, QUnitTester}
+import org.jetbrains.kotlin.js.translate.test.JSTestGenerator
 import org.jetbrains.kotlin.js.translate.utils.BindingUtils.getFunctionDescriptor
-import org.jetbrains.kotlin.js.translate.utils.JsAstUtils
+import org.jetbrains.kotlin.js.translate.utils.{JsAstUtils, TranslationUtils}
 import org.jetbrains.kotlin.js.translate.utils.JsAstUtils.{convertToStatement, toStringLiteralList}
 import org.jetbrains.kotlin.js.translate.utils.mutator.AssignToExpressionMutator
 import org.jetbrains.kotlin.js.translate.utils.mutator.LastExpressionMutator.mutateLastExpression
@@ -25,11 +28,12 @@ import org.jetbrains.kotlin.psi.{KtExpression, KtFile, KtUnaryExpression}
 import org.jetbrains.kotlin.resolve.BindingTrace
 import org.jetbrains.kotlin.resolve.bindingContextUtil.BindingContextUtilsKt
 import org.jetbrains.kotlin.resolve.constants.evaluate.ConstantExpressionEvaluator
-import org.jetbrains.kotlin.resolve.constants.{CompileTimeConstant, NullValue}
+import org.jetbrains.kotlin.resolve.constants.{CompileTimeConstant, ConstantValue, NullValue}
 import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.utils.ExceptionUtilsKt
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object Translation {
 
@@ -58,26 +62,65 @@ object Translation {
     result
   }
 
-  def translateConstant(compileTimeValue: CompileTimeConstant[_], expression: KtExpression, context: TranslationContext): JsExpression = {
+  def translateConstant(compileTimeValue: CompileTimeConstant[_],
+                        expression: KtExpression,
+                        context: TranslationContext): JsExpression = {
+
     val expectedType = context.bindingContext.getType(expression)
-    val constant = compileTimeValue.toConstantValue(if (expectedType != null) expectedType
-                                                    else TypeUtils.NO_EXPECTED_TYPE)
-    if (constant.isInstanceOf[NullValue]) return JsLiteral.NULL
+    val constant = compileTimeValue.toConstantValue(
+      if (expectedType != null)
+        expectedType
+      else
+        TypeUtils.NO_EXPECTED_TYPE
+    )
+
+    val result = translateConstantWithoutType(constant)
+    if (result != null)
+      MetadataProperties.setType(result, expectedType)
+
+    result
+  }
+
+  private def translateConstantWithoutType(constant: ConstantValue[_]): JsExpression = {
+
+    if (constant.isInstanceOf[NullValue])
+      return new JsNullLiteral
+
     val value = constant.getValue
-    if (value.isInstanceOf[Integer] || value.isInstanceOf[Short] || value.isInstanceOf[Byte]) return context.program.getNumberLiteral(value.asInstanceOf[Number].intValue)
-    else if (value.isInstanceOf[Long]) return JsAstUtils.newLong(value.asInstanceOf[Long], context)
+    if (value.isInstanceOf[Integer] || value.isInstanceOf[Short] || value.isInstanceOf[Byte]) {
+      return new JsIntLiteral(value.asInstanceOf[Number].intValue)
+    }
+    else if (value.isInstanceOf[Long]) {
+      return JsAstUtils.newLong(value.asInstanceOf[Long])
+    }
     else if (value.isInstanceOf[Float]) {
       val floatValue = value.asInstanceOf[Float]
       var doubleValue = .0
-      if (Float.isInfinite(floatValue) || Float.isNaN(floatValue)) doubleValue = floatValue.toDouble
-      else doubleValue = Float.toString(floatValue).toDouble
-      return context.program.getNumberLiteral(doubleValue)
+      if (Float.isInfinite(floatValue) || Float.isNaN(floatValue)) {
+        doubleValue = floatValue.toDouble
+      }
+      else {
+        doubleValue = Float.toString(floatValue).toDouble
+      }
+
+      return new JsDoubleLiteral(doubleValue)
     }
-    else if (value.isInstanceOf[Number]) return context.program.getNumberLiteral(value.asInstanceOf[Number].doubleValue)
-    else if (value.isInstanceOf[Boolean]) return JsLiteral.getBoolean(value.asInstanceOf[Boolean])
-//TODO: test
-    if (value.isInstanceOf[String]) return context.program.getStringLiteral(value.asInstanceOf[String])
-    if (value.isInstanceOf[Character]) return context.program.getNumberLiteral(value.asInstanceOf[Character].charValue)
+    else if (value.isInstanceOf[Number]) {
+      return new JsDoubleLiteral(value.asInstanceOf[Number].doubleValue)
+    }
+    else if (value.isInstanceOf[Boolean]) {
+      return new JsBooleanLiteral(value.asInstanceOf[Boolean])
+    }
+
+    //TODO: test
+    if (value.isInstanceOf[String]) {
+      return new JsStringLiteral(value.asInstanceOf[String])
+    }
+
+    if (value.isInstanceOf[Character]) {
+      return new JsIntLiteral(value.asInstanceOf[Character].charValue)
+    }
+
     null
   }
 
@@ -97,21 +140,35 @@ object Translation {
     translateAsExpression(expression, context, context.dynamicContext.jsBlock)
 
   def translateAsExpression(expression: KtExpression, context: TranslationContext, block: JsBlock): JsExpression = {
-    var jsNode = translateExpression(expression, context, block)
+    val jsNode = translateExpression(expression, context, block)
+
     if (jsNode.isInstanceOf[JsExpression]) {
+      val jsExpression = jsNode.asInstanceOf[JsExpression]
       val expressionType = context.bindingContext.getType(expression)
-      if (expressionType != null && KotlinBuiltIns.isCharOrNullableChar(expressionType) && (jsNode.isInstanceOf[JsInvocation] || jsNode.isInstanceOf[JsNameRef] || jsNode.isInstanceOf[JsArrayAccess])) jsNode = JsAstUtils.boxedCharToChar(jsNode.asInstanceOf[JsExpression])
-      return jsNode.asInstanceOf[JsExpression]
+      if (MetadataProperties.getType(jsExpression) == null) {
+        MetadataProperties.setType(jsExpression, expressionType);
+      }
+      else if (expressionType != null) {
+        return TranslationUtils.coerce(context, jsExpression, expressionType)
+      }
+
+      return jsExpression
     }
+
     assert(jsNode.isInstanceOf[JsStatement], "Unexpected node of type: " + jsNode.getClass.toString)
     if (BindingContextUtilsKt.isUsedAsExpression(expression, context.bindingContext)) {
-      val result = context.declareTemporary(null)
+      val result = context.declareTemporary(null, expression)
       val saveResultToTemporaryMutator = new AssignToExpressionMutator(result.reference)
       block.getStatements.add(mutateLastExpression(jsNode, saveResultToTemporaryMutator))
-      return result.reference
+      val tmpVar = result.reference
+      MetadataProperties.setType(tmpVar, context.bindingContext().getType(expression))
+
+      return tmpVar
     }
+
     block.getStatements.add(convertToStatement(jsNode))
-    JsLiteral.NULL
+
+    new JsNullLiteral().source(expression)
   }
 
   def translateAsStatement(expression: KtExpression, context: TranslationContext): JsStatement =
@@ -127,49 +184,42 @@ object Translation {
   }
 
   @throws[TranslationException]
-  def generateAst(bindingTrace: BindingTrace, files: ju.Collection[KtFile], mainCallParameters: MainCallParameters, moduleDescriptor: ModuleDescriptor, config: JsConfig): TranslationContext = try
-    doGenerateAst(bindingTrace, files, mainCallParameters, moduleDescriptor, config)
-  catch {
-    case e: UnsupportedOperationException =>
-      throw new UnsupportedFeatureException("Unsupported feature used.", e)
-    case e: Throwable =>
-      throw ExceptionUtilsKt.rethrow(e)
-  }
+  def generateAst(bindingTrace: BindingTrace, files: ju.Collection[KtFile], mainCallParameters: MainCallParameters, moduleDescriptor: ModuleDescriptor, config: JsConfig, pathResolver: SourceFilePathResolver): AstGenerationResult =
+    try
+      doGenerateAst(bindingTrace, files, mainCallParameters, moduleDescriptor, config, pathResolver)
+    catch {
+      case e: UnsupportedOperationException =>
+        throw new UnsupportedFeatureException("Unsupported feature used.", e)
+      case e: Throwable =>
+        throw ExceptionUtilsKt.rethrow(e)
+    }
 
-  private def doGenerateAst(bindingTrace: BindingTrace, files: ju.Collection[KtFile], mainCallParameters: MainCallParameters, moduleDescriptor: ModuleDescriptor, config: JsConfig) = {
-    val staticContext = StaticContext.generateStaticContext(bindingTrace, config, moduleDescriptor)
-//    val program = staticContext.getProgram
-//    val rootPackageName = program.getRootScope.declareName(Namer.getRootPackageName)
-    val rootFunction = staticContext.getRootFunction
-//    val rootBlock = rootFunction.getBody
-//    val statements = rootBlock.getStatements
-//    program.getScope.declareName("_")
-    val context = TranslationContext.rootContext(staticContext, rootFunction)
+  private def doGenerateAst(bindingTrace: BindingTrace,
+                            files: ju.Collection[KtFile],
+                            mainCallParameters: MainCallParameters,
+                            moduleDescriptor: ModuleDescriptor,
+                            config: JsConfig,
+                            pathResolver: SourceFilePathResolver): AstGenerationResult = {
+
+    val staticContext = new StaticContext(bindingTrace, config, moduleDescriptor, pathResolver)
+    val program = staticContext.getProgram
+    val rootFunction = new JsFunction(program.getRootScope, new JsBlock(), "root function")
+    val internalModuleName = program.getScope.declareName("_")
+    val merger = new Merger(rootFunction, internalModuleName, moduleDescriptor)
+    val context = TranslationContext.rootContext(staticContext)
 
     PackageDeclarationTranslator.translateFiles(files, context)
 
-//    staticContext.postProcess()
-//    statements.add(0, program.getStringLiteral("use strict").makeStmt)
-//    if (!staticContext.isBuiltinModule) defineModule(context, statements, config.getModuleId)
-//    mayBeGenerateTests(files, config, rootBlock, context)
-//    rootFunction.getParameters.add(new JsParameter(rootPackageName))
-//    // Invoke function passing modules as arguments
-//    // This should help minifier tool to recognize references to these modules as local variables and make them shorter.
-//    val importedModuleList = new ju.ArrayList[StaticContext.ImportedModule]
-//    for (importedModule <- staticContext.getImportedModules.asScala) {
-//      rootFunction.getParameters.add(new JsParameter(importedModule.getInternalName))
-//      importedModuleList.add(importedModule)
-//    }
-//    if (mainCallParameters.shouldBeGenerated) {
-//      val statement = generateCallToMain(context, files, mainCallParameters.arguments)
-//      if (statement != null) statements.add(statement)
-//    }
-//    statements.add(new JsReturn(rootPackageName.makeRef))
-//    val block = program.getGlobalBlock
-//    block.getStatements.addAll(wrapIfNecessary(config.getModuleId, rootFunction, importedModuleList, program, config.getModuleKind))
-    context
-  }
+    val fragmentMap = new java.util.HashMap[KtFile, JsProgramFragment]
+    val fragments = new java.util.ArrayList[JsProgramFragment]
+    val newFragments = new java.util.ArrayList[JsProgramFragment]
+    val statements = new java.util.ArrayList[JsStatement]
+    val fileMemberScopes = new java.util.HashMap[KtFile, java.util.List[DeclarationDescriptor]]
+    val importedModuleList = merger.getImportedModules
 
+    new AstGenerationResult(program, internalModuleName, fragments, fragmentMap, newFragments, statements, fileMemberScopes, importedModuleList)
+  }
+  /*
   private def defineModule(context: TranslationContext, statements: ju.List[JsStatement], moduleId: String) = {
     val rootPackageName = context.scope.findName(Namer.getRootPackageName)
     if (rootPackageName != null) statements.add(new JsInvocation(context.namer.kotlin("defineModule"), context.program.getStringLiteral(moduleId), rootPackageName.makeRef).makeStmt)
@@ -194,5 +244,6 @@ object Translation {
     }
     null
   }
+  */
 
 }

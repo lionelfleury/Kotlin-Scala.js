@@ -1,0 +1,18 @@
+
+\chapter{Conclusion}
+  \section{Project conclusion}
+  \paragraph{} This project was (at first) aimed to finish the compilation of the Kotlin JS standard library in order to provide full support of the Kotlin features with the Kotlin to Scala.js compiler. Sadly, more features than expected were missing and a few still are, preventing a complete compilation. The range of unsupported language features has however been greatly reduced and one should easily be able to implement the last missing features.
+  
+  \paragraph{} The complete compilation of the standard library is slowed down as well by the need to write translation for uses of the Kotlin \ktinline{js} function.
+  
+  \paragraph{} Prior work on the compiler allowed to show that the use of the Scala.js linker for compiling Kotlin to JavaScript would lead to a huge improvement in terms of the size of the final JavaScript code emitted. This project shows that the performance of the Kotlin to Scala.js compiler still has room for improvement in some cases, mainly in the handling of array accesses. As for the other benchmarking results, this compiler is at least as good as what the Kotlin JS compiler would do and even much better in handling 64 bits integer operations.
+  
+  \paragraph{} The current state of the compiler is not suited for large scale projects but could however already be used for smaller sized applications. The fact that the Gradle plugin is fairly easy to configure removes the hard work required to satisfy the compilation pipeline since it doesn't require to operate things manually anymore.
+  
+  \section{Future work}
+   
+  \paragraph{} The current version of the compiler is still missing important features. In order to complete full classes support, data classes and inner classes must be supported. Destructuring declarations are also missing but can be really handy. They allow, for instance, to retrieve in one line the content of a method returning a tuple.
+  
+  \paragraph{} A strong improvement would be to provide a good algorithm for generating fresh names. As of now the utility function used throughout the project uses the generation of a unique identifier with the help of the UUID package from Java. This works but is however not a recommended way of doing this. This problem could be solved by adding the maintenance of a context which could be passed down to lower layers. Kotlin is already providing such a context but the way it is maintained in the Kotlin compiler is quiet unclear.
+  
+  \paragraph{} The main bottleneck for the use of the compiler is the fact that external classes and dynamic types are not well supported. Such an addition would allow for easy interaction with JavaScript existing features and provide access to the HTML DOM of web pages.

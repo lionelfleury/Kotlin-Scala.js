@@ -1,6 +1,7 @@
 package ch.epfl.k2sjsir.translate
 
-import com.intellij.psi.tree.IElementType
+import ch.epfl.k2sjsir.utils.Utils
+import org.jetbrains.kotlin.com.intellij.psi.tree.IElementType
 import org.jetbrains.kotlin.js.translate.context.TranslationContext
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.{KtPostfixExpression, KtPrefixExpression, KtUnaryExpression}
@@ -23,11 +24,22 @@ case class GenUnary(d: KtUnaryExpression)(implicit val c: TranslationContext) ex
           case _: KtPrefixExpression =>
             Block(Assign(lhs, binOp), lhs)
           case _: KtPostfixExpression =>
-            val v = VarDef(Ident("tmp$1"), lhs.tpe, mutable = false, lhs)
+            val v = VarDef(Ident(Utils.getFreshName("tmp$")), lhs.tpe, mutable = false, lhs)
             Block(v, Assign(lhs, binOp), v.ref)
-          case _ => notImplemented
+          case _ => notImplemented("near ++ or --")
         }
-      case _ => notImplemented
+
+      case KtTokens.EXCLEXCL =>
+        val freshVar = VarDef(Ident(Utils.getFreshName()), lhs.tpe, mutable = false, lhs)
+
+        Block(
+          freshVar,
+          If(Utils.genNotNullCond(freshVar.ref), freshVar.ref,
+            Throw(New(ClassType("jl_NullPointerException"), Ident("init___"), Nil)))(lhs.tpe)
+        )
+
+      case operation =>
+        notImplemented(s"default case for operation $operation")
     }
   }
 
@@ -53,28 +65,16 @@ object GenUnary {
   }
 
   private def getLiteral(v: Int, tpe: Type)(implicit pos: Position): Tree = tpe match {
+    case ByteType => ByteLiteral(v.toByte)
+    case ShortType => ShortLiteral(v.toShort)
     case IntType => IntLiteral(v.toInt)
     case LongType => LongLiteral(v.toLong)
     case DoubleType => DoubleLiteral(v.toDouble)
     case FloatType => FloatLiteral(v.toFloat)
-    case _ => Debugger()
+    case _ =>
+      val position = Option(pos).getOrElse(Position.NoPosition)
+      println(s"getLiteral : v = $v and type = $tpe at pos $position")
+      Debugger()
   }
-
-  /* Useful for explicit type conversion (toInt, toDouble, ...) */
-  def convertToOp(from: Type, to: Type): Option[UnaryOp.Code] = (from, to) match {
-    case (IntType, LongType) => Some(UnaryOp.IntToLong)
-    case (LongType, IntType) => Some(UnaryOp.LongToInt)
-    case (LongType, DoubleType) => Some(UnaryOp.LongToDouble)
-    case (DoubleType, IntType) => Some(UnaryOp.DoubleToInt)
-    case (DoubleType, FloatType) => Some(UnaryOp.DoubleToFloat)
-    case (DoubleType, LongType) => Some(UnaryOp.DoubleToLong)
-    case (BooleanType, BooleanType) => Some(UnaryOp.Boolean_!)
-    case _ => None
-  }
-
-  def isUnaryOp(n: String): Boolean =
-    n == "toLong" || n == "toInt" || n == "toDouble" || n == "toFloat" || n == "not" || isUnaryToBinary(n)
-
-  private def isUnaryToBinary(n: String) = n == "unaryMinus"
 
 }

@@ -1,0 +1,15 @@
+Kotlin JS
+
+Kotlin StdLib 1.44 Mb
+DeltaBlue 36.64 kB
+LongMicro 47.18 kB
+Richards 25.34 kB
+SHA512 31.73 kB
+
+
+Kotlin to Scala.js
+
+DeltaBlue 143.503 kB
+LongMicro 144.352 kB
+Richards 112.057 kB
+SHA512 147.017 kB

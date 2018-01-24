@@ -1,6 +1,6 @@
 package ch.epfl.k2sjsir.lower
 
-import org.jetbrains.kotlin.psi.{KtClassOrObject, KtDeclaration, KtFile}
+import org.jetbrains.kotlin.psi.{KtClassOrObject, KtDeclaration, KtFile, KtObjectLiteralExpression}
 
 import scala.collection.JavaConverters._
 

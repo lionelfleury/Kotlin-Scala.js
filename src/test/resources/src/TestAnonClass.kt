@@ -16,6 +16,8 @@ object Test {
         println(a)
     }
 }
-fun main(args: Array<String>) {
-    Test.main()
+object TestAnonClass{
+    fun main(args: Array<String>) {
+        Test.main()
+    }
 }

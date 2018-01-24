@@ -41,7 +41,7 @@ object Scalajsp {
       fileName <- options.fileNames
     } {
       val vfile = readFromFile(fileName)
-      new IRTreePrinter(stdout).printTopLevelTree(vfile.tree)
+      new IRTreePrinter(stdout).print(vfile.tree)
     }
     stdout.toString
   }

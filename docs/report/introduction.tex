@@ -1,0 +1,153 @@
+\chapter{Introduction}
+\section{Kotlin and Scala.js}
+
+\paragraph{} JavaScript (JS for short) is a programming language that provides developers with a 
+way to interact with users by building dynamic web applications and websites. Through the use of 
+JavaScript runtimes, such as Node.js~\cite{nodejs}, it is no longer required that applications be 
+executed only on the client side. It can therefore also be used to build a large range of 
+server applications. Many frameworks and libraries exist to provide useful functionalities to the 
+language and ease the development of said applications.
+
+\paragraph{} JavaScript is a weakly typed  language and provides a large freedom on how to organize
+one's code. However, depending on the situation, a strongly typed language might be more suitable for development. This is where Kotlin JS and Scala.js come into play.
+
+\paragraph{Kotlin JS} Kotlin~\cite{kotlin} is a statically typed programming language providing 
+many features through its large standard library. It is able to run on the JVM and is officially 
+supported for Android since May 2017~\cite{android_kotlin_support}. In order to expand their reach, 
+the Kotlin team has built a JavaScript compiler to translate the Kotlin standard library 
+and the language capabilities into a JS application. It however lacks some optimizations and 
+produces a rather large amount of JS code.
+
+\paragraph{Scala.js} Scala.js~\cite{scalajs} is another typed programming language. Being 
+implemented as a Scala compiler plugin, it benefits from most of its features with a few 
+differences due to the JavaScript semantics (more details about this can be found in the 
+\enquote{Hands on Scala.js} tutorial~\cite{scalajs_handson}).
+
+\paragraph{} Both languages provide specific language features in order to allow developers to interact with 
+pre-existing JavaScript objects and thereby provide JavaScript interoperability. The main 
+difference between Kotlin JS and Scala.js is the number of optimizations performed on the code before 
+outputting JavaScript. The sizes of the final JS files are also very different. 
+
+\paragraph{} Scala.js (mainly thanks to its linker) enhances the performance by performing whole 
+program optimizations and greatly reduces the size of the generated code. All details about the 
+Scala.js compilation pipeline (and how it optimizes JavaScript code) can be found under section 
+\enquote{The compilation pipeline} of the \enquote{Hands on Scala.js}~\cite{scalajs_handson} 
+tutorial. Kotlin, since its version 1.1.4, provides Dead Code Elimination through an additional 
+Gradle plugin which can be found in the Kotlin documentation~\cite{kotlin_dce}.
+
+
+\paragraph{} As a summary, combining both the Kotlin language flexibility and the Scala.js 
+optimizing capabilities can result in a great improvement for JavaScript applications development 
+both in terms of executable size and performance.
+
+\section{Motivations}
+\paragraph{} I have always been strongly interested in web related technologies and the 
+opportunity to work at the core of one of them is really an enriching experience. The Kotlin 
+compiler is a very large code base and having to search trough its numerous source files in order 
+to understand the logic behind the language is challenging and at the same time captivating.
+
+\paragraph{} Besides the performance aspect behind the compilation pipeline (and of course the 
+language syntax), one of the most important things for a language to be adopted is the tooling 
+available and how easy it is to setup a new project and compile one's code.
+    
+\paragraph{} The main goal of this project was thus to provide developers with basic 
+tooling and support for the Kotlin language. This will be achieved by continuing prior work to 
+compile the Kotlin standard library to the Scala.js IR and by writing a simple Gradle~\cite{gradle} 
+plugin.
+
+\section{Project structure and architecture}
+
+\paragraph{} The work on a Kotlin to Scala.js compiler was started in February 2017 by Lionel 
+Fleury and Guillaume Tournigand. Their work resulted in a structured code base which allowed simple 
+Kotlin programs to compile (for more details on their work, please refer to their semester project 
+report~\cite{kotlin_scalajs_report}). A brief review of the working features of their project is 
+available under section \ref{initial_status}.
+
+\subsection*{Main source code}
+
+\paragraph{} The main code of the project is stored under the \scalainline{ch.epfl.k2sjsir} 
+(root) package, organized in three subpackages: \scalainline{lower}, \scalainline{translate} and 
+\scalainline{utils}.
+
+\paragraph{} More details about this design and the underlying Kotlin AST (PSI, Descriptors and 
+Contexts) can be found under section \enquote{Kotlin} of Guillaume's and Lionel's 
+report~\cite{kotlin_scalajs_report}.
+
+\paragraph{Package root} A few files are located at the root of the \scalainline{ch.epfl.k2sjsir} 
+package and they are the entry point into the Kotlin compiler pipeline. For reference, the 
+\scalainline{translate} package is first called via the \scalainline{GenClass} class from the 
+\scalainline{PackageDeclarationTranslator} file.
+      
+\paragraph{Package \scalainline{lower}} This package contains all the logic related to class 
+lowering which is used to retrieve inner classes and objects (besides anonymous objects, see 
+section \ref{anonymous_objects}) from the Kotlin AST.
+
+\paragraph{Package \scalainline{translate}} This is where the main translation logic is kept. 
+It is organized in a generator pattern and thus every class in this package must provide a way to 
+retrieve an SJSIR object (generally through a \scalainline{tree} method) from a \ktinline{KtElement}. 
+For example if you are provided with a \scalainline{KtExpression} object, you can translate it with:
+
+\begin{minted}[linenos,frame=leftline]{scala}
+  val e: KtExpression = /* Retrieve a KtExpression */
+  GenExpr(e).tree // This will return a Scala.js IR node
+\end{minted}
+
+
+\paragraph{Package \scalainline{utils}} This last package contains a variety of utility 
+methods such as implicit classes which provide an interface to encode names, retrieve types or 
+generate recurring SJSIR objects, etc.
+
+\subsection*{Tests}
+\paragraph{} In order to verify that no code change breaks the translation of other elements, a 
+test suite exists under the \scalainline{test} directory. This directory is organized in two main 
+folders which are \scalainline{resources} and \scalainline{scala}.
+
+\paragraph{Folder \scalainline{resources}} There are mainly two directories in this folder; the 
+first one, \scalainline{lib}, contains the Scala.js library jar file. These are used when launching 
+the Scala.js linker to compile the SJSIR files output by the compiler. The second folder is the 
+\scalainline{src} folder which contains all Kotlin sources to test the good behavior of the 
+Kotlin to Scala.js compiler.
+
+\paragraph{Folder \scalainline{scala}} It contains the various ScalaTest~\cite{scala_test} files 
+which define the unit tests. Each test file was written to test a specific language feature, 
+please refer to section \ref{features} for details about which Kotlin feature these test files are 
+related to. The corresponding source code can be found in the GitHub 
+repository~\cite{kotlin_scalajs_v2}.
+
+\subsection*{General design of the project}
+
+\paragraph{Entry point} The \scalainline{K2SJSIRCompiler} class is used in order to inject the 
+Scala.js IR translation logic into the Kotlin compiler. It is where the parsing of the 
+command line arguments happens, through the use of the \scalainline{K2SJSIRCompilerArguments} class. The 
+resolution of source file paths is then handed to the \scalainline{K2SJSIRTranslator} which in turn 
+will delegate the work to the \scalainline{Translation} class.
+
+\paragraph{} Finally, this class will hand the task of generating SJSIR nodes to the
+\scalainline{PackageDeclarationTranslator} class. It then makes use of the content of the
+\scalainline{translate} package in order to generate the final SJSIR files.
+
+\paragraph{} Since this code is (mostly) a Scala translation of the original  
+\scalainline{K2JSCompiler} class, all phases (parsing, type checking, etc.) of the original 
+compiler are still there.
+
+%% Compiler pipeline illustration
+
+\label{translation}
+\paragraph{Translation} As explained above, the translation happens mainly inside the 
+\scalainline{PackageDeclarationTranslator} class. It will extract the various declarations using 
+lowering and generate the corresponding SJSIR files. The declarations can be either classes and
+objects or top-level functions and properties.
+
+\paragraph{} The reasoning behind this design is explained in more details in the \enquote{Hello 
+World} section of Guillaume and Lionel's report~\cite{kotlin_scalajs_report}.
+
+\begin{comment}
+  - talk about kotlin representation ?
+  - project organization (folders) --> README ?
+  - general design of the compiler
+  - supported kotlin + scalajs versions
+  Annexes
+  - brief explanation of the various utils available
+  - definition of dispatch receiver, extension receiver
+  - kotlin standard library compilation (which files and how)
+\end{comment}

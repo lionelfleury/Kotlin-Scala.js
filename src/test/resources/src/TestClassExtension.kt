@@ -17,6 +17,34 @@ class C {
         d.foo()
     }
 }
+open class DummyClass
+
+class MyClassWithExtension {
+    fun get(i: Int): Double {
+        return i.toDouble()
+    }
+}
+
+fun MyClassWithExtension.dummy(a: Double) {
+    println("this is another extension function")
+}
+
+fun MyClassWithExtension.dummy() {
+    println("this is an extension function")
+}
+
+fun MyClassWithExtension.usingThis(): Double {
+    var sum = 0.0
+    for (i in 0..3) {
+        sum += get(i)
+    }
+
+    return sum
+}
+
+fun String.myExtendedFun(): Int = 2
+
+fun String.printWith(s: String) = println("$this $s")
 
 object Test {
 
@@ -25,6 +53,7 @@ object Test {
     }
 
     fun String.manyCount2(other: String, other1: String): Int {
+        coucou()
         return count2() + other.count2() + other1.count2()
     }
 
@@ -42,10 +71,24 @@ object Test {
         val d = D()
 
         c.caller(d)
+
+
+        val ext = MyClassWithExtension()
+        ext.dummy()
+        ext.dummy(1.0)
+        ext.usingThis()
+
+        "Hello".printWith("World")
+    }
+
+    fun coucou() {
+
     }
 
 }
 
-fun main(args: Array<String>) {
-    Test.main()
+object TestClassExtension {
+    fun main(args: Array<String>) {
+        Test.main()
+    }
 }

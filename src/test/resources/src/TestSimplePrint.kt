@@ -1,3 +1,5 @@
-fun main(args: Array<String>) {
-    println(1)
+object TestSimplePrint {
+    fun main(args: Array<String>) {
+        println(1)
+    }
 }

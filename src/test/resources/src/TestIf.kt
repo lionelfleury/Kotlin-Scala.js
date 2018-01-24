@@ -1,15 +1,23 @@
-fun main(args: Array<String>) {
-    val a = 1
+object TestIf {
 
-    /* Without else */
-    if(a == 1) println(a)
+    fun main(args: Array<String>) {
+        val a = 1
 
-    /* With else */
-    if(a == 2) println("error")
-    else println(a)
+        /* Without else */
+        if (a == 1) println(a)
 
-    /* Else if */
-    if(a == 2) println("error")
-    else if(a == 1) println(1)
-    else println("error")
+        /* With else */
+        if (a == 2) println("error")
+        else println(a)
+
+        /* Else if */
+        if (a == 2) println("error")
+        else if (a == 1) println(1)
+        else println("error")
+
+        /* With negation */
+        if (!(a == 2)) println(a)
+
+        if (a != 2) println(a)
+    }
 }

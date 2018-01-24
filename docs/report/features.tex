@@ -1,0 +1,1026 @@
+\chapter{Supported features} \label{features}
+\section{Prior work} \label{initial_status}
+  
+\paragraph{} This section aims to list the features supported by the prior version of the 
+compiler~\cite{kotlin_scalajs_v1} (as of July 2017). This version was built to work with 
+Scala.js 0.6.15 and Kotlin JS 1.1.1. Since then, it was upgraded to Scala.js 1.0.0-M2 and Kotlin 
+1.1.61~\cite{kotlin_version}.
+
+\paragraph{} Below is a list of all features that were already working (or after minor fixing) on 
+the version of the compiler this project started with. For specific syntax examples please refer to 
+the Kotlin documentations available online~\cite{kotlin_docs}.
+
+\paragraph{Top-level and extension functions} These are translated the way Kotlin does it. This 
+means these definitions are stored in a class named after their containing source file. Top-level 
+properties on the other hand are not supported yet.
+
+\paragraph{} For example, if a function \ktinline{fun dummyFun() = println("Hello World")} is 
+in a source file called \ktinline{HelloWorld.kt}, it will be stored in a class called 
+\ktinline{HelloWorldKt} as a \ktinline{static} definition which is in turn stored in an SJSIR file.
+
+\paragraph{Classes and inheritance} \enquote{Classic} classes  (as opposed to \ktinline{data}, 
+\ktinline{enum}, \ktinline{annotation}, etc.) are well supported. They can be declared
+(and instantiated) with :
+
+\begin{itemize}
+ \item A primary constructor and zero or more secondary constructors.
+ \item Inheritance from a superclass (if the class is marked as \ktinline{open}).
+ \item One or more \ktinline{init} blocks.
+ \item Methods and properties (overridden or not); for properties you couldn't define custom 
+getters and setters. However the default ones were generated properly, see section 
+\ref{accessor_gen}.
+ \item Access to the current class properties and methods. You couldn't however use 
+\ktinline{this} nor \ktinline{super} (see sections \ref{this} and \ref{super_calls}).
+\end{itemize}
+
+\paragraph{} In the case of \ktinline{inner} classes, the behavior is the same as for nested 
+classes. That is, calls to methods and properties of the enclosing class are not supported yet.
+
+\paragraph{} Classes are stored within an SJSIR file with the same name as the class itself. For 
+example \ktinline{class Customer} would be stored in file \ktinline{Customer.sjsir}.
+
+\paragraph{Objects} \label{objects}Objects and companion objects are supported at the same level as 
+classes. The major difference being that they are generated as module classes (in the Scala.js 
+meaning). Their SJSIR file will be named either after the object itself, prefixed with the enclosing 
+class name and suffixed with a \$. For example \ktinline{object MyObject} would be written to 
+\scalainline{MyObject\$.sjsir} and the following object declaration inside \ktinline{MyClass} would 
+be contained in a file named \ktinline{MyClass\$MyCompanion\$.sjsir} as shown in figure 
+\ref{companion_example}.
+
+\begin{figure}[h]
+\begin{minted}[linenos,frame=leftline]{kotlin}
+ class MyClass {
+   companion object MyCompanion {
+   }
+ }
+\end{minted}
+  \caption{A companion object defined in Kotlin}
+  \label{companion_example}
+\end{figure}
+
+\paragraph{Primitive types} All primitive types are supported and mapped to the corresponding 
+Scala.js IR type. \ktinline{Char} was however not fully supported. String templates worked fine, 
+for example :
+\mint[linenos,frame=leftline]{kotlin}|val name = "World"; val s: String = "Hello $name"|
+
+\paragraph{Operators} Unary and binary operators are supported. Primitive type conversion of the 
+form \ktinline{toX()} were not fully available. Only structural equality was missing. Operator 
+overloading is not supported. The reference operator \ktinline{::} works for function references 
+but hasn't been thoroughly tested.
+
+\paragraph{Nullable types} One could declare and use nullable types inside the code. There was 
+however no support for safe operators (see section \ref{null_safety}).
+
+\paragraph{Arrays} The Kotlin \ktinline{Array} type worked, as well as the special functions 
+\ktinline{arrayOf(elements)}, \ktinline{arrayOfNulls(size)}. Other types such as 
+\ktinline{IntArray}, \ktinline{DoubleArray}, etc. are not supported. In the current version of the 
+compiler, these types are translated to their \ktinline{Array<Type>} equivalent.
+
+\paragraph{Control flow} Expressions such as \ktinline{if}, \ktinline{when}, \ktinline{for} and 
+\ktinline{while} are supported. The \ktinline{do \{/* code */\} while (/* condition */)} 
+expression was however not implemented. \\
+The expressions \ktinline{for(v in values) \{/* code using v */\}} for an array of values and 
+\ktinline{for(i in 0..X) \{/* code using i*/\}} for \ktinline{X} an integer expression worked as 
+well but one could not use neither \ktinline{until} and \ktinline{downTo} nor \ktinline{step}. 
+These are now supported.
+
+\paragraph{Variables and values} Variables and values can be declared inside 
+classes or functions. If a \ktinline{var} is declared, then it can be modified with an assignment 
+operator. For example :
+
+\begin{minted}[linenos, frame=leftline]{kotlin}
+  fun main(args: Array<String>) {
+    var counter = 0
+    counter = 1
+    counter++
+    counter += 1
+    
+    val finalCounter = counter + 1
+    println(finalCounter) // prints "4" as expected
+  }
+\end{minted}
+
+\paragraph{Interaction with JavaScript} Accessing to existing JavaScript objects and instances is 
+supported in a limited way through the use of the \ktinline{external} keyword. This allows for 
+\ktinline{external class} declarations with member functions. Properties are however not supported 
+and dynamic types are not properly handled yet.
+
+
+\section{Type checks and casts}
+\paragraph{} The keywords \ktinline{is}, \ktinline{!is} and \ktinline{as} are supported. The Kotlin 
+smart cast feature is however not yet implemented and requires casting variables manually 
+to use them as an instance of the checked type :
+
+\begin{minted}[linenos, frame=leftline]{kotlin}
+  class MyClass { fun doNothing() = println("Doing nothing") }
+  
+  fun checkFromAny(a: Any) {
+    if (a is MyClass) {
+      val tmp = a as MyClass // no smart cast
+      tmp.doNothing()
+    } else if (a !is String) {
+      println("$a is not a string !")
+    }
+  }
+  
+  fun main(args: Array<String>) {
+    checkFromAny(MyClass()) // prints "Doing nothing"
+    checkFromAny(42) // prints "42 is not a string"
+  }
+\end{minted}
+
+\paragraph{} The \ktinline{is} operator is translated to the Scala.js 
+\scalainline{IsInstanceOf} IR node. If the \ktinline{!} is used, it will then be translated as a 
+unary operation negating the result of the check.
+
+\paragraph{} The \ktinline{as} operator on the other hand is translated either to an
+\scalainline{Unbox} or an \scalainline{AsInstanceOf} IR node. The latter is used if the 
+cast expression is neither a primitive type nor of type \ktinline{Unit} or a lambda expression (see 
+section \ref{lambda_expr} for details about lambdas).
+
+\subsection{Related files} The main source files involved in the translation of these two 
+operators are the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenIs.scala}
+ \item \scalainline{translate/GenExpr.scala} (look for match cases \ktinline{KtIsExpression} and 
+\ktinline{KtBinaryExpressionWithRHS})
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{cast} function)
+\end{itemize}
+
+\paragraph{Test files} The test file verifying that these features are behaving as 
+expected is as follows :
+
+\begin{itemize}
+ \item \ktinline{TestIsOperator.kt}
+\end{itemize}
+
+% when does the undefined behaviour exception get thrown ?
+
+\section{Qualified \ktinline{this}} \label{this}
+
+\paragraph{} The keyword \ktinline{this} is now supported. The way it is handled depends on the 
+context where it is used. In classes it is simply translated to the \scalainline{This} IR node, 
+meanwhile in extension functions or in interfaces default implementations it is translated to 
+\scalainline{VarRef(Ident("\$this"))} which corresponds to the receiver parameter added to the 
+function arguments (see section \ref{interfaces} about interfaces as well).
+
+\paragraph{} For example, the code given in figure \ref{extension_example} translates to the 
+printed IR representation given in figure \ref{extension_IR_example}.
+\begin{figure}[h]
+  \begin{minted}[linenos, frame=leftline]{kotlin}
+  // Extension function definition
+  fun String.printWith(s: String) {
+    println(this + " " + s)
+  }
+  \end{minted}
+  
+  \caption{Definition of an extension function}
+  \label{extension_example}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{minted}[linenos, frame=leftline]{scala}  
+  // Result in the IR representation
+  static def printWith__T__T__V($this: T, s: T) {
+    mod:s_Predef$.println__O__V(
+      ((("" +[string] $this)
+      +[string] " ") +[string] s)
+    );
+    (void 0)
+  }
+  \end{minted}
+  
+  \caption{Translation of an extension function}
+  \label{extension_IR_example}
+\end{figure}
+
+\subsection{Related files} The main source files involved in the translation of this keyword are 
+the following:
+
+\begin{itemize}
+ \item \scalainline{translate/GenExpr.scala} (look for match case \ktinline{KtThisExpression})
+ \item \scalainline{translate/GenFun.scala} (look for the \scalainline{tree} function)
+ \item \scalainline{translate/GenProperty.scala} (look for the \scalainline{getter} function)
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{genThisFromContext} functions)
+\end{itemize}
+
+\paragraph{Test files} The test file verifying that these features are behaving as 
+expected is as follows.
+
+\begin{itemize}
+ \item \ktinline{TestThisKeyword.kt}
+\end{itemize}
+
+\section{Super calls} \label{super_calls}
+
+\paragraph{} The \ktinline{super} keyword has no direct correspondence in the Scala.js IR. It has 
+different translations depending on whether it refers to a parent class or to an interface.
+
+\paragraph{Super calls to a parent class} In such a case the Scala.js linker expects an 
+\scalainline{ApplyStatically} node to be able to link to the correct method.
+
+\paragraph{} In order to be able to access the fields of a parent class, the naming of the inner 
+backing field has been changed. This means that if a class \ktinline{MyParent} has field 
+\ktinline{val a}, then if the class \ktinline{MyChild} overrides this field, the inner 
+representation of those two fields will be different. This allows \ktinline{MyChild} to call 
+\ktinline{super.a} and get the original field value. This example is illustrated in figure 
+\ref{super_call_example} with its corresponding SJSIR result in figure \ref{super_call_ir}.
+
+\begin{figure}[h]
+ \begin{minted}[linenos, frame=leftline]{kotlin}
+  interface AnInterface {
+    val a: String
+      get() = "Hello from parent interface"
+  }
+
+  open class MyParent {
+    open val a: String = "Hello from parent class"
+  }
+
+  class MyChild: MyParent(), AnInterface {
+    override val a: String = "Hello from child"
+
+    fun example() {
+      // prints "Hello from parent interface"
+      println(super<AnInterface>.a) 
+      // prints "Hello from parent class"
+      println(super<MyParent>.a)
+      // prints "Hello from child"
+      println(this.a)
+    }
+  }
+ \end{minted}
+ \caption{A super call to a parent class and an interface's default implementation}
+ \label{super_call_example}
+\end{figure}
+
+\begin{figure}[h]
+ \begin{minted}[linenos, frame=leftline]{scala}
+  class LMyChild extends LMyParent implements LAnInterface {
+    val a$1: T
+    def a__T(): T = {
+      this.a$1
+    }
+    def example__V() {
+      mod:s_Predef$.println__O__V(
+	LAnInterface$DefaultImpls::a__LAnInterface__T(this)
+      );
+      mod:s_Predef$.println__O__V(this.LMyParent::a__T());
+      mod:s_Predef$.println__O__V(this.a__T());
+      (void 0)
+    }
+    def init___() {
+      this.LMyParent::init___();
+      this.a$1 = ("" +[string] "Hello from child")
+    }
+  }
+ \end{minted}
+ \caption{Super calls inside \ktinline{MyChild} translated to the SJSIR }
+ \label{super_call_ir}
+\end{figure}
+
+
+\paragraph{} The naming convention used when generating fields is a simple suffixing of the original name with the 
+number of parent classes of the current class. In the previous example \ktinline{MyParent} would 
+therefore have a field \ktinline{a} and \ktinline{MyChild} would have \ktinline{a\$1} (note 
+that the Object class is not taken into account).
+
+\paragraph{Super calls to an implemented interface} If an \ktinline{interface} has a default 
+implementation, the programmer can call this default method from the implementing class. Because of 
+the way these default implementations are handled, an \scalainline{ApplyStatic} node is necessary 
+(see section \ref{interfaces} about interfaces). This translation is illustrated in figures 
+\ref{super_call_example} and \ref{super_call_ir} as well.
+
+\paragraph{} The behavior of the compiler has not been tested in the context of \ktinline{inner} 
+classes, as those aren't supported yet.
+
+
+\subsection{Related files} The main source files involved in the translation of super calls are 
+the following:
+
+\begin{itemize}
+ \item \scalainline{translate/GenExpr.scala} (look for match case \ktinline{KtSuperExpression})
+ \item \scalainline{translate/GenCall.scala} (look for the \scalainline{isSuperCall} variable)
+\end{itemize}
+
+\paragraph{Test files} The test files verifying that these features are behaving as 
+expected are the following.
+
+\begin{itemize}
+ \item \ktinline{classes/TestClasses.kt}
+ \item \ktinline{classes/MyClassWithSuper.kt}
+\end{itemize}
+
+\section{Unary and binary operations}
+
+\paragraph{} These operations were, for the most part, already supported when this project 
+started. Support for the  unary operations \ktinline{toChar()} and \ktinline{char.toX()} has been 
+introduced with this new version and is translated to a \scalainline{UnaryOp} SJSIR node. The 
+structural equality, represented as \ktinline{==} which was previously missing has been added as 
+well, see figure \ref{struct_equal}.
+
+\begin{figure}[h]
+ \begin{minted}[linenos, frame=leftline]{scala}
+  val a = Dummy()
+  val b = Dummy()
+
+  println(a == b) // prints false
+  
+  // Translates to
+  val a: LDummy = new LDummy().init___();
+  val b: LDummy = new LDummy().init___();
+  mod:s_Predef$.println__O__V({
+    val x$1: LDummy = a;
+    val x$2: LDummy = b;
+    if ((x$1 === null)) {
+      (x$2 === null)
+    } else {
+      x$1.equals__O__Z(x$2)
+    }
+  });
+ \end{minted}
+  \caption{Structural equality and its SJSIR translation}
+  \label{struct_equal}
+\end{figure}
+
+
+\paragraph{} Since the compiler was upgraded from Scala.js 0.6.15 to 1.0.0-M2, the way binary and 
+unary operations are handled has been changed significantly. A utility function 
+\scalainline{adaptPrimitive} was ported from the Scala.js code and is used to generate the 
+\ktinline{toX()} unary operations on primitive types.
+
+\paragraph{} The main code handling binary operations first makes use (if necessary) of this 
+\scalainline{adaptPrimitive} function and selects the corresponding \scalainline{BinaryOp.Code} 
+before returning a \scalainline{BinaryOp} SJSIR node.
+
+\paragraph{} As of this writing, the compiler doesn't support operator overloading for user defined 
+classes.
+
+\subsection{Related files} The main source files involved in the translation of operations are 
+the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenUnary.scala}
+ \item \scalainline{translate/GenBinary.scala}
+ \item \scalainline{translate/GenCall.scala} (look for \scalainline{isUnaryOp})
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{adaptPrimitive} function)
+ \item \scalainline{org.scalajs.core.ir.Trees} (look for \scalainline{UnaryOp} and 
+\scalainline{BinaryOp})
+\end{itemize}
+
+\paragraph{Test files} The test files verifying that these features are behaving as 
+expected are the following.
+
+\begin{itemize}
+ \item \ktinline{TestMethodsBaseTypes.kt}
+ \item \ktinline{TestBinaryOps.kt}
+\end{itemize}
+
+\section{Properties accessors} \label{accessor_gen}
+
+\paragraph{} Kotlin supports two types of properties which are either \ktinline{var} or 
+\ktinline{val} declarations. By default, a getter (and a setter if it's a \ktinline{var}) are 
+generated by the compiler. 
+
+\paragraph{Backing field} If at least one of the two default accessors is used or if the 
+\ktinline{field} keyword  is used, the Kotlin compiler generates what is called a \textit{backing 
+field}. This field will be initialized to the value set by the programmer and will be accompanied by 
+the corresponding accessors. Figures \ref{with_backing_field} and \ref{no_backing_field} illustrate 
+this with two code examples taken from the Kotlin documentation~\cite{kotlin_docs}.
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  var counter = 0
+    set(value) {
+	if (value >= 0) field = value
+    }
+  \end{minted}
+  \caption{An example of code with a backing field generated}
+  \label{with_backing_field}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  var counter: int
+  def counter__I(): int = {
+    this.counter
+  }
+  def counter__I__V(value: int) {
+    if ((((double)value) >=[double] ((double)0))) {
+      this.counter = value
+    };
+    (void 0)
+  }
+  \end{minted}
+  \caption{The SJSIR of \ktinline{var counter} with default getter and custom setter}
+  \label{with_backing_field_ir}
+\end{figure}
+
+
+\paragraph{} When no backing field is generated, the expression contained either in the defined 
+accessor or on the right hand side of the property definition is directly written inside the 
+corresponding accessor as illustrated by figure \ref{no_backing_field_ir}.
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  val isEmpty: Boolean
+    get() = this.size == 0
+  \end{minted}
+  \caption{An example of code without the generation of a backing field}
+  \label{no_backing_field}
+\end{figure}
+
+
+\begin{figure}[h!]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def isEmpty__Z(): boolean = {
+    (this.size__I() ==[int] 0)
+  }
+  \end{minted}
+  \caption{The SJSIR of \ktinline{val isEmpty} with no backing field and custom getter}
+  \label{no_backing_field_ir}
+\end{figure}
+
+\paragraph{Accessors generation} Accessors must be generated from different kind of 
+\ktinline{KtElement}, mainly \ktinline{KtProperty} and \ktinline{KtParameter} objects. The latter 
+represents primary constructor parameters of a class for which, if marked as \ktinline{val} 
+or \ktinline{var}, accessors must be generated. The \ktinline{KtProperty} on the other hand 
+represents either class properties or top-level properties. Its properly supported in the context of classes but is however not yet properly translating top-level properties.
+
+\paragraph{} In order to keep the same logic for both cases, the \scalainline{GenProperty} class 
+makes use of overloading in order to retrieve the common descriptors of each to finally delegate
+the generation of both default and custom accessors to the same methods, namely \ktinline{getter} 
+and \ktinline{setter}.
+
+\paragraph{} For the special case of accessors inside interface default implementations, please 
+refer to sections \ref{this} and \ref{interfaces}.
+
+
+\subsection{Related files} The main source files involved in the translation of accessors are 
+the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenProperty.scala}
+ \item \scalainline{translate/GenClass.scala} (look for \scalainline{GenProperty} usage)
+ \item \scalainline{utils/GenClassUtils.scala} (look for \scalainline{GenProperty})
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{getMemberDefinitions} function)
+\end{itemize}
+
+\paragraph{Test files} The test file verifying that accessors are generated as 
+expected are the following.
+
+\begin{itemize}
+ \item \ktinline{TestAccessorsGen.kt}
+\end{itemize}
+
+\section{Higher-order function and lambdas} \label{lambda_expr}
+
+\paragraph{} As shown by figures \ref{lambda_fun}, \ref{lambda_var} and \ref{lambda_anon}, Kotlin 
+provides different ways of defining lambda expressions which can be passed as 
+parameter to higher-order functions.
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun plus(a: Int): (Int) -> Int  = { b ->
+    a + b
+  }
+  
+  // Calling it
+  plus(3)(7) // returns 10
+  \end{minted}
+  \caption{A lambda \ktinline{(Int) -> Int} returned by a function taking one \ktinline{Int} 
+parameter}
+  \label{lambda_fun}
+\end{figure}
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  var times: (Int, Int) -> Int = { a,b ->
+    return a * b
+  }
+  
+  // Calling it
+  times(2, 3) // returns 6
+  \end{minted}
+  \caption{An \ktinline{(Int, Int) -> Int} lambda expression stored inside a \ktinline{var}}
+  \label{lambda_var}
+\end{figure}
+
+
+\begin{figure}[h!]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun mapFive(f: (Int) -> String) = f(5)
+  // Calling it
+  mapFive({x -> "I contain $x"}) // returns "I contain 5"
+  \end{minted}
+  \caption{An anonymous lambda function}
+  \label{lambda_anon}
+\end{figure}
+
+\paragraph{} A simple implementation using the \scalainline{sjsr_AnonFunction} from Scala.js was 
+already in place in order to provide support for anonymous lambda expressions. This 
+implementation was changed to add support for the two other examples and to be closer to JavaScript 
+semantics. These expressions are therefore directly contained inside a Scala.js 
+\scalainline{Closure} IR node, capturing the parameters available from a declaring function (see 
+example \ref{lambda_fun}).
+
+\paragraph{} Behind the scenes, variables are captured by the closure parameters as shown in 
+figures \ref{lambda_fun_ir} and \ref{lambda_expr}. This means they are assigned to a closure 
+parameter and defined again inside the closure itself.
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def plus__I__O(a: int): any = {
+    (lambda<$this: LDummy = this, a: int = a>(closureargs$b: any) = {
+      val b: int = closureargs$b.asInstanceOf[I];
+      (a +[int] b)
+    })
+  }
+  \end{minted}
+  \caption{The SJSIR equivalent of figure \ref{lambda_fun}}
+  \label{lambda_fun_ir}
+\end{figure}
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  // Inside the init call of a class (accessors are not shown)
+  this.times = (lambda<$this: LDummy = this>(closureargs$a: any,
+    closureargs$b: any) = {
+    val a: int = closureargs$a.asInstanceOf[I];
+    val b: int = closureargs$b.asInstanceOf[I];
+    (a *[int] b)
+  })
+  \end{minted}
+  \caption{The SJSIR equivalent of figure \ref{lambda_expr}}
+  \label{lambda_expr_ir}
+\end{figure}
+
+
+
+\paragraph{} Calls to lambdas are translated by the Kotlin compiler to a call to the 
+\ktinline{invoke} function (with zero or more parameters depending on the the lambda declaration). 
+This call will be translated as a \scalainline{JSFunctionApply} Scala.js IR node.
+
+\paragraph{} It is relevant to note that these nodes do not take a type argument. This is because 
+they map directly to JavaScript and are therefore of type \scalainline{Any}. As a result, 
+calls must be cast to the expected type in order for the linker to be able to do its work. The 
+casting logic is contained inside the \scalainline{cast} function from the \scalainline{Utils.scala} 
+file.
+
+\paragraph{} As of this writing, variables declared before or in the same scope as the lambda 
+expression cannot be used inside the lambda itself because they are not captured. This problem can 
+be solved using free variables analysis on the closure. If time permits, this should be fixed in a 
+later version.
+% how they are implemented (as js functions)
+% no capture of current scope variables
+
+\subsection{Related files} The main source files involved in the translation of lambda and 
+closures are the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenExpr.scala} (look for \scalainline{genLambda} and 
+\scalainline{genClosure} functions)
+ \item \scalainline{translate/GenCall.scala} (look for \scalainline{JSFunctionApply} usage)
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{cast} function)
+\end{itemize}
+
+\paragraph{Test files} The tests verifying that lambdas and high order functions work as expected 
+are found in the following files.
+
+\begin{itemize}
+ \item \ktinline{TestHighOrderFunction.kt}
+ \item \ktinline{TestLambda.kt}
+\end{itemize}
+
+\section{Interfaces} \label{interfaces}
+
+\paragraph{} As shown in figure \ref{interface_decl}, interfaces in Kotlin allow developers to 
+provide a default implementation. This default method will be used if an implementing class
+doesn't provide its own override. 
+
+\begin{figure}[h!]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  interface MyInterface {
+    val a: String
+      get() = "Hello from an interface"
+  }
+  
+  class MyClass: MyInterface
+  
+  fun main(args: Array<String>) {
+    MyClass().a // returns "Hello from an interface"
+  }
+  \end{minted}
+  \caption{An interface with default implementation of an accessor of \ktinline{a}}
+  \label{interface_decl}
+\end{figure}
+
+\paragraph{} Because we cannot store the default implementation directly inside the interface, the 
+compiler will generate (as does Kotlin) a second file suffixed with \ktinline{\$DefaultImpl}. This 
+file contains static methods, the body of which was provided as the default implementation (see 
+figure \ref{interface_default}).
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  class LMyInterface$DefaultImpls extends O {
+    static def a__LMyInterface__T($this: LMyInterface): T = {
+      ("" +[string] "Hello from an interface")
+    }
+  }
+  \end{minted}
+  \caption{A default implementation in the Scala.js IR}
+  \label{interface_default}
+\end{figure}
+
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  class LMyClass extends O implements LMyInterface {
+    def a__T(): T = {
+      LMyInterface$DefaultImpls::a__LMyInterface__T(this)
+    }
+    def init___() {
+      this.O::init___()
+    }
+  }
+  \end{minted}
+  \caption{The bridging method inside \ktinline{MyClass} in the Scala.js IR}
+  \label{implementing_class}
+\end{figure}
+
+
+\paragraph{Bridging} If no override is provided inside the implementing classes, the compiler will 
+generate bridging methods. These are standard methods that act as a bridge between the implementing 
+class and the default implementation of the interface. This means that they will statically call 
+the corresponding default implementation as illustrated in figure \ref{implementing_class}.
+
+\paragraph{Accessors} The behavior for (default implementation) accessors differs from the 
+generation detailed in section \ref{accessor_gen} in that they will all receive an instance of the 
+implementing class as first argument. The calls on \ktinline{this} are therefore translated to calls 
+on this instance parameter. Again, bridges for these accessors will be generated only if no 
+override is provided in the implementing class.
+
+\paragraph{} It is important to note that backing fields are not allowed in interfaces, therefore 
+the default implementations cannot provide custom setters which use the \ktinline{field} keyword.
+
+\paragraph{} Finally, the interface itself is written as a class with only abstract methods. The 
+resulting IR for \ktinline{MyInterface} is shown in figure \ref{interface_abstr}.
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  interface LMyInterface {
+    def a__LMyInterface__T($this: LMyInterface): T = <abstract>
+  }
+  \end{minted}
+  \caption{The representation of \ktinline{MyInterface} in the Scala.js IR}
+  \label{interface_abstr}
+\end{figure}
+
+\subsection{Related files} The main source files involved in the translation of interfaces are 
+the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenClass.scala} (look for \scalainline{treeDefaultImpls} method)
+ \item \scalainline{translate/GenClassUtils.scala} (look for 
+\scalainline{getDefaultImplementations} and \scalainline{getInterfaceBridges})
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{isInterface} keyword)
+\end{itemize}
+
+\paragraph{Test files} The tests verifying that interfaces are implemented as expected are all 
+found in the following files.
+
+\begin{itemize}
+ \item \ktinline{interfaces/<*>.kt}
+\end{itemize}
+
+\section{Enum classes}
+
+\paragraph{} Enum classes differ from \enquote{normal} classes in that they have a somewhat 
+different representation in the Kotlin AST. The values of the enumeration are instances of classes 
+represented by specific \ktinline{KtEnumEntry} nodes. Meanwhile the \ktinline{enum class} itself is 
+represented as a normal \ktinline{KtClass} node.
+
+\paragraph{} The \ktinline{enum class} itself inherits from \scalainline{java.lang.Enum}. On the 
+other hand, entries of the enumeration are represented as private classes which inherit from their 
+enum parent. Their constructor therefore calls the one of the \ktinline{enum class} itself. All 
+classes representing the enum entries are generated thanks to the lowering step described in 
+section \ref{translation}.
+
+\paragraph{} Since the enum class will be accessed statically, utility functions such as 
+\ktinline{values()} and \ktinline{valueOf(s: String)}, as well as instances of the class entries, 
+are stored inside a module class following the generation of objects (see section 
+\ref{objects}). These two utility functions are fully generated by the compiler.
+
+\paragraph{} Take the code shown in figure \ref{enum_class_example} as an example. This simple code 
+would generate a total of 5 files, the content of which is shown in figure 
+\ref{enum_class_example_ir}.
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  enum class Fruits {
+      APPLE, BANANA, PEACH
+  }
+  \end{minted}
+  \caption{An example of an enum class}
+  \label{enum_class_example}
+\end{figure}
+
+
+\begin{figure}[H]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  // Fruits$APPLE.sjsir, Fruits$BANANA.sjsir and Fruits$PEACH.sjsir
+  class LFruits$APPLE extends LFruits {
+    def init___T__I(_name: T, _ordinal: int) {
+      this.LFruits::init___T__I(_name, _ordinal)
+    }
+  }
+  // Fruits.sjsir
+  class LFruits extends jl_Enum {
+    def init___T__I(_name: T, _ordinal: int) {
+      this.jl_Enum::init___T__I(_name, _ordinal)
+    }
+  }
+  // Fruits$.sjsir
+  module class LFruits$ extends O {
+    // enum fields and acessors are omitted
+    
+    def valueOf__T__LFruits(string: T): LFruits = {
+      if (string.equals__O__Z("PEACH")) {
+	this.PEACH$1
+      } /* omitting other else if */
+      } else {
+	throw new jl_IllegalArgumentException()
+	  .init___T(("Illegal enum constant Fruits." +[string] string))
+      }
+    }
+    val $VALUES: LFruits[]
+    def values__ALFruits(): LFruits[] = {
+      this.$VALUES.clone__O().asInstanceOf[LFruits[]]
+    }
+    def init___() {
+      this.O::init___();
+      this.APPLE$1 = new LFruits$APPLE().init___T__I("APPLE", 0);
+      // omitting other entries
+      this.$VALUES = LFruits[](this.APPLE$1, this.BANANA$1, this.PEACH$1)
+    }
+  }
+
+  \end{minted}
+  \caption{The resulting SJSIR files of the translation of the enum shown in figure 
+\ref{enum_class_example}}
+  \label{enum_class_example_ir}
+\end{figure}
+
+\paragraph{} Enum classes can define a constructor and implement interfaces. This feature is 
+however not yet supported.
+
+
+\subsection{Related files} The main source files involved in the translation of interfaces are 
+the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenClass.scala} (look for \scalainline{treeEnumCompanion} and the 
+\scalainline{genPrimaryConstructor} methods)
+ \item \scalainline{translate/GenClassUtils.scala} (look for 
+\scalainline{getEnumDefinitions}, \scalainline{getEnumCompanionConstructor}) and 
+\scalainline{KtEnumEntry}
+ \item \scalainline{utils/Utils.scala} (look for the \scalainline{enum} keyword)
+\end{itemize}
+
+\paragraph{Test files} The tests verifying that interfaces are implemented as expected are 
+found in the following files.
+
+\begin{itemize}
+ \item \ktinline{classes/MyEnumClass.kt}
+ \item \ktinline{classes/TestClasses.kt}
+\end{itemize}
+
+\section{Anonymous objects} \label{anonymous_objects}
+
+\paragraph{} Anonymous objects are the Kotlin way of instantiating objects of anonymous classes. 
+Since these are represented as \ktinline{KtObjectLiteralExpression} in the Kotlin AST, they aren't 
+handled in the lowering phase (see section \ref{translation}).
+
+\paragraph{} The way these expressions are handled by the compiler is by generating a class located 
+in a package named after the enclosing declaration of the object. For example, if an anonymous 
+object is declared inside a function \ktinline{foo()} in a file \ktinline{Main.kt} then a file 
+\ktinline{foo/Main\$NoNameProvided.sjsir} will be generated.
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun foo() {
+    val adHoc = object {
+      var x: Int = 0
+      var y: Int = 0
+    }
+    print(adHoc.x + adHoc.y) // prints 0
+  }
+  \end{minted}
+  \caption{An anonymous object in Kotlin (from the Kotlin documentation)}
+  \label{anonymous_obj_decl}
+\end{figure}
+
+\paragraph{} Figure \ref{anonymous_obj_decl} shows how one can declare such an object. After 
+generating the file with the object declaration, the compiler will replace the declaration with an 
+instance of the newly generated class. For the previous example the Scala.js IR would look like 
+shown in figure \ref{anonymous_obj_ir}.
+
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def foo__V() {
+    val adHoc = new Lfoo_Main$NoNameProvided().init___();
+    mod:s_Predef$.print__O__V((adHoc.x__I() +[int] adHoc.y__I()));
+    (void 0)
+  }
+  \end{minted}
+  \caption{The IR representation of code provided in figure \ref{anonymous_obj_decl}}
+  \label{anonymous_obj_ir}
+\end{figure}
+
+
+\subsection{Related files} The main source files involved in the translation of interfaces are 
+the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenExpr.scala} (look for \ktinline{KtObjectLiteralExpression})
+ \item \scalainline{translate/GenClass.scala}
+ \item \scalainline{translate/GenClassUtils.scala}
+ \item \scalainline{utils/Utils.scala}
+\end{itemize}
+
+\paragraph{Test files} The tests verifying that interfaces are implemented as expected are 
+found in the following files.
+
+\begin{itemize}
+ \item \ktinline{objects/AnonymousObjects.kt}
+ \item \ktinline{objects/TestObjects.kt}
+\end{itemize}
+
+\section{Kotlin js() function}
+
+\paragraph{} In order to compile the standard library, some way of supporting the special 
+\ktinline{js(jsCode: String)} function is required. What \ktinline{js()} does in Kotlin JS is to 
+inline the JavaScript code passed as argument in the final JavaScript file generated by the 
+compiler.
+
+\paragraph{} Because the Scala.js IR doesn't offer any way of inlining raw JavaScript, the various calls 
+in the standard library must be treated case by case. This is made possible by the requirement of 
+the argument to the function being a string literal. 
+
+\paragraph{} This is what the \scalainline{GenJsFunc} class does. It will extract the argument and 
+generate the corresponding, manually defined, SJSIR nodes.
+
+\paragraph{} Take for example the simple call \ktinline{js("Kotlin.identityHashCode")(3)}. The SJSIR translation of this call is shown in figure \ref{js_fun_example}.
+
+\begin{figure}[h]
+  \begin{minted}[linenos, frame=leftline]{scala}
+  mod:jl_System$.identityHashCode__O__I(3);
+  \end{minted}
+  \caption{The translation of a call to the Kotlin \ktinline{js} function}
+  \label{js_fun_example}
+\end{figure}
+
+\subsection{Related files} The main source files involved in the translation of the Kotlin js 
+function are the following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenCall.scala} (look for \ktinline{GenJsFunc} usage)
+ \item \scalainline{translate/GenJsFunc.scala}
+\end{itemize}
+
+\paragraph{Test files} The test file verifying that the specific use cases of the js() function 
+behaves as expected is the following.
+
+\begin{itemize}
+ \item \ktinline{TestJsFunc.kt}
+\end{itemize}
+
+\section{Null safety operators} \label{null_safety}
+
+\paragraph{} The safe call operator \ktinline{?.}, the not-null assertion operator \ktinline{!!} 
+and the elvis operator \ktinline{?:} were introduced during this project. This required a refined 
+mapping between Kotlin and Scala.js types. In short, Kotlin nullable primitive types are now mapped to 
+their matching Java boxed type. All mappings can be found in the \scalainline{utils/Utils.scala} 
+source file.
+
+\paragraph{Safe call operator \ktinline{?.}} When encountering safe calls, the Kotlin compiler wraps them inside JavaScript conditional operators. In the case of the Kotlin to Scala.js compiler, this wrapping is translated using a temporary variable and \scalainline{if} statements. An example is presented in figure \ref{safe_call_example} with its corresponding sjsir representation in figure \ref{safe_call_example_ir}.
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun dummy() {
+    var a: String? = null
+    a?.toString()
+  }
+  \end{minted}
+  \caption{A safe call on a string value}
+  \label{safe_call_example}
+\end{figure}
+
+\begin{figure}[h]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def dummy__V() {
+    var a: T = null;
+    val tmp$1: T = a;
+    if ((tmp$1 !== null)) {
+      tmp$1.length__I()
+    } else {
+      null
+    }
+  }
+  \end{minted}
+  \caption{The safe call operator translation matching example \ref{safe_call_example}}
+  \label{safe_call_example_ir}
+\end{figure}
+
+\paragraph{Not-null assertion operator \ktinline{!!}} This operator is translated by the compiler 
+as a not-null assertion. This means that a null check is performed in the same way as for the safe 
+call operator. However, if it is used on a null expression then a \ktinline{NullPointerException} will be 
+thrown. This is illustrated with an example in figure \ref{npe_assertion} and its corresponding SJSIR equivalent in figure \ref{npe_assertion_ir}.
+
+
+\begin{figure}[H]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun dummy() {
+      var a: String? = null
+      a!!
+  }
+  \end{minted}
+  \caption{A not-null assertion on a string value}
+  \label{npe_assertion}
+\end{figure}
+
+
+\begin{figure}[H]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def dummy__V() {
+    var a: T = null;
+    val tmp$1: T = a;
+    if ((tmp$1 !== null)) {
+      tmp$1
+    } else {
+      throw new jl_NullPointerException().init___()
+    }
+  }
+  \end{minted}
+  \caption{The not-null assertion operator translation matching example \ref{npe_assertion}}
+  \label{npe_assertion_ir}
+\end{figure}
+
+\paragraph{Elvis operator \ktinline{?:}} This operator follows the same logic as previous 
+operators. It allows to return a default value if the expression on its left hand side 
+evaluates to null. An example and its resulting SJSIR translation are provided in figures \ref{elvis_operator_example} and \ref{elvis_operator_example_ir}.
+
+\begin{figure}[H]
+  \begin{minted}[linenos,frame=leftline]{kotlin}
+  fun dummy() {
+    var a: String? = null
+    a ?: "Hello World"
+  }
+  \end{minted}
+  \caption{Providing a default value on a string value}
+  \label{elvis_operator_example}
+\end{figure}
+
+\begin{figure}[H]
+  \begin{minted}[linenos,frame=leftline]{scala}
+  def dummy__V() {
+    var a: T = null;
+    val tmp$1: T = a;
+    if ((tmp$1 !== null)) {
+      tmp$1
+    } else {
+      ("" +[string] "Hello World")
+    }
+  }
+  \end{minted}
+  \caption{The elvis operator translation matching example \ref{elvis_operator_example}}
+  \label{elvis_operator_example_ir}
+\end{figure}
+
+
+\subsection{Related files} The files related to the implementation of these three operators are the 
+following.
+
+\begin{itemize}
+ \item \scalainline{translate/GenExpr.scala} (look for \ktinline{KtSafeQualifiedExpression} in the 
+match)
+ \item \scalainline{translate/GenExprUtils.scala} (look for the \ktinline{isSafe} variable)
+ \item \scalainline{translate/GenBinary.scala} (look for the \ktinline{translateElvis} method)
+ \item \scalainline{translate/GenUnary.scala} (look for the \ktinline{EXCLEXCL} token)
+\end{itemize}
+
+\paragraph{Test files} The test file verifying that the behavior of these operators works as 
+expected is as follows.
+
+\begin{itemize}
+ \item \ktinline{TestNullable.kt}
+\end{itemize}

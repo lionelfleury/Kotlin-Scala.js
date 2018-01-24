@@ -13,6 +13,8 @@ object Test {
     }
 }
 
-fun main(args: Array<String>) {
-    Test.main()
+object TestGenParentConstructor {
+    fun main(args: Array<String>) {
+        Test.main()
+    }
 }

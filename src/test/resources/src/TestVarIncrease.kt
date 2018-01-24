@@ -5,7 +5,7 @@ object Up {
 class Down(var b : Int) {
 }
 
-object Test {
+object MyTestObj {
     var outter = 15
 
     fun main() {
@@ -14,19 +14,23 @@ object Test {
         sum += 15
         println(sum)
 
-        Test.outter = sum + 15
-        Test.outter += 15
+        MyTestObj.outter = sum + 15
+
+        MyTestObj.outter += 15
         Up.other = 16
 
         a.b = 6
 
         println(Up.other)
-        println(Test.outter)
+        println(MyTestObj.outter)
         println(outter)
         println(a.b)
+
     }
 }
 
-fun main(args: Array<String>) {
-    Test.main()
+object TestVarIncrease {
+    fun main(args: Array<String>) {
+        MyTestObj.main()
+    }
 }

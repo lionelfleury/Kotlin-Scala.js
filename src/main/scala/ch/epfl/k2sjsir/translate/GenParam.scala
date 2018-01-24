@@ -11,13 +11,12 @@ import org.scalajs.core.ir.Trees
 import org.scalajs.core.ir.Trees.{Ident, ParamDef}
 import org.scalajs.core.ir.Types.AnyType
 
-case class GenParam(d: KtParameter)(implicit val c: TranslationContext) extends Gen[KtParameter] {
+case class GenParam(d: KtParameter)(implicit val c: TranslationContext) extends IRNodeGen[KtParameter, ParamDef] {
 
-  override def tree: Trees.Tree = {
-    val name = Ident(d.getName)
-    val ptpe = BindingUtils.getDescriptorForElement(c.bindingContext(), d).asInstanceOf[VariableDescriptor]
-    val tpe = ptpe.getType.toJsType
-    ParamDef(name, tpe, d.isMutable, rest = false)
+  override def tree: ParamDef = {
+    val paramDesc = BindingUtils.getDescriptorForElement(c.bindingContext(), d).asInstanceOf[VariableDescriptor]
+    val tpe = paramDesc.getType.toJsType
+    ParamDef(paramDesc.toJsIdent, tpe, d.isMutable, rest = false)
   }
 
 }
